@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superellipse Demo</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f0f0f0;
+            margin: 2rem;
+        }
+        .controls {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .controls label {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        button {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        button:hover {
+            transform: scale(1.02);
+        }
+        .demo-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .demo-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        #demoBtn {
+            width: 300px;
+            height: 120px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .mode-buttons {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .mode-buttons button {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            background: #ddd;
+            color: #333;
+            box-shadow: none;
+        }
+        .mode-buttons button.active {
+            background: #667eea;
+            color: white;
+        }
+        #pathDisplay {
+            /*background: #f4f4f4;*/
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>Superellipse Demo</h1>
+    <div class="controls">
+        <label>
+            Radius (px):
+            <input type="range" id="radius" min="0" max="100" value="30">
+            <span id="radiusVal">30</span>
+        </label>
+        <label>
+            Curve Factor:
+            <input type="range" id="curveFactor" min="-2" max="2" step="0.01" value="1">
+            <span id="curveVal">1</span>
+        </label>
+        <label>
+            Mode:
+            <select id="modeSelect">
+                <option value="svg-layer">SVG Layer (preserves content)</option>
+                <option value="clip-path">Clip Path (simple)</option>
+            </select>
+        </label>
+        <button id="resetBtn">Reset</button>
+        <button id="destroyBtn">Destroy</button>
+    </div>
+
+    <div class="demo-area">
+        <div class="demo-card">
+            <button id="demoBtn">Superellipse Button</button>
+            <div class="mode-buttons">
+                <button data-mode="svg-layer" class="active">SVG Layer</button>
+                <button data-mode="clip-path">Clip Path</button>
+            </div>
+        </div>
+    </div>
+
+    <h3>Current path (d attribute):</h3>
+    <div id="pathDisplay"></div>
+
+
+    <script src="../dist/superellipse.js"></script>
+    <script src="demo.js"></script>
+</body>
+</html>
