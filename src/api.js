@@ -1,22 +1,22 @@
 import { SuperellipseController } from './controller.js';
 
-const controllers = new WeakMap();
+export const jsse_controllers = new WeakMap(); // экспортируем
 
 // Геттер для доступа к контроллеру через element.superellipse
 Object.defineProperty(Element.prototype, 'superellipse', {
     get() {
-        return controllers.get(this);
+        return jsse_controllers.get(this);
     }
 });
 
 // Метод инициализации на элементе
 Element.prototype.superellipseInit = function(options) {
-    let controller = controllers.get(this);
+    let controller = jsse_controllers.get(this);
     if (controller) {
         controller.destroy();
     }
     controller = new SuperellipseController(this, options);
-    controllers.set(this, controller);
+    jsse_controllers.set(this, controller);
     return this; // для цепочек
 };
 

@@ -2,125 +2,88 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Superellipse Demo</title>
-    <style>
-        body {
-            font-family: system-ui, sans-serif;
-            background: #f0f0f0;
-            margin: 2rem;
-        }
-        .controls {
-            margin-bottom: 2rem;
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .controls label {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-        }
-        button {
-            padding: 1rem 2rem;
-            font-size: 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        button:hover {
-            transform: scale(1.02);
-        }
-        .demo-area {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-        .demo-card {
-            background: white;
-            padding: 1rem;
-            border-radius: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        #demoBtn {
-            width: 300px;
-            height: 120px;
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-        .mode-buttons {
-            margin-top: 1rem;
-            display: flex;
-            gap: 0.5rem;
-        }
-        .mode-buttons button {
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
-            background: #ddd;
-            color: #333;
-            box-shadow: none;
-        }
-        .mode-buttons button.active {
-            background: #667eea;
-            color: white;
-        }
-        #pathDisplay {
-            /*background: #f4f4f4;*/
-            padding: 1rem;
-            border-radius: 0.5rem;
-            overflow-x: auto;
-            font-size: 0.8rem;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Superellipse | Гибкие формы для UI</title>
+    <link rel="stylesheet" href="demo.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Superellipse Demo</h1>
-    <div class="controls">
-        <label>
-            Radius (px):
-            <input type="range" id="radius" min="0" max="100" value="30">
-            <span id="radiusVal">30</span>
-        </label>
-        <label>
-            Curve Factor:
-            <input type="range" id="curveFactor" min="-2" max="2" step="0.01" value="1">
-            <span id="curveVal">1</span>
-        </label>
-        <label>
-            Mode:
-            <select id="modeSelect">
-                <option value="svg-layer">SVG Layer (preserves content)</option>
-                <option value="clip-path">Clip Path (simple)</option>
-            </select>
-        </label>
-        <button id="resetBtn">Reset</button>
-        <button id="destroyBtn">Destroy</button>
-    </div>
+    <main class="container">
+        <header class="hero">
+            <h1>✨ Superellipse <span class="accent">Shape Engine</span></h1>
+            <p class="subtitle">Создавайте плавные, органичные границы с математической точностью</p>
+        </header>
 
-    <div class="demo-area">
-        <div class="demo-card">
-            <button id="demoBtn">Superellipse Button</button>
-            <div class="mode-buttons">
-                <button data-mode="svg-layer" class="active">SVG Layer</button>
-                <button data-mode="clip-path">Clip Path</button>
+        <!-- Панель управления (только слайдеры и сброс) -->
+        <div class="controls-card">
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label>
+                        <span class="label-text">📐 Радиус скругления</span>
+                        <div class="slider-wrapper">
+                            <input type="range" id="radius" min="0" max="100" value="30" step="1">
+                            <span id="radiusVal" class="value-badge">30px</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label>
+                        <span class="label-text">🌀 Кривизна (n)</span>
+                        <div class="slider-wrapper">
+                            <input type="range" id="curveFactor" min="-2" max="2" step="0.01" value="1">
+                            <span id="curveVal" class="value-badge">1.00</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="action-buttons">
+                    <button id="resetBtn" class="btn btn-secondary">⟳ Сбросить</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <h3>Current path (d attribute):</h3>
-    <div id="pathDisplay"></div>
+        <!-- Демонстрационная зона -->
+        <div class="demo-area">
+            <div class="demo-card">
+                <div class="card-header">
+                    <span class="chip">Интерактив</span>
+                    <span class="chip">Прямая манипуляция</span>
+                </div>
+                <button id="demoBtn" class="super-button">✨ Суперэллипс ✨</button>
+                <div class="mode-buttons">
+                    <button data-mode="svg-layer" class="mode-btn active">🎯 SVG-слой</button>
+                    <button data-mode="clip-path" class="mode-btn">✂️ Clip-path</button>
+                    <button data-mode="none" id="destroyBtn" class="mode-btn">◻️ Без эффекта</button>
+                </div>
+                <p class="hint">Нажмите на кнопку — форма меняется динамически</p>
+            </div>
+        </div>
 
+        <!-- Техническая информация -->
+        <div class="path-section">
+            <div class="section-header">
+                <h3>📐 SVG path (d‑атрибут)</h3>
+                <button id="copyPathBtn" class="btn-icon" title="Скопировать путь">📋</button>
+            </div>
+            <div id="pathDisplay" class="path-monospace"></div>
+        </div>
+    </main>
 
     <script src="../dist/superellipse.js"></script>
     <script src="demo.js"></script>
+    <script>
+        // Простой copy to clipboard для красоты (не ломает логику)
+        const copyBtn = document.getElementById('copyPathBtn');
+        const pathDisplay = document.getElementById('pathDisplay');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+                const pathText = pathDisplay.innerText;
+                if (pathText && pathText !== '—') {
+                    navigator.clipboard.writeText(pathText);
+                    copyBtn.textContent = '✅';
+                    setTimeout(() => copyBtn.textContent = '📋', 1500);
+                }
+            });
+        }
+    </script>
 </body>
 </html>

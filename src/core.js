@@ -1,19 +1,50 @@
 /**
- * Генерация пути для суперэллипса (v4)
+ * Модуль генерации SVG-пути для суперэллипса с регулируемой формой углов.
+ * Основан на аппроксимации суперэллипса кубическими кривыми Безье.
+ *
+ * @module f4n70m/sj-superellipse
+ * @since 1.0.0
+ * @version 1.0.0
+ * @author F4N70M
+ * @license MIT
+ *
+ * @see {@link https://en.wikipedia.org/wiki/Superellipse|Суперэллипс на Wikipedia}
+ * @see {@link https://github.com/F4N70M/js-superellipse|f4n70m/sj-superellipse}
+ *
+ * @example
+ * const path = jsse_generateSuperellipsePath(200, 150, 30, 1.2);
+ * document.querySelector('path').setAttribute('d', path);
  */
 
 /**
- * Округление числа с заданной точностью
+ * Округляет число до заданного количества знаков после запятой.
+ *
+ * @param {number} value - Исходное число.
+ * @param {number} [precision=2] - Количество знаков после запятой (по умолчанию 2).
+ * @returns {number} Округлённое число.
  */
-export function round(value, precision = 2) {
+export function jsse_roundf(value, precision = 2) {
     const factor = 10 ** precision;
-    return Math.round(value * factor) / factor;
+    return (Math.round(value * factor) / factor).toFixed(precision);
 }
 
 /**
- * Вычисляет D2 второй кривой по размахам и D1
+ * Вычисляет параметр D2 для второй кривой Безье, обеспечивая касание
+ * центра первой кривой с центром второй.
+ *
+ * В контексте суперэллипса параметры L (размах) и D (отклонение контрольных точек)
+ * описывают форму кубической кривой Безье, используемой для построения углов.
+ * Зная эталонную пару (L1, D1) и желаемый размах L2, функция находит такое D2,
+ * при котором центральная точка второй кривой будет лежать на касательной,
+ * проведённой из центра первой кривой (обеспечивается гладкое соединение).
+ *
+ * @param {number} L1 - Размах эталонной кривой Безье.
+ * @param {number} D1 - Отклонение контрольных точек эталонной кривой.
+ * @param {number} L2 - Размах целевой кривой Безье.
+ * @returns {number} Вычисленное значение D2, ограниченное сверху 1.
+ * @throws {Error} Если L2 близко к нулю.
  */
-function getD2FromL1D1L2(L1, D1, L2) {
+function jsse_getD2FromL1D1L2(L1, D1, L2) {
     if (Math.abs(L2) < 1e-10) {
         throw new Error('L2 не может быть нулевым');
     }
@@ -22,11 +53,46 @@ function getD2FromL1D1L2(L1, D1, L2) {
 }
 
 /**
- * Основная функция генерации path
+ * 
  */
-export function generateSuperellipsePath(width, height, radius, curveFactor, precision = 2) {
+export function jsse_getBorderRadiusFactor() {
+    return (4 / 3) * (Math.sqrt(2) - 1);
+}
+
+/**
+ * 
+ * Основная функция генерации SVG path для суперэллипса с изменяемой формой углов.
+ * Форма углов определяется параметром curveFactor (от -2 до 2):
+ *   -2 : вогнутые прямоугольные углы
+ *   -G : вогнутые круглые углы (G = (4/3)*(√2-1) ≈ 0.5523)
+ *    0 : прямой скос
+ *    G : выпуклые круглые углы
+ *    1 : выгнутые суперэллипсные углы
+ *    2 : выгнутые прямоугольные углы
+ * 
+ * Функция генерирует непрерывный спектр форм от вогнутых прямоугольных (-2) до выгнутых прямоугольных (2), проходя через скос (0), круглые углы (±G) и суперэллипсные (1); 
+ * где G = (4/3)*(√2-1) ≈ 0.5522847498 — константа, при которой кривые Безье аппроксимируют четверть окружности.
+ * Благодаря использованию кубических кривых Безье и тщательно подобранной интерполяции достигается плавное изменение геометрии при любом curveFactor в заданном диапазоне.
+ * 
+ * @param {number} width  - Ширина фигуры.
+ * @param {number} height - Высота фигуры.
+ * @param {number} radius - Радиус скругления углов (будет автоматически ограничен).
+ * @param {number} curveFactor - Коэффициент формы углов, диапазон [-2, 2].
+ * @param {number} [precision=2] - Количество знаков после запятой в координатах.
+ * @returns {string} Строка с SVG-командами для элемента <path>.
+ * @throws {Error} Если при вычислениях возникает деление на ноль (маловероятно при корректных параметрах).
+ * 
+ */
+export function jsse_generateSuperellipsePath(width, height, radius, curveFactor, precision = 2) {
+    console.log(width, height, radius, curveFactor, precision);
+    if (width <= 0 || height <= 0) {
+        return "M0,0";  // или "M0,0" – пустой путь
+    }
+    if (typeof radius !== 'number' || isNaN(radius)) {
+        radius = 0;
+    }
     // константа идеальной окружности
-    const G = (4 / 3) * (Math.sqrt(2) - 1);
+    const G = jsse_getBorderRadiusFactor();
     // константа максимальной L при D == 1
     const J = 8 - 4 * Math.sqrt(2);
 
@@ -62,9 +128,9 @@ export function generateSuperellipsePath(width, height, radius, curveFactor, pre
         let Rk1y = ryMax / ry;
         let Lk1x = (kSign > 0) ? Math.min(Rk1x, J) : 1;
         let Lk1y = (kSign > 0) ? Math.min(Rk1y, J) : 1;
-        let Dk1x = getD2FromL1D1L2(R, G, Lk1x);
+        let Dk1x = jsse_getD2FromL1D1L2(R, G, Lk1x);
         Dk1x = Math.min(Dk1x, 1);
-        let Dk1y = getD2FromL1D1L2(R, G, Lk1y);
+        let Dk1y = jsse_getD2FromL1D1L2(R, G, Lk1y);
         Dk1y = Math.min(Dk1y, 1);
         let Jk1x = (1 / J) * Lk1x;
         let Jk1y = (1 / J) * Lk1y;
@@ -80,8 +146,8 @@ export function generateSuperellipsePath(width, height, radius, curveFactor, pre
         if (kValue <= G) {
             Dix = Diy = kValue;
         } else {
-            let Dlix = getD2FromL1D1L2(R, G, Lix);
-            let Dliy = getD2FromL1D1L2(R, G, Liy);
+            let Dlix = jsse_getD2FromL1D1L2(R, G, Lix);
+            let Dliy = jsse_getD2FromL1D1L2(R, G, Liy);
             if (kValue <= 1) {
                 Dix = Dlix;
                 Diy = Dliy;
@@ -93,8 +159,8 @@ export function generateSuperellipsePath(width, height, radius, curveFactor, pre
 
                 let Lsx = Lix + (J - Lix) * Jix;
                 let Lsy = Liy + (J - Liy) * Jiy;
-                let Dlsx = getD2FromL1D1L2(R, G, Lsx);
-                let Dlsy = getD2FromL1D1L2(R, G, Lsy);
+                let Dlsx = jsse_getD2FromL1D1L2(R, G, Lsx);
+                let Dlsy = jsse_getD2FromL1D1L2(R, G, Lsy);
                 Dix = Math.min(Dlsx, 1);
                 Diy = Math.min(Dlsy, 1);
 
@@ -170,7 +236,7 @@ export function generateSuperellipsePath(width, height, radius, curveFactor, pre
     // Применяем масштабирование и округление
     const path = pathCommands.map(p => {
         if (typeof p === 'number') {
-            return round(p * Qm, precision);
+            return jsse_roundf(p * Qm, precision);
         }
         return p;
     }).join(' ');
