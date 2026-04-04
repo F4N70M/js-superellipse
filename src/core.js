@@ -84,7 +84,6 @@ export function jsse_getBorderRadiusFactor() {
  * 
  */
 export function jsse_generateSuperellipsePath(width, height, radius, curveFactor, precision = 2) {
-    console.log(width, height, radius, curveFactor, precision);
     if (width <= 0 || height <= 0) {
         return "M0,0";  // или "M0,0" – пустой путь
     }

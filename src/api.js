@@ -47,3 +47,6 @@ export function superellipseInit(target, options) {
         throw new Error('superellipseInit: первый аргумент должен быть селектором, элементом или коллекцией элементов');
     }
 }
+if (typeof window !== 'undefined') {
+    window.superellipseInit = superellipseInit;
+}

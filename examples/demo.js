@@ -6,100 +6,135 @@ const curveVal = document.getElementById('curveVal');
 const resetBtn = document.getElementById('resetBtn');
 const pathDisplay = document.getElementById('pathDisplay');
 const modeBtns = document.querySelectorAll('.mode-btn');
+const enableToggle = document.getElementById('enableToggle');
+const copyBtn = document.getElementById('copyPathBtn');
 
-let currentOptions = {
-    radius: 30,
-    curveFactor: 1,
-    mode: 'svg-layer'
-};
-
-// Обновление отображения пути
-function updatePathDisplay() {
-    if (btn.superellipse) {
-        pathDisplay.textContent = btn.superellipse.getPath();
-    } else {
-        pathDisplay.textContent = '';
-    }
-}
-
-// Применение текущих настроек к элементу
-function applyCurrentOptions() {
-    if (currentOptions.mode === 'none') {
-        if (btn.superellipse) {
-            btn.superellipse.destroy();
-        }
-        updatePathDisplay();
-        return;
-    }
-
-    // Если контроллер уже существует и режим совпадает — обновляем параметры
-    if (btn.superellipse && btn.superellipse.getCurrentMode() === currentOptions.mode) {
-        btn.superellipse.setRadius(currentOptions.radius);
-        btn.superellipse.setCurveFactor(currentOptions.curveFactor);
-    } else {
-        // Иначе создаём новый контроллер с текущими опциями
-        btn.superellipseInit(currentOptions);
-    }
-    updatePathDisplay();
-}
-
-// Синхронизация активного класса у кнопок режимов
-function syncModeUI() {
-    modeBtns.forEach(btnMode => {
-        const mode = btnMode.getAttribute('data-mode');
-        if (mode === currentOptions.mode) {
-            btnMode.classList.add('active');
-        } else {
-            btnMode.classList.remove('active');
-        }
-    });
-}
-
-// Обработчики кнопок режимов
-modeBtns.forEach(modeBtn => {
-    modeBtn.addEventListener('click', () => {
-        const newMode = modeBtn.getAttribute('data-mode');
-        if (newMode === currentOptions.mode) return;
-        currentOptions.mode = newMode;
-        applyCurrentOptions();
-        syncModeUI();
-    });
+const cards = document.querySelectorAll('.card');
+window.superellipseInit(cards, {
+	curveFactor: 1,
+	precision: 2
 });
 
-// Обработчики слайдеров
+let currentMode;
+let currentCurve = 1;
+let currentRadius = 30;
+
+// Инициализация контроллера (один раз)
+function initController() {
+	btn.superellipseInit({
+		curveFactor: currentCurve,
+		precision: 2
+	});
+	// applyRadius(); // радиус применится, библиотека его перехватит
+	updatePathDisplay();
+}
+
+// // Применяем настройки к кнопке напрямую
+function applyRadius() {
+	btn.style.borderRadius = currentRadius + 'px';
+}
+
+function updatePathDisplay() {
+	if (btn.superellipse && btn.superellipse.getPath) {
+		pathDisplay.textContent = btn.superellipse.getPath();
+	} else {
+		pathDisplay.textContent = '—';
+	}
+}
+
+function applyCurve() {
+	btn.superellipse.setCurveFactor(currentCurve);
+	updatePathDisplay();
+}
+
+// Смена режима
+function switchMode(mode) {
+	currentMode = mode;
+	btn.superellipse.switchMode(currentMode);
+	updatePathDisplay();
+}
+
+// Включение/выключение
+function setEnabled(enabled) {
+	console.log(`[demo.js] setEnabled: enabled ${enabled}`);
+	if (enabled) {
+		btn.superellipse.enable();
+	} else {
+		btn.superellipse.disable();
+	}
+	updatePathDisplay();
+}
+
+enableToggle.addEventListener('change', () => {
+	setEnabled(enableToggle.checked);
+});
+
+// // Обработчики событий
 radiusSlider.addEventListener('input', () => {
-    currentOptions.radius = parseInt(radiusSlider.value, 10);
-    radiusVal.textContent = currentOptions.radius;
-    if (btn.superellipse && currentOptions.mode !== 'none') {
-        btn.superellipse.setRadius(currentOptions.radius);
-        updatePathDisplay();
-    } else if (currentOptions.mode !== 'none') {
-        applyCurrentOptions();
-    }
+	currentRadius = parseInt(radiusSlider.value, 10);
+	radiusVal.textContent = currentRadius;
+	applyRadius();
+	updatePathDisplay();
 });
 
 curveSlider.addEventListener('input', () => {
-    currentOptions.curveFactor = parseFloat(curveSlider.value);
-    curveVal.textContent = currentOptions.curveFactor.toFixed(2);
-    if (btn.superellipse && currentOptions.mode !== 'none') {
-        btn.superellipse.setCurveFactor(currentOptions.curveFactor);
-        updatePathDisplay();
-    } else if (currentOptions.mode !== 'none') {
-        applyCurrentOptions();
-    }
+	currentCurve = parseFloat(curveSlider.value);
+	curveVal.textContent = currentCurve.toFixed(2);
+	applyCurve();
+	updatePathDisplay();
 });
 
-// Сброс
+modeBtns.forEach(btnMode => {
+	btnMode.addEventListener('click', () => {
+		const mode = btnMode.getAttribute('data-mode');
+		if (mode === currentMode) return;
+		// обновляем активный класс
+		modeBtns.forEach(b => b.classList.remove('active'));
+		btnMode.classList.add('active');
+		switchMode(mode);
+	});
+});
+
 resetBtn.addEventListener('click', () => {
-    radiusSlider.value = '30';
-    curveSlider.value = '1';
-    currentOptions = { radius: 30, curveFactor: 1, mode: 'svg-layer' };
-    radiusVal.textContent = '30';
-    curveVal.textContent = '1.00';
-    applyCurrentOptions();
-    syncModeUI();
+	setEnabled(false);
+
+	currentRadius = 30;
+	radiusSlider.value = currentRadius;
+	radiusVal.textContent = currentRadius;
+	applyRadius();
+
+	currentCurve = 1;
+	curveSlider.value = 1;
+	curveVal.textContent = '1.00';
+	applyCurve();
+
+	// if (enableToggle.checked === false) {
+		enableToggle.checked = true;
+		setEnabled(true);
+	// }
+
+	currentMode = 'svg-layer';
+	// сброс активного режима
+	modeBtns.forEach(b => {
+		if (b.getAttribute('data-mode') === currentMode) b.classList.add('active');
+		else b.classList.remove('active');
+	});
+	switchMode(currentMode);
+
+	updatePathDisplay();
 });
 
-// Инициализация
-applyCurrentOptions();
-syncModeUI();
+// Копирование пути
+if (copyBtn) {
+	copyBtn.addEventListener('click', () => {
+		const text = pathDisplay.innerText;
+		if (text && text !== '—') {
+			navigator.clipboard.writeText(text);
+			copyBtn.textContent = '✅';
+			setTimeout(() => copyBtn.textContent = '📋', 1500);
+		}
+	});
+}
+
+// Старт
+initController();

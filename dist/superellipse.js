@@ -4,6 +4,13 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Superellipse = {}));
 })(this, (function (exports) { 'use strict';
 
+    // src/styles-cache.js
+
+    /**
+     * Глобальный кэш отслеживания стилей
+     */
+    const jsse_styles = new WeakMap();
+
     /**
      * Модуль генерации SVG-пути для суперэллипса с регулируемой формой углов.
      * Основан на аппроксимации суперэллипса кубическими кривыми Безье.
@@ -90,7 +97,6 @@
      * 
      */
     function jsse_generateSuperellipsePath(width, height, radius, curveFactor, precision = 2) {
-        console.log(width, height, radius, curveFactor, precision);
         if (width <= 0 || height <= 0) {
             return "M0,0";  // или "M0,0" – пустой путь
         }
@@ -248,311 +254,620 @@
         return path;
     }
 
-    // src/controller.js
+    // src/modes.js
 
-    // Глобальный кэш отслеживания стилей
-    const superellipseStyleTracking = new WeakMap();
+    class SuperellipseMode {
 
-    // Управляемые свойства
-    // const JSSE_MANAGED_PROPERTIES = ['border-radius', 'background', 'background-color', 'background-image', 'border', 'box-shadow', 'position'];
-    // const JSSE_MANAGED_PROPERTIES = ['border-radius', 'background', 'border', 'box-shadow', 'position'];
-    // const JSSE_MANAGED_PROPERTIES = ['borderRadius', 'background', 'backgroundColor', 'backgroundImage', 'border', 'boxShadow', 'position'];
+    	_element;
+    	_isActivated;
 
-    class SuperellipseController
-    {
-    	#mode;
-    	#precision; // Количество знаков после запятой
-    	#curveFactor;
-    	#status;	// current mode is enabled
-    	#autoResize;
-    	#sizes;
-    	#path;
-    	
-    	#options
-
-    	#element;
-    	#svgLayer;
-    	#contentWrapper;
-    	
-    	#needsUpdate;
-    	
-    	#resizeObserver;
-    	#mutationObserver;
-    	#removalObserver;
-    	#intersectionObserver;
-
-    	#resetStyles = {
-    		'border-radius': '0',
-    		'background': 'unset',
-    		'border': 'unset',
-    		'box-shadow': 'unset',
+    	_size = {
+    		width:  0,
+    		height: 0
     	};
+    	_curveFactor;
+    	_precision;
+
+    	_styles;
+
+    	_path;
+    	_resetPath;
+
+
+
 
     	/**
     	 * =============================================================
-    	 * Основные методы
+    	 * PUBLIC
     	 * =============================================================
     	 */
 
-    	/**
-    	 * public switchMode
-    	 * 
-    	 * @return {bool}
-    	 */
-    	switchMode(mode) {
-    		if (mode === this.getCurrentMode())
-    			return true;
 
-    		this.#disableMode();
+    	constructor(element) {
+    		this._element = element;
+    		this._curveFactor = jsse_getBorderRadiusFactor();
+    		this._precision = 2;
+    		this._isActivated = false;
 
-    		this.#setCurrentMode(mode);
-    		return this.#enableMode();
+    		this._init();
     	}
 
-    	/**
-    	 * public destroy
-    	 */
-    	destroy() {
-    		this.#destroyController();
+    	activate() {
+    		if (this.isActivated()) return;
+
+    		// Установить статус
+    		this._isActivated = true;
+    		// Подготовить к активации
+    		this._captureStyles();
+    		this._recalculateCurve();
+    		// Применить Стили и кривую
+    		this._applyCurrentInlineStyles();
+    		this._applyCurrentCurve();
+    	}
+    	deactivate() {
+    		if (!this.isActivated()) return;
+
+    		// Установить статус
+    		this._isActivated = false;
+    		// Применить Стили и кривую
+    		this._applyCurrentInlineStyles();
+    		this._applyCurrentCurve();
     	}
 
-    	/**
-    	 * public setCurveFactor
-    	 * 
-    	 * @return {bool}
-    	 */
-    	setCurveFactor(value) {
-    		this.#curveFactor = value;
-    		this.#applyModeStyles();
-    		this.#applyCurve();
+    	update() {
+    		this._captureStyles();
+    		this._captureSize();
+    		this._recalculateCurve();
+    		this._applyCurrentInlineStyles();
+    		this._applyCurrentCurve();
     	}
 
-    	/**
-    	 * public setCurveFactor
-    	 * 
-    	 * @return {bool}
-    	 */
-    	setPrecision(value) {
-    		this.#precision = value;
-    		this.#applyModeStyles();
-    		this.#applyCurve();
+    	updateSize(update = true) {
+    		this._captureSize();
+    		if (update) {
+    			this._recalculateCurve();
+    			this._applyCurrentCurve();
+    		}
     	}
 
-    	
-    	
+    	updateStyles(update = true) {
+    		this._captureStyles();
+    		if (update) {
+    			this._recalculateCurve();
+    			this._applyCurrentInlineStyles();
+    			this._applyCurrentCurve();
+    		}
+    	}
+
+    	setCurveFactor(value, update = true) {
+    		this._curveFactor = value;
+    		if (update) {
+    			this._recalculateCurve();
+    			this._applyCurrentCurve();
+    		}
+    	}
+
+    	setPrecision(value, update = true) {
+    		this._precision = value;
+    		if (update) {
+    			this._recalculateCurve();
+    			this._applyCurrentCurve();
+    		}
+    	}
+
+    	getPath() {
+    		return this._path;
+    	}
+
+    	isActivated() {
+    		return this._isActivated;
+    	}
+
 
     	/**
     	 * =============================================================
-    	 * Controller
+    	 * PRIVATE
     	 * =============================================================
     	 */
 
-    	constructor(element, options = {}) {
-    		this.#element = element;
-    		this.#options = {
-    			mode: 'svg-layer',
-    			...options
+
+    	_init() {
+    		this._initStyles();
+    		this._initSize();
+    		this._initCurve();
+    	}
+
+    	_getResetStyles() {
+    		return {
+    			'border-radius': '0px'
     		};
-    		this.#mode = this.#options.mode;
-    		this.#curveFactor = this.#options.curveFactor ?? jsse_getBorderRadiusFactor();
-    		this.#precision = this.#options.precision ?? 2;
-    		this.#autoResize = this.#options.autoResize ?? true;
-
-    		this.#status = false;
-    		this.#needsUpdate = false;
-    		this.#svgLayer = null;
-    		this.#contentWrapper = null;
-    		// this.#lastPath = '';
-
-    		// Слушатели
-    		this.#resizeObserver = null;
-    		this.#mutationObserver = null;
-    		this.#removalObserver = null;
-    		this.#intersectionObserver = null;
-
-    		this.#init();
     	}
-
-    	/**
-    	 * 
-    	 */
-    	#init() {
-    		this.#captureSizes();
-    		this.#initStyles();
-    		this.#recalculatePath();
-    		this.#setupObservers();
-    		this.#initMode();
-    		// this.#applyModeStyles();
-    	}
-
-    	/**
-    	 * Метод уничтожения контроллера
-    	 */
-    	#destroyController() {
-    		this.#disconnectObservers();
-    		this.#disableMode();
-    			// this.#restoreOriginalContent(); // в #disableMode()
-    			// this.#restoreElementStyles(); // в #disableMode()
-    			// this.#clearClipPath(); // в #disableMode()
-    		this.#deleteFromControllers();
-    		this.#setModeStatus(false);
-    	}
-    	
 
     	/**
     	 * =============================================================
-    	 * Change Mode
+    	 * STYLES
     	 * =============================================================
     	 */
 
-    	#initMode() {
-    		this.#enableMode();
+    	_initStyles() {
+    		this._styles = jsse_styles.get(this._element);
+    		this._dropStyles();
     	}
 
-    	#disableMode() {
-    		this.#setModeStatus(false);
+    	_dropStyles() {
+    		this._styles.computed = {};	// вычисленные значения элемента
+    		this._styles.inline = {};	// inline значения элемента
+    		this._styles.reset = {}; 	// значения для расчета кривой и виртуальных элементов
+    	}
 
-    		switch ( this.	getCurrentMode() ) {
-    			case 'svg-layer':
-    				this.#disableSvgLayerMode();
-    				break;
-
-    			case 'clip-path':
-    				this.#disableClipPathMode();
-    					// this.#clearClipPath();
-    				break;
-
-    			default:
-    				return false;
+    	_captureStyles() {
+    		/** 1. Получить актуальные inline-стили **/
+    		// Получить актуальные очищенные inline
+    		const capturedInlineStyles = this._getClearCapturedInlineStyles();
+    		// Сохранить inline-стили
+    		this._styles.inline = capturedInlineStyles;
+    		/** 2. Вычислить актуальные computed-стили **/
+    		// Восстановить inline-стили
+    		if (this.isActivated()) {
+    			this._clearResetStyles();
     		}
-    		this.#restoreElementStyles();
-    		this.#resetCurve();
+    		// получить текущие computed-стили
+    		const capturedComputedStyles = this._getCapturedComputedStyles();
+    		// Сохранить computed-стили
+    		this._styles.computed = capturedComputedStyles;
+    		/** 3. Обновить reset-стили **/
+    		this._recalculateResetStyles();
+    		/** 4. Возвращение исходных inline-стилей **/
+    		this._applyInlineStyles(capturedInlineStyles, this._element);
+
     	}
 
-    	#enableMode() {
-    		this.#setModeStatus(true);
+    	_recalculateResetStyles() {
+    		this._styles.reset = {};
+    		const resetStyles = this._getResetStyles();
+    		for (const prop in resetStyles) {
+    			const computedValue = this._styles.computed[prop];
+    			const inlineValue = this._styles.inline[prop]; 
+    			const resetValue = resetStyles[prop];
 
-    		const mode = this.getCurrentMode();
-    		switch (mode) {
-    			case 'svg-layer':
-    				this.#enableSvgLayerMode();
-    				break;
-    			case 'clip-path':
-    				this.#enableClipPathMode();
-    				break;
-    			default:
-    				throw new Error(`Режима ${mode} не существует`);
+    			// Запомнить необходимые inline для сброса
+    			if (resetValue !== computedValue && resetValue !== inlineValue) {
+    				this._styles.reset[prop] = resetValue;
+    			}
     		}
-    		this.#applyModeStyles();
-    		this.#applyCurve();
-    		return true;
     	}
 
-    	#enableSvgLayerMode() {
-    		this.#wrapInner();
-    		this.#createSvgLayer();
-    		// this.#updateSvgLayerStyles();
-    		// this.#applySvgLayerModeStyles();
+    	_applyInlineStyles(props, element) {
+    		const managedProperties = this._getManagedProperties();
+    		for(const prop of managedProperties) {
+    			const inlineValue = props[prop];
+    			const currentValue = element.style.getPropertyValue(prop);
+    			if (inlineValue !== undefined) {
+    				if (currentValue !== inlineValue) {
+    					// console.log(`[DEBUG] _applyInlineStyles: setting ${prop} from "${currentValue}" to "${inlineValue}"`);
+    					element.style.setProperty(prop, inlineValue);
+    				}
+    			} else {
+    				if (currentValue !== '') {
+    					// console.log(`[DEBUG] _applyInlineStyles: removing ${prop} (was "${currentValue}")`);
+    					element.style.removeProperty(prop);
+    				}
+    			}
+    		}
     	}
 
-    	#disableSvgLayerMode() {
-    		this.#removeSvgLayer();
-    		this.#unwrapInner();
+    	_getCurrentInlineStyles() {
+    		const managedProperties = this._getManagedProperties();
+    		const result = {};
+    		for (const prop of managedProperties) {
+    			let inlineValue = this._styles.inline[prop];
+    			if (this.isActivated() && prop in this._styles.reset) {
+    				inlineValue = this._styles.reset[prop];
+    			}
+    			if (inlineValue !== undefined) {
+    				result[prop] = inlineValue;
+    			}
+    		}
+    		return result;
     	}
 
-    	#enableClipPathMode() {
-    		// На будущее
-    		// сейчас ничего дополнительного не делает
+    	_applyCurrentInlineStyles() {
+    		this._applyCurrentInlineElementStyles();
     	}
 
-    	#disableClipPathMode() {
-    		// На будущее
-    		// сейчас ничего дополнительного не делает
+    	_applyCurrentInlineElementStyles() {
+    		const inlineProps = this._getCurrentInlineStyles();
+    		this._applyInlineStyles(inlineProps, this._element);
     	}
 
-    	#applyModeStyles() {
-    		/** isNeedsUpdate **/
-    		const display = this.#getCapturedComputedStyles().display;
-    		if (display === 'none') {
-    			this.#needsUpdate = true;
+    	_applyResetStyles() {
+    		for(const prop in this._styles.reset) {
+    			const value = this._styles.reset[prop];
+    			this._element.style.setProperty(prop, value);
+    		}
+    	}
+    	_clearResetStyles() {
+    		for(const prop in this._styles.reset) {
+    			const inlineValue = this._styles.inline[prop];
+    			if (inlineValue !== undefined) {
+    				this._element.style.setProperty(prop, inlineValue);
+    			} else {
+    				this._element.style.removeProperty(prop);
+    			}
+    		}
+    	}
+
+    	_getClearCapturedInlineStyles() {
+    		// Получить текущие inline
+    		const result = this._getCapturedInlineStyles();
+    		// Очистить полученные inline от сброшенных режимом значений
+    		const managedProperties = this._getManagedProperties();
+    		for (const prop of managedProperties) {
+    			// если режим включен и значение совпадает с примененным reset
+    			if (this.isActivated() && prop in this._styles.reset && result[prop] === this._styles.reset[prop]) {
+    				if (prop in this._styles.inline) {
+    					result[prop] = this._styles.inline[prop];
+    				} else {
+    					delete result[prop];
+    				}
+    			}
+    			// иначе остается inline значение элемента
+    		}
+    		return result;
+    	}
+
+    	_getCapturedInlineStyles() {
+    		const result = {};
+    		const capturedStyles = this._element.style;
+    		for (const prop of this._getManagedProperties()) {
+    			const value = capturedStyles.getPropertyValue(prop);
+    			if (value !== '') result[prop] = value;
+    		}
+    		return result;
+    	}
+
+    	_getCapturedComputedStyles() {
+    		const result = {};
+    		const capturedStyles = getComputedStyle(this._element);
+    		for (const prop of this._getManagedProperties()) {
+    			result[prop] = capturedStyles.getPropertyValue(prop);
+    			// const value = capturedStyles.getPropertyValue(prop);
+    			// result[prop] = value !== '' ? value   : null;
+    		}
+    		return result;
+    	}
+
+    	_getManagedProperties() {
+    		return Object.keys(this._getResetStyles());
+    	}
+
+    	/**
+    	 * =============================================================
+    	 * SIZE
+    	 * =============================================================
+    	 */
+
+    	_initSize() {
+    		this._captureSize();
+    	}
+
+    	_captureSize() {
+    		const rect = this._element.getBoundingClientRect();
+
+    		this._size.width = rect.width;
+    		this._size.height = rect.height;
+    	}
+
+
+    	/**
+    	 * =============================================================
+    	 * CURVE
+    	 * =============================================================
+    	 */
+
+    	_initCurve() {
+    		this._initInlinePath();
+    	}
+
+    	_initInlinePath() {
+    		this._resetPath = this._element.style.getPropertyValue('clip-path');
+    	}
+
+    	_recalculateCurve() {
+    		this._recalculatePath();
+    	}
+
+    	_recalculatePath() {
+    		if ( !( this._size.width > 0 && this._size.height > 0 ) ) {
+    			this._path = 'none'; // Сбрасываем путь
     			return;
     		}
-    		this.#needsUpdate = false;
 
-    		if ( this.#getModeStatus() ) {			
-    			switch (this.getCurrentMode()) {
-    				case 'svg-layer':
-    					this.#applySvgLayerModeStyles();
-    					break;
+    		const radiusValue = this._styles.computed['border-radius'];
+    		const radiusNumber = radiusValue ? parseFloat(radiusValue) : 0;
 
-    				case 'clip-path':
-    					this.#applyClipPathModeStyles();
-    					break;
+    		this._path  = jsse_generateSuperellipsePath(
+    			this._size.width,
+    			this._size.height,
+    			radiusNumber,
+    			this._curveFactor,
+    			this._precision
+    		);
+    	}
+    	
+    	_applyCurrentCurve() {
+    		// console.log('[DEBUG]', '_applyCurrentCurve:', 'isActivated()', this.isActivated(), '_path', this._path);
+    		if (this.isActivated()) {
+    			this._applyCurve();
+    		} else {
+    			this._restoreCurve();
+    		}
+    	}
+    	
+    	_applyCurve() {
+    		if (this._path) {
+    			const newPath = `path("${this._path}")`;
+    			console.log('[DEBUG]', '_applyCurve:', 'newPath', newPath);
+    			// if (this._element.style.getPropertyValue('clip-path') !== newPath) {
+    				this._element.style.setProperty('clip-path', newPath);
+    			// }
+    		} else {
+    			// if (this._element.style.getPropertyValue('clip-path') !== 'none') {
+    				this._element.style.setProperty('clip-path', 'none');
+    			// }
+    		}
+    	}
+    	
+    	_restoreCurve() {
+    		if (this._resetPath) {
+    			this._element.style.setProperty('clip-path', this._resetPath);
+    		} else {
+    			this._element.style.removeProperty('clip-path');
+    		}
+    	}
 
-    				default:
-    					return false;
+
+    	/**
+    	 * =============================================================
+    	 * 
+    	 * =============================================================
+    	 */
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    /**
+     * 
+     * 
+     * 
+     */
+    class SuperellipseModeSvgLayer extends SuperellipseMode {
+
+    	_virtualElementList = {};
+
+    	_viewbox;
+
+
+
+
+    	/**
+    	 * =============================================================
+    	 * PUBLIC
+    	 * =============================================================
+    	 */
+
+    	constructor(element) {
+    		super(element);
+
+    		this._initViewbox();
+    		this._initVirtualElementList();
+    	}
+
+    	activate() {
+    		if (this.isActivated()) return;
+
+    		// Установить статус
+    		this._isActivated = true;
+    		// Подготовить к активации
+    		this._captureStyles();
+    		this._recalculateCurve();
+    		// Создать элементы виртуальных слоев
+    		this._createInnerWrapper();
+    		this._createSvgLayer();
+    		// Применить Стили и кривую
+    		this._applyCurrentInlineStyles();
+    		this._applyCurrentCurve();
+    	}
+    	deactivate() {
+    		if (!this.isActivated()) return;
+
+    		// Установить статус
+    		this._isActivated = false;
+    		// Удалить элементы виртуальных слоев
+    		this._removeInnerWrapper();
+    		this._removeSvgLayer();
+    		// Применить Стили и кривую
+    		this._applyCurrentInlineStyles();
+    		this._applyCurrentCurve();
+    	}
+
+
+    	/**
+    	 * =============================================================
+    	 * PRIVATE
+    	 * =============================================================
+    	 */
+
+
+    	_getResetStyles() {
+    		return {
+    			'border-radius': '0px',
+    			'background': 'unset',
+    			'border': 'unset',
+    			'box-shadow': 'unset',
+    			'position': 'relative',
+    		};
+    	}
+
+
+    	/**
+    	 * =============================================================
+    	 * STYLES
+    	 * =============================================================
+    	 */
+
+    	_applyCurrentInlineStyles() {
+    		this._applyCurrentInlineElementStyles();
+    		this._applyCurrentInlineVirtualSvgLayerStyles();
+    	}
+
+    	_applyCurrentInlineVirtualSvgLayerStyles() {
+    		const inlineProps = this._getCurrentInlineVirtualSvgLayerStyles();
+    		const svgLayer = this._virtualElementList.svgLayer;
+    		this._applyInlineStyles(inlineProps, svgLayer);
+    	}
+    	
+    	_getCurrentInlineVirtualSvgLayerStyles() {
+    		const managedProperties = this._getManagedProperties();
+    		const svgProps = this._getInliteSvgLayerStyles();
+    		const result = {};
+    		for (const prop of managedProperties) {
+    			
+    			if (this.isActivated() && prop in svgProps) {
+    				result[prop] = svgProps[prop];
+    				continue;
     			}
-    		}
-    	}
+    			// if (prop == 'border-radius') continue;
+    			// if (prop == 'position') continue;
 
-    	#applySvgLayerModeStyles() {
-    		this.#resetElementStyles();
-
-    		for (const prop of this.#getManagedProperties()) {
-    			const value = this.#getTrackedStyleCurrent(prop)?.computed;
-    			if (value !== null && value !== undefined) {
-    				this.#svgLayer.style.setProperty(prop, value);
+    			if (this.isActivated() && prop in this._styles.reset) {
+    				result[prop] = this._styles.computed[prop];
     			}
-    			else {
-    				this.#svgLayer.style.removeProperty(prop);
-    			}
+
+    		}
+    		return result;
+    	}
+
+
+
+    	/**
+    	 * =============================================================
+    	 * CURVE
+    	 * =============================================================
+    	 */
+
+    	// _initCurve() {
+    	// 	super._initCurve();
+
+    	// 	this._initViewbox();
+    	// }
+
+    	_initViewbox() {
+    		this._recalculateViewbox();
+    	}
+
+    	_recalculateCurve() {
+    		super._recalculateCurve();
+
+    		this._recalculateViewbox();
+    	}
+
+    	_recalculateViewbox() {
+    		if ( this._size.width > 0 && this._size.height > 0 ) {
+    			this._viewbox = `0 0 ${this._size.width} ${this._size.height}`;
+    		} else {
+    			this._viewbox = '0 0 0 0'; // Сбрасываем путь
     		}
     	}
 
-    	#applyClipPathModeStyles() {
-    		this.#applyCurrentElementStyles();
+    	_getViewbox() {
+    		return this._viewbox;
     	}
-
-    	#wrapInner() {
-    		if (this.#contentWrapper) return;
-
-    		const wrapper = document.createElement('div');
-    		wrapper.className = 'jsse--svg-layer--content';
-    		wrapper.style.setProperty('position', 'relative');
-
-    		const children = Array.from(this.#element.childNodes);
-    		for (let child of children) {
-    			wrapper.appendChild(child);
-    			// this.#element.removeChild(child);
+    	
+    	_applyCurve() {
+    		// Избегаем лишних мутаций
+    		const currentClipPath = this._element.style.getPropertyValue('clip-path');
+    		if (currentClipPath !== 'none') {
+    			this._element.style.setProperty('clip-path', 'none');
     		}
-    		this.#element.appendChild(wrapper);
-    		this.#contentWrapper = wrapper;
-    	}
+    			// this._element.style.setProperty('clip-path', 'none');
 
-    	#unwrapInner() {
-    		if (this.#contentWrapper === null) return;
+    		const svgLayer = this._virtualElementList.svgLayer;
+    		svgLayer.setAttribute('viewBox', this._getViewbox());
 
-    		const children = Array.from(this.#contentWrapper.childNodes);
-    		for (let child of children) {
-    			this.#element.appendChild(child);
+    		const svgLayerPath = this._virtualElementList.svgLayerPath;
+    		if (this._path) {
+    			svgLayerPath.setAttribute('d', this._path);
+    		} else {
+    			svgLayerPath.setAttribute('d', '');
+    			// svgLayerPath.removeAttribute('d');
     		}
-    		this.#element.removeChild(this.#contentWrapper);
-    		this.#contentWrapper = null;
+    	}
+    	
+    	_restoreCurve() {
+    		const svgLayerPath = this._virtualElementList.svgLayerPath;
+
+    		svgLayerPath.setAttribute('d', '');
+    		// svgLayerPath.removeAttribute('d');
+
+    		super._restoreCurve();
     	}
 
-    	#createSvgLayer() {
-    		const clipId = 'jsse_Clip_' + Math.random().toString(36).substr(2, 8);
-    		const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    		svg.classList.add('jsse--svg-layer--bg');
-    		svg.setAttribute('viewBox', this.#getViewbox());
-    		svg.setAttribute('preserveAspectRatio', 'none');
-    		svg.style.setProperty('position', 'absolute');
-    		svg.style.setProperty('top', '0');
-    		svg.style.setProperty('left', '0');
-    		svg.style.setProperty('width', '100%');
-    		svg.style.setProperty('height', '100%');
-    		svg.style.setProperty('pointer-events', 'none');
-    		svg.style.setProperty('clip-path', `url(#${clipId})`);
+
+    	/**
+    	 * =============================================================
+    	 * VIRTUAL
+    	 * =============================================================
+    	 */
+
+
+    	_getInliteSvgLayerStyles() {
+    		return {
+    			'border-radius' : '',
+    			'position': 'absolute',
+    			'top': '0px',
+    			'left': '0px',
+    			'width': '100%',
+    			'height': '100%',
+    			'pointer-events': 'none',
+    			// TODO: 
+    			// 'clip-path': `url(#${clipId})`
+    		}
+    	}
+
+
+
+    	_initVirtualElementList() {
+    		this._initVirtualInnerWrapper();
+    		this._initVirtualSvgLayer();
+    	}
+
+
+
+
+    	_initVirtualSvgLayer() {
+    		if (this._virtualElementList.svgLayer) return;
+
+    		const clipId = 'jsse_Clip_' + Math.random().toString(36).slice(2, 10);
+    		const svgLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    		svgLayer.classList.add('jsse--svg-layer--bg');
+    		svgLayer.setAttribute('viewBox', this._getViewbox());
+    		svgLayer.setAttribute('preserveAspectRatio', 'none');
+
+    		const svgProps = this._getInliteSvgLayerStyles();
+    		for (const prop in svgProps) {
+    			svgLayer.style.setProperty(prop, svgProps[prop]);
+    		}
+    		svgLayer.style.setProperty('clip-path', `url(#${clipId})`);
 
     		const clipShape = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     		clipShape.setAttribute('d', ''); // только создаем слой, не заполняем
@@ -561,314 +876,308 @@
     		clipPath.appendChild(clipShape);
     		const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     		defs.appendChild(clipPath);
-    		svg.appendChild(defs);
+    		svgLayer.appendChild(defs);
 
-    		this.#element.insertBefore(svg, this.#element.firstChild);
-    		this.#svgLayer = svg;
+    		this._virtualElementList.svgLayer = svgLayer;
+    		this._virtualElementList.svgLayerPath = clipShape;
     	}
 
-    	#removeSvgLayer() {
-    		if (this.#svgLayer && this.#svgLayer.parentNode === this.#element) {
-    			this.#element.removeChild(this.#svgLayer);
+    	_initVirtualInnerWrapper() {
+    		if (this._virtualElementList.innerWrapper) return;
+
+    		const innerWrapper = document.createElement('div');
+    		innerWrapper.className = 'jsse--svg-layer--content';
+    		innerWrapper.style.setProperty('position', 'relative');
+
+    		this._virtualElementList.innerWrapper = innerWrapper;
+    	}
+
+
+
+
+    	_createSvgLayer() {
+    		const svgLayer = this._virtualElementList.svgLayer;
+    		// TODO: нужна ли проверка на наличие svgLayer у this._element?
+    		this._element.insertBefore(svgLayer, this._element.firstChild);
+    	}
+
+    	_removeSvgLayer() {
+    		const svgLayer = this._virtualElementList.svgLayer;
+    		if (svgLayer && svgLayer.parentNode === this._element) {
+    			this._element.removeChild(svgLayer);
     		}
-    		this.#svgLayer = null;
     	}
-    	
+
+    	_createInnerWrapper() {
+    		const innerWrapper = this._virtualElementList.innerWrapper;
+
+    		// Перемещаем внутренние элемены this._element в innerWrapper
+    		const children = Array.from(this._element.childNodes);
+    		for (const child of children) {
+    			innerWrapper.appendChild(child);
+    		}
+
+    		this._element.appendChild(innerWrapper);
+    	}
+
+    	_removeInnerWrapper() {
+    		const innerWrapper = this._virtualElementList.innerWrapper;
+
+    		// Перемещаем внутренние элемены innerWrapper в this._element
+    		const children = Array.from(innerWrapper.childNodes);
+    		for (const child of children) {
+    			this._element.appendChild(child);
+    		}
+
+    		this._element.removeChild(innerWrapper);
+    	}
+
 
     	/**
     	 * =============================================================
-    	 * Change path params
+    	 * 
+    	 * =============================================================
+    	 */
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    /**
+     * 
+     * 
+     * 
+     */
+    class SuperellipseModeClipPath extends SuperellipseMode {
+
+
+    	/**
+    	 * =============================================================
+    	 * PUBLIC
     	 * =============================================================
     	 */
 
-    	#captureSizes() {
-    		const rect = this.#element.getBoundingClientRect();
-    		this.#sizes = {
-    			width: rect.width,
-    			height: rect.height
+    	constructor(element) {
+    		super(element);
+    	}
+
+
+    	/**
+    	 * =============================================================
+    	 * 
+    	 * =============================================================
+    	 */
+    }
+
+    // src/controller.js
+
+    // const superellipseStyleTracking = new WeakMap();
+
+    class SuperellipseController
+    {
+    	#mode;
+    	#element;
+
+    	#precision; // Количество знаков после запятой
+    	#curveFactor;
+
+    	#mutationFrame;
+    	#resizeFrame;
+    	#intersectionFrame;
+    	
+    	#resizeObserver;
+    	#mutationObserver;
+    	#removalObserver;
+    	#intersectionObserver;
+
+    	#needsUpdate;
+    	#isSelfApply;
+
+    	#debugCounter = 0;
+
+    	/**
+    	 * =============================================================
+    	 * PUBLIC
+    	 * =============================================================
+    	 */
+
+
+    	constructor(element, options = {}) {
+    		options = {
+    			mode: 'svg-layer',
+    			...options
     		};
+    		this.#element = element;
+    		this.#curveFactor = options.curveFactor ?? jsse_getBorderRadiusFactor();
+    		this.#precision = options.precision ?? 2;
+
+    		this.#needsUpdate = false;
+    		this.#isSelfApply = false;
+
+    		// Слушатели
+    		this.#resizeObserver = null;
+    		this.#mutationObserver = null;
+    		this.#removalObserver = null;
+    		this.#intersectionObserver = null;
+
+    		// init
+    		this.#initCacheStyles();
+    		this.#setMode(options.mode);
+    		this.#connectObservers();
     	}
 
-    	#getSizes() {
-    		return this.#sizes;
+    	switchMode(modeName) {
+    		this.#unsetMode();
+    		this.#setMode(modeName);
+
+    		return this;
     	}
 
-
-    	#getCurrentBorderRadius() {
-    		let borderRadius = this.#getTrackedStyleCurrent('border-radius')?.computed;
-    		borderRadius = borderRadius ? parseFloat(borderRadius) : 0;
-    		return borderRadius;
-    	}
-
-    	#getCurveFactor() {
-    		return this.#curveFactor;
-    	}
-
-    	#getPrecision() {
-    		return this.#precision;
-    	}
-
-    	#recalculatePath() {
-    		const sizes = this.#getSizes();
-    		if (!sizes.width || !sizes.height) {
-    			this.#setPath(''); // Сбрасываем путь
-    			return false;
+    	enable() {
+    		// this.#mode.activate();
+    		this.#isSelfApply = true;
+    		try {
+    			this.#mode.activate();
+    		} finally {
+    			this.#isSelfApply = false;
     		}
 
-    		const path  = jsse_generateSuperellipsePath(
-    			sizes.width,
-    			sizes.height,
-    			this.#getCurrentBorderRadius(),
-    			this.#getCurveFactor(),
-    			this.#getPrecision()
-    		);
-    		this.#setPath(path);
+    		return this;
+    	}
+
+    	disable() {
+    		this.#mode.deactivate();
+
+    		return this._element;
+    	}
+
+    	setCurveFactor(value) {
+    		this.#curveFactor = value;
+    		this.#mode.setCurveFactor(value);
+
+    		return this;
+    	}
+
+    	setPrecision(value) {
+    		this.#precision = value;
+    		this.#mode.setPrecision(value);
+
+    		return this;
     	}
 
     	getPath() {
-    		return this.#path;
+    		return this.#mode.getPath();
     	}
 
-    	#setPath(path) {
-    		this.#path = path;
+    	destroy() {
+    		this.#destroyController();
+
+    		return this._element;
     	}
 
-    	#getViewbox() {
-    		const sizes = this.#getSizes();
-    		if (!sizes.width || !sizes.height) {
-    			console.warn('js-superellipse: Нет размеров для viewbox.');
-    			return null;
+
+    	/**
+    	 * =============================================================
+    	 * PRIVATE
+    	 * =============================================================
+    	 */
+
+
+
+    	#isDisplay() {
+    		const capturedStyles = getComputedStyle(this.#element);
+    		return capturedStyles.getPropertyValue('display') !== 'none';
+    	}
+
+
+    	/**
+    	 * =============================================================
+    	 * CACHE
+    	 * =============================================================
+    	 */
+
+
+    	#initCacheStyles() {
+    		let cacheStyles = jsse_styles.get(this.#element);
+    		if (!cacheStyles) {
+    			cacheStyles = {};
+    			jsse_styles.set(this.#element, cacheStyles);
     		}
-    		return `0 0 ${sizes.width} ${sizes.height}`;
     	}
 
-    	#applyCurve() {
-    		const path = this.getPath();
-    		if (!path) {
-    			console.warn('js-superellipse: Получен пустой path.');
-    			return;
-    		}
+    	#deleteCacheStyles() {
+    		jsse_styles.delete(this.#element);
+    	}
 
-    		switch ( this.getCurrentMode() ) {
+
+    	/**
+    	 * =============================================================
+    	 * MODE
+    	 * =============================================================
+    	 */
+
+
+    	#setMode(modeName) {
+    		switch (modeName) {
     			case 'svg-layer':
-    				const viewbox = this.#getViewbox();
-                	if (!viewbox) {
-                		console.warn('js-superellipse: Получен пустой viewbox.');
-                		return; // если viewbox невалидный — выходим
-                	}
-    				this.#svgLayer.setAttribute('viewBox', viewbox);
-    				const clipPathElem = this.#svgLayer.querySelector('clipPath path');
-    				if (clipPathElem) clipPathElem.setAttribute('d', path);
+    				this.#mode = new SuperellipseModeSvgLayer(this.#element);
     				break;
 
     			case 'clip-path':
-    				this.#element.style.setProperty('clipPath', `path('${path}')`);
-    				break;
-
     			default:
-    				throw new Error(`Метод обновления кривой не найден`);
+    				this.#mode = new SuperellipseModeClipPath(this.#element);
+    				break;
     		}
+    		this.#mode.setCurveFactor(this.#curveFactor, false);
+    		this.#mode.setPrecision(this.#precision, false);
+
+    		this.#mode.activate();
     	}
 
-    	#resetCurve() {
-    		const mode = this.getCurrentMode();
+    	#unsetMode() {
+    		this.#mode.deactivate();
+    		this.#mode = null;
+    	}
 
-    		switch (mode) {
-    			case 'svg-layer':
-    				// this.#svgLayer.removeAttribute('viewBox');
-    				// const clipPathElem = this.#svgLayer.querySelector('clipPath path');
-    				// if (clipPathElem) clipPathElem.removeAttribute('d');
-    				break;
 
-    			case 'clip-path':
-    				this.#element.style.removeProperty('clipPath');
-    				break;
+    	/**
+    	 * =============================================================
+    	 * 
+    	 * =============================================================
+    	 */
 
-    			default:
-    				throw new Error(`Метод сброса кривой не найден`);
-    		}
+    	/**
+    	 * Метод уничтожения контроллера
+    	 */
+    	#destroyController() {
+    		this.#disconnectObservers();
+    		this.#unsetMode();
+
+    		this.#deleteCacheStyles();
+    		this.#deleteFromControllers();
     	}
     	
+    	#deleteFromControllers() {
+    		jsse_controllers.delete(this.#element);
+    	}
+
 
     	/**
     	 * =============================================================
-    	 * Styles
+    	 * 
     	 * =============================================================
     	 */
 
-    	#getTrackedStyleOriginal(prop) {
-    		return this.#getTrackingProp('style')?.original?.[prop];
-    	}
 
-    	#getTrackedStyleCurrent(prop) {
-    		return this.#getTrackingProp('style')?.current?.[prop];
-    	}
-
-    	#getResetStyles() {
-    		return this.#resetStyles;
-    	}
-
-    	#initStyles() {
-    		if (this.#hasTrackingProp('style')) return;
-
-    		this.#captureStyles(true);
-    	}
-
-    	/**
-    	 * styles.original.prop.computed
-    	 * styles.original.prop.inline
-    	 * styles.current.prop.computed
-    	 * styles.current.prop.inline 
-    	 */
-    	#captureStyles(isOriginal = false) {
-    		if (isOriginal) {
-    			this.#setOriginalStyles( this.#getFormatCapturedProperties() );
-    		}
-    		this.#setCurrentStyles( this.#getFormatCapturedProperties() );
-    	}
-
-    	#setOriginalStyles(formatCapturedProperties) {
-    		const tracking = this.#getTracking();
-    		if (!tracking.style) tracking.style = {};
-    		tracking.style.original = formatCapturedProperties;
-    	}
-    	#setCurrentStyles(formatCapturedProperties) {
-    		const tracking = this.#getTracking();
-    		if (!tracking.style) tracking.style = {};
-    		tracking.style.current = formatCapturedProperties;
-    	}
-
-    	#getFormatCapturedProperties() {
-    		return this.#formatCapturedProperties(
-    			this.#getCaptureStyles(),
-    			this.#getManagedProperties()
-    		);
-    	}
-
-    	#formatCapturedProperties(captureStyles, managedProperties) {
-    		const formatCapturedProperties = {};
-    		for (const prop of managedProperties) {
-    			formatCapturedProperties[prop] = this.#formatPropValue(
-    				captureStyles.inline.getPropertyValue(prop),
-    				captureStyles.computed.getPropertyValue(prop)
-    			);
-    		}
-    		return formatCapturedProperties;
-    	}
-
-    	#formatPropValue(inlineValue, computedValue) {
-    		return {
-    			computed: computedValue,
-    			inline:   inlineValue !== '' ? inlineValue   : null
-    		}
-    	}
-
-    	#getCaptureStyles() {
-    		return {
-    			computed: this.#getCapturedComputedStyles(),
-    			inline: this.#getCapturedInlineStyles()
-    		}
-    	}
-
-    	#getCapturedComputedStyles() {
-    		return getComputedStyle(this.#element);
-    	}
-
-    	#getCapturedInlineStyles() {
-    		return this.#element.style;
-    	}
-
-    	// #applyStyles()
-
-    	#applyCurrentElementStyles() {
-    		const tracking = this.#getTrackingProp('style');
-    		if (!tracking) return;
-
-    		for (const prop of this.#getManagedProperties()) {
-    			const value = this.#getTrackedStyleCurrent(prop)?.inline;
-    			if (value !== null && value !== undefined) {
-    				this.#element.style.setProperty(prop, value);
-    			} else {
-    				this.#element.style.removeProperty(prop);
-    			}
-    		}
-    	}
-
-    	#resetElementStyles() {
-    		const tracking = this.#getTrackingProp('style');
-    		if (!tracking) return;
-
-    		for (const prop of this.#getManagedProperties()) {
-    			const value = this.#getResetStyles()?.[prop];
-    			if (value !== null && value !== undefined) {
-    				this.#element.style.setProperty(prop, value);
-    			}
-    		}
-    	}
-
-    	#restoreElementStyles() {
-    		this.#applyCurrentElementStyles();
-
-    		// this.#unsetTrackingProp('style');
-    	}
-
-    	// #updateSvgLayerStyles() {
-    	// 	if (!this.#svgLayer) return;
-
-    	// 	for (const prop of this.#getManagedProperties()) {
-    	// 		const value = this.#getTrackedStyleCurrent(prop)?.computed;
-    	// 		this.#svgLayer.style.setProperty(prop, value);
-    	// 	}
-    	// }
-
-    	/**
-    	 * =============================================================
-    	 * Tracking
-    	 * =============================================================
-    	 */
-
-    	#hasTracking() {
-    		return superellipseStyleTracking.has(this.#element)
-    	}
-
-    	#getTracking() {
-    		let tracking = superellipseStyleTracking.get(this.#element);
-    		if (!tracking) {
-    			tracking = {};
-    			superellipseStyleTracking.set(this.#element, tracking);
-    		}
-    		return tracking;
-    	}
-
-    	#hasTrackingProp(key) {
-    		return !! this.#getTrackingProp(key);
-    	}
-
-    	#getTrackingProp(key) {
-    		return this.#getTracking()[key];
-    	}
-
-    	#setTrackingProp(key, value) {
-    		let tracking = this.#getTracking();
-    		tracking[key] = value;
-    	}
-
-    	#unsetTrackingProp(key) {
-    		const tracking = this.#getTracking();
-    		delete tracking[key];
-    	}
-
-    	#unsetTracking() {
-    		superellipseStyleTracking.delete(this.#element);
-    	}
-
-    	/**
-    	 * =============================================================
-    	 * Observers
-    	 * =============================================================
-    	 */
-
-    	#setupObservers() {
+    	#connectObservers() {
     		this.#mutationObserver = new MutationObserver(() => {
     			this.#mutationHandler();
     		});
@@ -884,7 +1193,7 @@
     			this.#intersectionObserver.observe(this.#element);
     		}
 
-    		if (this.#autoResize && typeof ResizeObserver !== 'undefined') {
+    		if (typeof ResizeObserver !== 'undefined') {
     			this.#resizeObserver = new ResizeObserver(() => {
     				this.#resizeHandler();
     			});
@@ -901,85 +1210,203 @@
     	}
 
     	#disconnectObservers() {
+    		// if (this.#mutationFrame) cancelAnimationFrame(this.#mutationFrame);
+    		// if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
+    		// if (this.#intersectionFrame) cancelAnimationFrame(this.#intersectionFrame);
+    	    // clearTimeout вместо cancelAnimationFrame
+    	    if (this.#mutationFrame) clearTimeout(this.#mutationFrame);
+    	    if (this.#resizeFrame) clearTimeout(this.#resizeFrame);
+    	    if (this.#intersectionFrame) clearTimeout(this.#intersectionFrame);
+
     		if (this.#resizeObserver) this.#resizeObserver.disconnect();
     		if (this.#mutationObserver) this.#mutationObserver.disconnect();
     		if (this.#intersectionObserver) this.#intersectionObserver.disconnect();
     		if (this.#removalObserver) this.#removalObserver.disconnect();
     	}
 
-    	
 
     	/**
     	 * =============================================================
-    	 * Изменение при обновлениях
+    	 * 
     	 * =============================================================
     	 */
-
     	#mutationHandler() {
-    		console.log('#mutationHandler', this.#getCurrentBorderRadius(), this.#getTrackingProp('style')?.current);
+    	    // if (this.#isSelfApply) return;
+    	    // // Отменяем предыдущий таймаут и устанавливаем флаг немедленно
+    	    // if (this.#mutationFrame) clearTimeout(this.#mutationFrame);
+    	    // this.#isSelfApply = true;
 
-    		this.#captureStyles();
-    		this.#recalculatePath();
 
-    		this.#applyModeStyles();
-    		this.#applyCurve();
+        	this.#mutationObserver.disconnect();
+
+    	    const counter = this.#debugCounter++;
+    	    console.log(`[DEBUG] #mutationHandler(): start ${counter}"`);
+
+    	    // this.#mutationFrame = setTimeout(() => {
+    	        try {
+    	            if (this.#isDisplay() && this.#needsUpdate) {
+    	                this.#mode.update();
+    	                this.#needsUpdate = false;
+    	            } else {
+    	                this.#mode.updateStyles();
+    	            }
+    	        } finally {
+    	            // this.#isSelfApply = false;
+    	            // this.#mutationFrame = null;
+    	            this.#mutationObserver.observe(this.#element, {
+    					attributes: true,
+    					attributeFilter: ['style', 'class']
+    				});
+    	    		console.log(`[DEBUG] #mutationHandler(): end ${counter}"`);
+    	        }
+    	    // }, 0); // задержка 0 – выполнить в ближайшем цикле событий
+
+
     	}
 
     	#resizeHandler() {
-    		if (this.#getCapturedComputedStyles().display !== 'none') {
+    	    if (this.#resizeFrame) clearTimeout(this.#resizeFrame);
+    	    this.#resizeFrame = setTimeout(() => {
+    	        if (this.#isDisplay()) {
+    	            this.#isSelfApply = true;
+    	            try {
+    	                this.#mode.updateSize();
+    	            } finally {
+    	                this.#isSelfApply = false;
+    	            }
+    	        } else {
+    	            this.#needsUpdate = true;
+    	        }
+    	        this.#resizeFrame = null;
+    	    }, 0);
+    	}
 
-    			this.#captureSizes();
-    			this.#recalculatePath();
+    	#intersectionHandler(entries) {
+    	    if (this.#intersectionFrame) clearTimeout(this.#intersectionFrame);
+    	    this.#intersectionFrame = setTimeout(() => {
+    	        if (entries[0].isIntersecting && this.#needsUpdate) {
+    	            this.#isSelfApply = true;
+    	            try {
+    	                this.#mode.update();
+    	                this.#needsUpdate = false;
+    	            } finally {
+    	                this.#isSelfApply = false;
+    	            }
+    	        }
+    	        this.#intersectionFrame = null;
+    	    }, 0);
+    	}
 
-    			this.#applyModeStyles();
-    			this.#applyCurve();
 
-    		} else {
+    	/*
+    	#mutationHandler() {
+    		if (this.#isSelfApply) return;
+    		
+    		if (this.#mutationFrame) cancelAnimationFrame(this.#mutationFrame);
+    		this.#mutationFrame = requestAnimationFrame(() => {
+    			this.#isSelfApply = true;
+    			try {
+    				if (this.#isDisplay() && this.#needsUpdate) {
+    					this.#mode.update();
+    					this.#needsUpdate = false;
+    				} else {
+    					this.#mode.updateStyles();
+    				}
+    			} finally {
+    				this.#isSelfApply = false;
+    				this.#mutationFrame = null;
+    			}
+    		});
+    	}
+
+    	#resizeHandler() {
+    	    if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
+    	    this.#resizeFrame = requestAnimationFrame(() => {
+    	        if (this.#isDisplay()) {
+    	            this.#isSelfApply = true;
+    	            try {
+    	                this.#mode.updateSize();
+    	            } finally {
+    	                this.#isSelfApply = false;
+    	            }
+    	        } else {
+    	            this.#needsUpdate = true;
+    	        }
+    	        this.#resizeFrame = null;
+    	    });
+    	}
+
+    	#intersectionHandler(entries) {
+    	    if (this.#intersectionFrame) cancelAnimationFrame(this.#intersectionFrame);
+    	    this.#intersectionFrame = requestAnimationFrame(() => {
+    	        if (entries[0].isIntersecting && this.#needsUpdate) {
+    	            this.#isSelfApply = true;
+    	            try {
+    	                this.#mode.update();
+    	                this.#needsUpdate = false;
+    	            } finally {
+    	                this.#isSelfApply = false;
+    	            }
+    	        }
+    	        this.#intersectionFrame = null;
+    	    });
+    	}
+
+    	#mutationHandler() {
+    		console.log('[DEBUG] mutationHandler called', { isSelfApply: this.#isSelfApply, needsUpdate: this.#needsUpdate });
+    		if (this.#isSelfApply) {
+    			console.log('[DEBUG] mutationHandler skipped (isSelfApply)');
+    			return;
+    		}
+    		
+    		this.#isSelfApply = true;
+    		try {
+    			if (this.#isDisplay() && this.#needsUpdate) {
+    				console.log('[DEBUG] calling mode.update()');
+    				this.#mode.update();
+    				this.#needsUpdate = false;
+    			}
+    			else {
+    				console.log('[DEBUG] calling mode.updateStyles()');
+    				this.#mode.updateStyles();
+    			}
+    		} finally {
+    			this.#isSelfApply = false;
+    		}
+    	}
+
+    	#resizeHandler() {
+    		if (!this.#isDisplay()) {
     			this.#needsUpdate = true;
+    			return;
+    		}
+    		this.#isSelfApply = true;
+    		try {
+    			this.#mode.updateSize()
+    		} finally {
+    			this.#isSelfApply = false;
     		}
     	}
 
     	#intersectionHandler(entries) {
     		if (entries[0].isIntersecting && this.#needsUpdate) {
-    			this.#needsUpdate = false;
 
-    			this.#captureStyles();
-    			this.#captureSizes();
-    			this.#recalculatePath();
-
-    			this.#applyModeStyles();
-    			this.#applyCurve();
+    			this.#isSelfApply = true;
+    			try {
+    				this.#mode.update();
+    				this.#needsUpdate = false;
+    			} finally {
+    				this.#isSelfApply = false;
+    			}
     		}
     	}
+    	*/
 
     	#destroyHandler() {
     		if (!document.body.contains(this.#element)) {
     			this.#destroyController();
     		}
     	}
-
-    	/**
-    	 * =============================================================
-    	 * =============================================================
-    	 */
-
-    	/**
-    	 * =============================================================
-    	 * ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
-    	 * =============================================================
-    	 */
-
-    	#getManagedProperties() {
-    		return Object.keys(this.#resetStyles);
-    	}
-
-    	// --- Геттеры и вспомогательные методы ---
-    	#setCurrentMode(mode) { this.#mode = mode; }
-    	getCurrentMode() { return this.#mode; }
-    	#setModeStatus(bool) { this.#status = bool; }
-    	#getModeStatus() { return this.#status; }
-
-    	#deleteFromControllers() { jsse_controllers.delete(this.#element); }
     }
 
     const jsse_controllers = new WeakMap(); // экспортируем
@@ -1028,6 +1455,9 @@
         } else {
             throw new Error('superellipseInit: первый аргумент должен быть селектором, элементом или коллекцией элементов');
         }
+    }
+    if (typeof window !== 'undefined') {
+        window.superellipseInit = superellipseInit;
     }
 
     exports.SuperellipseController = SuperellipseController;
