@@ -9,14 +9,14 @@ module.exports = {
             file: 'dist/superellipse.js',
             format: 'umd',
             name: 'Superellipse',
-            sourcemap: true
+            sourcemap: false
         },
         {
             file: 'dist/superellipse.min.js',
             format: 'umd',
             name: 'Superellipse',
             plugins: [terser()],
-            sourcemap: true
+            sourcemap: false
         }
     ],
     plugins: [resolve(), commonjs()]

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SVG</title>
+</head>
+<body>
+
+	<div class="container">
+		<svg class="jsse--svg-layer--bg" viewBox="0 0 293.8046875 120" preserveAspectRatio="none" style="
+			width: 293.8046875px;
+			height: 120px;
+			pointer-events: none;
+			/*clip-path: url(#jsse_Clip_dgkajv4h3);*/
+			background: linear-gradient(-15deg, rgb(60, 153, 246), rgb(43, 184, 212)) 0% 0% / auto repeat scroll padding-box border-box rgba(0, 0, 0, 0);
+			border: solid 4px #ffffff44;
+			box-shadow: rgba(0, 0, 0, 0.3) 0px 8px 20px 0px, rgba(255, 255, 255, 0.1) 0px 1px 0px 0px inset;
+			box-sizing: border-box;
+			border-radius: 30px;
+		">
+			<defs>
+				<clipPath id="jsse_Clip_dgkajv4h3">
+					<path d="M 0.00 60.00 L 0.00 60.00 C 0.00 3.43 0.00 0.00 70.29 0.00 L 70.29 0.00 L 223.51 0.00 L 223.51 0.00 C 293.80 0.00 293.80 3.43 293.80 60.00 L 293.80 60.00 L 293.80 60.00 L 293.80 60.00 C 293.80 116.57 293.80 120.00 223.51 120.00 L 223.51 120.00 L 70.29 120.00 L 70.29 120.00 C 0.00 120.00 0.00 116.57 0.00 60.00 L 0.00 60.00 Z"></path>
+				</clipPath>
+			</defs>
+		</svg>
+
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 293.80 120" id="jsse_svg_dgkajv4h3" class="jsse--svg-layer--bg" width="293.80" height="120" style="overflow: visible;">
+			<defs>
+				<clipPath id="jsse_clip_dgkajv4h3">
+					<path id="jsse_path_dgkajv4h3" d="M 0.00 60.00 L 0.00 60.00 C 0.00 3.43 0.00 0.00 70.29 0.00 L 70.29 0.00 L 223.51 0.00 L 223.51 0.00 C 293.80 0.00 293.80 3.43 293.80 60.00 L 293.80 60.00 L 293.80 60.00 L 293.80 60.00 C 293.80 116.57 293.80 120.00 223.51 120.00 L 223.51 120.00 L 70.29 120.00 L 70.29 120.00 C 0.00 120.00 0.00 116.57 0.00 60.00 L 0.00 60.00 Z"></path>
+				</clipPath>
+
+				<!-- shadow filters -->
+				<g id="jsse_filters_dgkajv4h3">
+					<!-- shadow filter 0 -->
+					<filter id="jsse_filter_dgkajv4h3_0" x="-100%" y="-100%" width="300%" height="300%">
+						<!-- Берём форму элемента -->
+						<feGaussianBlur in="SourceAlpha" stdDeviation="10" result="blur_dgkajv4h3_0"/>
+						<!-- Смещаем тень -->
+						<feOffset dx="0" dy="8" in="blur_dgkajv4h3_0" result="offsetBlur_dgkajv4h3_0"/>
+						<!-- Красим тень в чёрный цвет -->
+						<feFlood flood-color="#000000" flood-opacity="0.3" result="color_dgkajv4h3_0"/>
+						<feComposite in="color_dgkajv4h3_0" in2="offsetBlur_dgkajv4h3_0" operator="in" result="shadow_dgkajv4h3_0"/>
+						<!-- ВАЖНО: выводим ТОЛЬКО тень, без исходного элемента -->
+						<!-- Не используем SourceGraphic, только тень -->
+					</filter>
+				</g>
+					<!-- <feDropShadow dx="4" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="1"/> -->
+			</defs>
+
+			<!-- box-shadows -->
+			<g id="jsse_shadows_dgkajv4h3">
+				<!-- box-shadow 0 -->
+				<use href="#jsse_path_dgkajv4h3" id="jsse_shadow_dgkajv4h3" filter="url(#jsse_filter_dgkajv4h3_0)"/>
+			</g>
+
+			<!-- Внедряем HTML -->
+			<foreignObject width="100%" height="100%" clip-path="url(#jsse_clip_dgkajv4h3)">
+				<div id="jsse_div_dgkajv4h3" xmlns="http://www.w3.org/1999/xhtml"
+					style="
+						width: 100%; height: 100%;
+						background: linear-gradient(-15deg, rgb(60, 153, 246), rgb(43, 184, 212)) 0% 0% / auto repeat scroll padding-box border-box rgba(0, 0, 0, 0);
+						background-size: cover;
+						box-shadow: rgba(0, 0, 0, 0.3) 0px 8px 20px 0px, rgba(255, 255, 255, 0.1) 0px 1px 0px 0px inset;
+					">
+				</div>
+			</foreignObject>
+
+			<!-- border and shadow inset -->
+			<use id="jsse_border_dgkajv4h3"
+				href="#jsse_path_dgkajv4h3"
+				fill="none"
+				stroke="#ffffff44"
+				stroke-width="8"
+				clip-path="url(#jsse_clip_dgkajv4h3)"
+			/>
+		</svg>
+
+	</div>
+	<style>
+	body {
+		margin: unset;
+		padding: unset;
+	}
+	* {
+		vertical-align: middle;
+	}
+	.container {
+		width: 100dvw;
+		height: 100dvh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 16px;
+	}
+	</style>
+</body>
+</html>

@@ -2,7 +2,8 @@
 import { jsse_styles } from './styles-cache.js';
 import { jsse_getBorderRadiusFactor } from './core.js';
 import { jsse_controllers } from './api.js';
-import { SuperellipseModeSvgLayer, SuperellipseModeClipPath } from './modes.js';
+import { SuperellipseModeSvgLayer } from './mode-svg-layer.js';
+import { SuperellipseModeClipPath } from './mode-clip-path.js';
 
 // const superellipseStyleTracking = new WeakMap();
 
@@ -238,10 +239,10 @@ export class SuperellipseController
 		// if (this.#mutationFrame) cancelAnimationFrame(this.#mutationFrame);
 		// if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
 		// if (this.#intersectionFrame) cancelAnimationFrame(this.#intersectionFrame);
-	    // clearTimeout вместо cancelAnimationFrame
-	    if (this.#mutationFrame) clearTimeout(this.#mutationFrame);
-	    if (this.#resizeFrame) clearTimeout(this.#resizeFrame);
-	    if (this.#intersectionFrame) clearTimeout(this.#intersectionFrame);
+		// clearTimeout вместо cancelAnimationFrame
+		if (this.#mutationFrame) clearTimeout(this.#mutationFrame);
+		if (this.#resizeFrame) clearTimeout(this.#resizeFrame);
+		if (this.#intersectionFrame) clearTimeout(this.#intersectionFrame);
 
 		if (this.#resizeObserver) this.#resizeObserver.disconnect();
 		if (this.#mutationObserver) this.#mutationObserver.disconnect();
@@ -256,176 +257,47 @@ export class SuperellipseController
 	 * =============================================================
 	 */
 	#mutationHandler() {
-	    // if (this.#isSelfApply) return;
-	    // // Отменяем предыдущий таймаут и устанавливаем флаг немедленно
-	    // if (this.#mutationFrame) clearTimeout(this.#mutationFrame);
-	    // this.#isSelfApply = true;
 
+		const counter = this.#debugCounter++;
+		console.log(`[DEBUG] "${this.#element.classList}" #mutationHandler(): start ${counter}"`);
 
-    	this.#mutationObserver.disconnect();
-
-	    const counter = this.#debugCounter++;
-	    console.log(`[DEBUG] #mutationHandler(): start ${counter}"`);
-
-	    // this.#mutationFrame = setTimeout(() => {
-	        try {
-	            if (this.#isDisplay() && this.#needsUpdate) {
-	                this.#mode.update();
-	                this.#needsUpdate = false;
-	            } else {
-	                this.#mode.updateStyles();
-	            }
-	        } finally {
-	            // this.#isSelfApply = false;
-	            // this.#mutationFrame = null;
-	            this.#mutationObserver.observe(this.#element, {
-					attributes: true,
-					attributeFilter: ['style', 'class']
-				})
-	    		console.log(`[DEBUG] #mutationHandler(): end ${counter}"`);
-	        }
-	    // }, 0); // задержка 0 – выполнить в ближайшем цикле событий
-
-
-	}
-
-	#resizeHandler() {
-	    if (this.#resizeFrame) clearTimeout(this.#resizeFrame);
-	    this.#resizeFrame = setTimeout(() => {
-	        if (this.#isDisplay()) {
-	            this.#isSelfApply = true;
-	            try {
-	                this.#mode.updateSize();
-	            } finally {
-	                this.#isSelfApply = false;
-	            }
-	        } else {
-	            this.#needsUpdate = true;
-	        }
-	        this.#resizeFrame = null;
-	    }, 0);
-	}
-
-	#intersectionHandler(entries) {
-	    if (this.#intersectionFrame) clearTimeout(this.#intersectionFrame);
-	    this.#intersectionFrame = setTimeout(() => {
-	        if (entries[0].isIntersecting && this.#needsUpdate) {
-	            this.#isSelfApply = true;
-	            try {
-	                this.#mode.update();
-	                this.#needsUpdate = false;
-	            } finally {
-	                this.#isSelfApply = false;
-	            }
-	        }
-	        this.#intersectionFrame = null;
-	    }, 0);
-	}
-
-
-	/*
-	#mutationHandler() {
-		if (this.#isSelfApply) return;
-		
-		if (this.#mutationFrame) cancelAnimationFrame(this.#mutationFrame);
-		this.#mutationFrame = requestAnimationFrame(() => {
-			this.#isSelfApply = true;
-			try {
-				if (this.#isDisplay() && this.#needsUpdate) {
-					this.#mode.update();
-					this.#needsUpdate = false;
-				} else {
-					this.#mode.updateStyles();
-				}
-			} finally {
-				this.#isSelfApply = false;
-				this.#mutationFrame = null;
-			}
-		});
-	}
-
-	#resizeHandler() {
-	    if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
-	    this.#resizeFrame = requestAnimationFrame(() => {
-	        if (this.#isDisplay()) {
-	            this.#isSelfApply = true;
-	            try {
-	                this.#mode.updateSize();
-	            } finally {
-	                this.#isSelfApply = false;
-	            }
-	        } else {
-	            this.#needsUpdate = true;
-	        }
-	        this.#resizeFrame = null;
-	    });
-	}
-
-	#intersectionHandler(entries) {
-	    if (this.#intersectionFrame) cancelAnimationFrame(this.#intersectionFrame);
-	    this.#intersectionFrame = requestAnimationFrame(() => {
-	        if (entries[0].isIntersecting && this.#needsUpdate) {
-	            this.#isSelfApply = true;
-	            try {
-	                this.#mode.update();
-	                this.#needsUpdate = false;
-	            } finally {
-	                this.#isSelfApply = false;
-	            }
-	        }
-	        this.#intersectionFrame = null;
-	    });
-	}
-
-	#mutationHandler() {
-		console.log('[DEBUG] mutationHandler called', { isSelfApply: this.#isSelfApply, needsUpdate: this.#needsUpdate });
-		if (this.#isSelfApply) {
-			console.log('[DEBUG] mutationHandler skipped (isSelfApply)');
-			return;
-		}
-		
-		this.#isSelfApply = true;
+		this.#mutationObserver.disconnect();
 		try {
 			if (this.#isDisplay() && this.#needsUpdate) {
-				console.log('[DEBUG] calling mode.update()');
 				this.#mode.update();
 				this.#needsUpdate = false;
-			}
-			else {
-				console.log('[DEBUG] calling mode.updateStyles()');
+			} else {
 				this.#mode.updateStyles();
 			}
 		} finally {
-			this.#isSelfApply = false;
+			this.#mutationObserver.observe(this.#element, {
+				attributes: true,
+				attributeFilter: ['style', 'class']
+			})
+			console.log(`[DEBUG] #mutationHandler(): end ${counter}"`);
 		}
 	}
 
 	#resizeHandler() {
-		if (!this.#isDisplay()) {
+		if (this.#isDisplay()) {
+			try {
+				this.#mode.updateSize();
+			} finally {
+			}
+		} else {
 			this.#needsUpdate = true;
-			return;
-		}
-		this.#isSelfApply = true;
-		try {
-			this.#mode.updateSize()
-		} finally {
-			this.#isSelfApply = false;
 		}
 	}
 
 	#intersectionHandler(entries) {
 		if (entries[0].isIntersecting && this.#needsUpdate) {
-
-			this.#isSelfApply = true;
 			try {
 				this.#mode.update();
 				this.#needsUpdate = false;
 			} finally {
-				this.#isSelfApply = false;
 			}
 		}
 	}
-	*/
 
 	#destroyHandler() {
 		if (!document.body.contains(this.#element)) {

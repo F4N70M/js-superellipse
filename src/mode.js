@@ -1,7 +1,12 @@
-// src/modes.js
+// src/mode.js
 import { jsse_styles } from './styles-cache.js';
 import { jsse_generateSuperellipsePath, jsse_getBorderRadiusFactor } from './core.js';
 
+/**
+ * 
+ * 
+ * 
+ */
 export class SuperellipseMode {
 
 	_element;
@@ -61,29 +66,50 @@ export class SuperellipseMode {
 	}
 
 	update() {
+		this.updatePrepare();
+		this.updateExecute();
+	}
+	updatePrepare() {
 		this._captureStyles();
 		this._captureSize();
 		this._recalculateCurve();
+	}
+	updateExecute() {
 		this._applyCurrentInlineStyles();
 		this._applyCurrentCurve();
 	}
 
+
 	updateSize(update = true) {
-		this._captureSize();
+		this.updateSizePrepare();
 		if (update) {
-			this._recalculateCurve();
-			this._applyCurrentCurve();
+			this.updateSizeExecute();
 		}
+	}
+	updateSizePrepare() {
+		this._captureSize();
+		this._recalculateCurve();
+	}
+	updateSizeExecute() {
+		this._applyCurrentCurve();
 	}
 
+
 	updateStyles(update = true) {
-		this._captureStyles();
+		this.updateStylesPrepare();
 		if (update) {
-			this._recalculateCurve();
-			this._applyCurrentInlineStyles();
-			this._applyCurrentCurve();
+			this.updateStylesExecute();
 		}
 	}
+	updateStylesPrepare() {
+		this._captureStyles();
+		this._recalculateCurve();
+	}
+	updateStylesExecute() {
+		this._applyCurrentInlineStyles();
+		this._applyCurrentCurve();
+	}
+
 
 	setCurveFactor(value, update = true) {
 		this._curveFactor = value;
@@ -355,14 +381,13 @@ export class SuperellipseMode {
 	_applyCurve() {
 		if (this._path) {
 			const newPath = `path("${this._path}")`;
-			console.log('[DEBUG]', '_applyCurve:', 'newPath', newPath);
-			// if (this._element.style.getPropertyValue('clip-path') !== newPath) {
+			if (this._element.style.getPropertyValue('clip-path') !== newPath) {
 				this._element.style.setProperty('clip-path', newPath);
-			// }
+			}
 		} else {
-			// if (this._element.style.getPropertyValue('clip-path') !== 'none') {
+			if (this._element.style.getPropertyValue('clip-path') !== 'none') {
 				this._element.style.setProperty('clip-path', 'none');
-			// }
+			}
 		}
 	}
 	
@@ -372,349 +397,6 @@ export class SuperellipseMode {
 		} else {
 			this._element.style.removeProperty('clip-path');
 		}
-	}
-
-
-	/**
-	 * =============================================================
-	 * 
-	 * =============================================================
-	 */
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * 
- * 
- * 
- */
-export class SuperellipseModeSvgLayer extends SuperellipseMode {
-
-	_virtualElementList = {};
-
-	_viewbox;
-
-
-
-
-	/**
-	 * =============================================================
-	 * PUBLIC
-	 * =============================================================
-	 */
-
-	constructor(element) {
-		super(element);
-
-		this._initViewbox();
-		this._initVirtualElementList();
-	}
-
-	activate() {
-		if (this.isActivated()) return;
-
-		// Установить статус
-		this._isActivated = true;
-		// Подготовить к активации
-		this._captureStyles();
-		this._recalculateCurve();
-		// Создать элементы виртуальных слоев
-		this._createInnerWrapper();
-		this._createSvgLayer();
-		// Применить Стили и кривую
-		this._applyCurrentInlineStyles();
-		this._applyCurrentCurve();
-	}
-	deactivate() {
-		if (!this.isActivated()) return;
-
-		// Установить статус
-		this._isActivated = false;
-		// Удалить элементы виртуальных слоев
-		this._removeInnerWrapper();
-		this._removeSvgLayer();
-		// Применить Стили и кривую
-		this._applyCurrentInlineStyles();
-		this._applyCurrentCurve();
-	}
-
-
-	/**
-	 * =============================================================
-	 * PRIVATE
-	 * =============================================================
-	 */
-
-
-	_getResetStyles() {
-		return {
-			'border-radius': '0px',
-			'background': 'unset',
-			'border': 'unset',
-			'box-shadow': 'unset',
-			'position': 'relative',
-		};
-	}
-
-
-	/**
-	 * =============================================================
-	 * STYLES
-	 * =============================================================
-	 */
-
-	_applyCurrentInlineStyles() {
-		this._applyCurrentInlineElementStyles();
-		this._applyCurrentInlineVirtualSvgLayerStyles();
-	}
-
-	_applyCurrentInlineVirtualSvgLayerStyles() {
-		const inlineProps = this._getCurrentInlineVirtualSvgLayerStyles();
-		const svgLayer = this._virtualElementList.svgLayer;
-		this._applyInlineStyles(inlineProps, svgLayer);
-	}
-	
-	_getCurrentInlineVirtualSvgLayerStyles() {
-		const managedProperties = this._getManagedProperties();
-		const svgProps = this._getInliteSvgLayerStyles();
-		const result = {};
-		for (const prop of managedProperties) {
-			
-			if (this.isActivated() && prop in svgProps) {
-				result[prop] = svgProps[prop];
-				continue;
-			}
-			// if (prop == 'border-radius') continue;
-			// if (prop == 'position') continue;
-
-			if (this.isActivated() && prop in this._styles.reset) {
-				result[prop] = this._styles.computed[prop];
-			}
-
-		}
-		return result;
-	}
-
-
-
-	/**
-	 * =============================================================
-	 * CURVE
-	 * =============================================================
-	 */
-
-	// _initCurve() {
-	// 	super._initCurve();
-
-	// 	this._initViewbox();
-	// }
-
-	_initViewbox() {
-		this._recalculateViewbox();
-	}
-
-	_recalculateCurve() {
-		super._recalculateCurve();
-
-		this._recalculateViewbox();
-	}
-
-	_recalculateViewbox() {
-		if ( this._size.width > 0 && this._size.height > 0 ) {
-			this._viewbox = `0 0 ${this._size.width} ${this._size.height}`;
-		} else {
-			this._viewbox = '0 0 0 0'; // Сбрасываем путь
-		}
-	}
-
-	_getViewbox() {
-		return this._viewbox;
-	}
-	
-	_applyCurve() {
-		// Избегаем лишних мутаций
-		const currentClipPath = this._element.style.getPropertyValue('clip-path');
-		if (currentClipPath !== 'none') {
-			this._element.style.setProperty('clip-path', 'none');
-		}
-			// this._element.style.setProperty('clip-path', 'none');
-
-		const svgLayer = this._virtualElementList.svgLayer;
-		svgLayer.setAttribute('viewBox', this._getViewbox());
-
-		const svgLayerPath = this._virtualElementList.svgLayerPath;
-		if (this._path) {
-			svgLayerPath.setAttribute('d', this._path);
-		} else {
-			svgLayerPath.setAttribute('d', '');
-			// svgLayerPath.removeAttribute('d');
-		}
-	}
-	
-	_restoreCurve() {
-		const svgLayerPath = this._virtualElementList.svgLayerPath;
-
-		svgLayerPath.setAttribute('d', '');
-		// svgLayerPath.removeAttribute('d');
-
-		super._restoreCurve();
-	}
-
-
-	/**
-	 * =============================================================
-	 * VIRTUAL
-	 * =============================================================
-	 */
-
-
-	_getInliteSvgLayerStyles() {
-		return {
-			'border-radius' : '',
-			'position': 'absolute',
-			'top': '0px',
-			'left': '0px',
-			'width': '100%',
-			'height': '100%',
-			'pointer-events': 'none',
-			// TODO: 
-			// 'clip-path': `url(#${clipId})`
-		}
-	}
-
-
-
-	_initVirtualElementList() {
-		this._initVirtualInnerWrapper();
-		this._initVirtualSvgLayer();
-	}
-
-
-
-
-	_initVirtualSvgLayer() {
-		if (this._virtualElementList.svgLayer) return;
-
-		const clipId = 'jsse_Clip_' + Math.random().toString(36).slice(2, 10);
-		const svgLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-		svgLayer.classList.add('jsse--svg-layer--bg');
-		svgLayer.setAttribute('viewBox', this._getViewbox());
-		svgLayer.setAttribute('preserveAspectRatio', 'none');
-
-		const svgProps = this._getInliteSvgLayerStyles();
-		for (const prop in svgProps) {
-			svgLayer.style.setProperty(prop, svgProps[prop]);
-		}
-		svgLayer.style.setProperty('clip-path', `url(#${clipId})`);
-
-		const clipShape = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-		clipShape.setAttribute('d', ''); // только создаем слой, не заполняем
-		const clipPath = document.createElementNS('http://www.w3.org/2000/svg', 'clipPath');
-		clipPath.setAttribute('id', clipId);
-		clipPath.appendChild(clipShape);
-		const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-		defs.appendChild(clipPath);
-		svgLayer.appendChild(defs);
-
-		this._virtualElementList.svgLayer = svgLayer;
-		this._virtualElementList.svgLayerPath = clipShape;
-	}
-
-	_initVirtualInnerWrapper() {
-		if (this._virtualElementList.innerWrapper) return;
-
-		const innerWrapper = document.createElement('div');
-		innerWrapper.className = 'jsse--svg-layer--content';
-		innerWrapper.style.setProperty('position', 'relative');
-
-		this._virtualElementList.innerWrapper = innerWrapper;
-	}
-
-
-
-
-	_createSvgLayer() {
-		const svgLayer = this._virtualElementList.svgLayer;
-		// TODO: нужна ли проверка на наличие svgLayer у this._element?
-		this._element.insertBefore(svgLayer, this._element.firstChild);
-	}
-
-	_removeSvgLayer() {
-		const svgLayer = this._virtualElementList.svgLayer;
-		if (svgLayer && svgLayer.parentNode === this._element) {
-			this._element.removeChild(svgLayer);
-		}
-	}
-
-	_createInnerWrapper() {
-		const innerWrapper = this._virtualElementList.innerWrapper;
-
-		// Перемещаем внутренние элемены this._element в innerWrapper
-		const children = Array.from(this._element.childNodes);
-		for (const child of children) {
-			innerWrapper.appendChild(child);
-		}
-
-		this._element.appendChild(innerWrapper);
-	}
-
-	_removeInnerWrapper() {
-		const innerWrapper = this._virtualElementList.innerWrapper;
-
-		// Перемещаем внутренние элемены innerWrapper в this._element
-		const children = Array.from(innerWrapper.childNodes);
-		for (const child of children) {
-			this._element.appendChild(child);
-		}
-
-		this._element.removeChild(innerWrapper);
-	}
-
-
-	/**
-	 * =============================================================
-	 * 
-	 * =============================================================
-	 */
-}
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * 
- * 
- * 
- */
-export class SuperellipseModeClipPath extends SuperellipseMode {
-
-
-	/**
-	 * =============================================================
-	 * PUBLIC
-	 * =============================================================
-	 */
-
-	constructor(element) {
-		super(element);
 	}
 
 
