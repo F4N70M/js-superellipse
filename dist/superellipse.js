@@ -1,32 +1,158 @@
+/**
+ * 
+ * @module sj-superellipse
+ * @version 1.0.0
+ * @author f4n70m
+ * @license MIT
+ * 
+ * @description
+ * Библиотека для применения суперэллипсов к произвольным DOM-элементам.
+ * Позволяет плавно изменять форму углов от вогнутых прямоугольных (-2) до выгнутых прямоугольных (2),
+ * проходя через скос (0), круглые углы (±G) и классический суперэллипс (1).
+ * 
+ * Особенности:
+ * - Два режима работы: `clip-path` (легковесный) и `svg-layer` (полнофункциональный с поддержкой фонов, границ и теней).
+ * - Автоматическое отслеживание изменений размеров, стилей, видимости и атрибутов элемента.
+ * - Поддержка `border-radius`, `border`, `box-shadow`, `background` в режиме `svg-layer`.
+ * - Несколько способов инициализации: через селектор, элемент, коллекцию или глобальную функцию.
+ * - Умное кэширование стилей для минимизации перерисовок.
+ * 
+ * @typicalname superellipse
+ * 
+ * @example
+ * // Инициализация элемента с режимом svg-layer (по умолчанию)
+ * const element = document.querySelector('.my-element');
+ * const controller = element.superellipseInit({
+ *   curveFactor: 1.2,
+ *   precision: 3
+ * });
+ * 
+ * // Изменение коэффициента кривизны
+ * controller.setCurveFactor(0.8);
+ * 
+ * // Переключение режима
+ * controller.switchMode('clip-path');
+ * 
+ * // Инициализация всех элементов с классом .rounded
+ * superellipseInit('.rounded', { mode: 'clip-path' });
+ * 
+ * @example
+ * // Генерация только SVG-пути без привязки к DOM
+ * import { jsse_generateSuperellipsePath } from 'js-superellipse';
+ * const path = jsse_generateSuperellipsePath(200, 150, 20, 1.5);
+ * document.querySelector('path').setAttribute('d', path);
+ */
+
+/**
+ * Глобальная функция для инициализации суперэллипса на одном или нескольких элементах.
+ * @function superellipseInit
+ * @memberof module:js-superellipse
+ * @param {string|Element|NodeList|Array<Element>} target - CSS-селектор, DOM-элемент или коллекция.
+ * @param {Object} [options] - Опции инициализации.
+ * @param {string} [options.mode='svg-layer'] - Режим: `'svg-layer'` (полная поддержка стилей) или `'clip-path'` (только обрезка).
+ * @param {number} [options.curveFactor] - Коэффициент кривизны (от -2 до 2). По умолчанию `(4/3)*(√2-1) ≈ 0.5523`.
+ * @param {number} [options.precision=2] - Количество знаков после запятой в координатах пути.
+ * @param {boolean} [options.force=false] - Принудительное пересоздание контроллера, если элемент уже инициализирован.
+ * @returns {SuperellipseController|Array<SuperellipseController>} Контроллер для одного элемента или массив контроллеров.
+ * @throws {Error} Если target не является селектором, элементом или коллекцией.
+ */
+
+/**
+ * Класс контроллера, управляющего жизненным циклом суперэллипса для конкретного элемента.
+ * @class SuperellipseController
+ * @memberof module:js-superellipse
+ * @hideconstructor
+ * @example
+ * const controller = new SuperellipseController(element, options);
+ * // или через фабрику: element.superellipseInit(options)
+ */
+
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Superellipse = {}));
 })(this, (function (exports) { 'use strict';
 
-    // src/styles-cache.js
+    /**
+     * @file src/global-cache.js
+     * 
+     * @module sj-superellipse/global-cache
+     * @since 1.0.0
+     * @author f4n70m
+     * 
+     * @description
+     * Глобальные хранилища для кэширования данных между экземплярами контроллеров и режимов.
+     * - `jsse_styles` (WeakMap) – кэш захваченных стилей для каждого элемента.
+     * - `jsse_css` – хранилище глобально добавленных элементов `<style>` для режимов.
+     * - `jsse_counter` – счётчик для генерации уникальных идентификаторов контроллеров.
+     */
+
 
     /**
-     * Глобальный кэш отслеживания стилей
+     * Карта для хранения контроллеров суперэллипса, связанных с DOM-элементами.
+     * @type {WeakMap<Element, SuperellipseController>}
+     */
+    const jsse_controllers = new WeakMap(); // экспортируем
+
+
+    /**
+     * WeakMap для кэширования стилей элементов.
+     * @type {WeakMap<Element, Object>}
      */
     const jsse_styles = new WeakMap();
 
+
     /**
-     * Модуль генерации SVG-пути для суперэллипса с регулируемой формой углов.
-     * Основан на аппроксимации суперэллипса кубическими кривыми Безье.
-     *
-     * @module f4n70m/sj-superellipse
+     * Объект для хранения глобальных CSS-правил режимов.
+     * @namespace jsse_css
+     */
+    const jsse_css = {
+        _list: {},
+        get(key) {
+            return this._list[key];
+        },
+        set(key, el) {
+            this._list[key] = el;
+        },
+        isset(key) {
+            return this._list[key] !== undefined;
+        }
+    };
+
+    /**
+     * Счётчик для генерации уникальных идентификаторов контроллеров.
+     * @namespace jsse_counter
+     */
+    const jsse_counter = {
+    	_value: 0,
+    	increment() { this._value++; },
+    	decrement() { this._value--; },
+    	get value() { return this._value; }
+    };
+
+    /**
+     * @file src/core.js
+     * 
+     * @module sj-superellipse/core
      * @since 1.0.0
-     * @version 1.0.0
-     * @author F4N70M
-     * @license MIT
-     *
-     * @see {@link https://en.wikipedia.org/wiki/Superellipse|Суперэллипс на Wikipedia}
-     * @see {@link https://github.com/F4N70M/js-superellipse|f4n70m/sj-superellipse}
-     *
+     * @author f4n70m
+     * 
+     * @description
+     * Ядро математических расчётов суперэллипса. Содержит функцию `jsse_generateSuperellipsePath`,
+     * которая по заданным ширине, высоте, радиусу скругления и коэффициенту кривизны генерирует
+     * SVG-путь, аппроксимирующий суперэллипс с помощью кубических кривых Безье.
+     * 
+     * Также экспортирует вспомогательные функции:
+     * - `jsse_roundf` – округление чисел с заданной точностью,
+     * - `jsse_getBorderRadiusFactor` – возвращает константу (4/3)*(√2-1) для аппроксимации окружности.
+     * 
+     * @see {@link https://en.wikipedia.org/wiki/Superellipse|Суперэллипс}
+     * @see {@link https://github.com/f4n70m/js-superellipse|f4n70m/sj-superellipse}
+     * 
      * @example
+     * import { jsse_generateSuperellipsePath } from 'js-superellipse/core';
      * const path = jsse_generateSuperellipsePath(200, 150, 30, 1.2);
-     * document.querySelector('path').setAttribute('d', path);
+     * svgPathElement.setAttribute('d', path);
      */
 
     /**
@@ -103,18 +229,18 @@
         if (typeof radius !== 'number' || isNaN(radius)) {
             radius = 0;
         }
-        // константа идеальной окружности
+        /** константа идеальной окружности **/
         const G = jsse_getBorderRadiusFactor();
-        // константа максимальной L при D == 1
+        /** константа максимальной L при D == 1 **/
         const J = 8 - 4 * Math.sqrt(2);
 
-        // Множитель для нормализации координат
+        /** Множитель для нормализации координат **/
         let M = width >= height ? width : height;
 
         let kValue = Math.abs(curveFactor);
         let kSign  = curveFactor >= 0 ? 1 : -1;
 
-        // Ограничиваем радиус половиной меньшей стороны
+        /** Ограничиваем радиус половиной меньшей стороны **/
         let rxMax = width / 2;
         let ryMax = height / 2;
         let rMax  = Math.min(rxMax, ryMax);
@@ -135,7 +261,7 @@
         if (r !== 0) {
             let R = 1;
 
-            // Определить эллипсные (k=1)
+            /** Определить эллипсные (k=1) **/
             let Rk1x = rxMax / rx;
             let Rk1y = ryMax / ry;
             let Lk1x = (kSign > 0) ? Math.min(Rk1x, J) : 1;
@@ -145,12 +271,12 @@
             let Jk1x = (1 / J) * Lk1x;
             let Jk1y = (1 / J) * Lk1y;
 
-            // Относительное L (от 1 до Lk1, при k от G до 1)
+            /** Относительное L (от 1 до Lk1, при k от G до 1) **/
             let Lk = Math.max((Math.min(kValue, 1) - G) / (1 - G), 0);
             let Lix = 1 + (Lk1x - 1) * Lk;
             let Liy = 1 + (Lk1y - 1) * Lk;
 
-            // Определить Di (от Li)
+            /** Определить Di (от Li) **/
             let Six = 0, Siy = 0;
             let Dix, Diy;
             if (kValue <= G) {
@@ -243,7 +369,7 @@
             ];
         }
 
-        // Применяем масштабирование и округление
+        /** Применяем масштабирование и округление **/
         const path = pathCommands.map(p => {
             if (typeof p === 'number') {
                 return jsse_roundf(p * Qm, precision);
@@ -254,17 +380,72 @@
         return path;
     }
 
-    // src/mode.js
+    /**
+     * @file src/support.js
+     * 
+     * @module sj-superellipse/support
+     * @since 1.0.0
+     * @author f4n70m
+     * 
+     * @description
+     * Вспомогательные утилиты и инструменты отладки.
+     * - `jsse_element_has_class` – проверка наличия класса у элемента.
+     * - `jsse_debug` – объект для условного вывода отладочных сообщений в консоль.
+     */
+
 
     /**
+     * Объект для управления отладочным выводом.
+     * @namespace jsse_debug
+     */
+    const jsse_debug = {
+    	id : null,
+    	// id : 1,
+    	print : (debug, element, names, value = null) => {
+    		if (debug) {
+    			if (names.length > 0) {
+    				for (var i = 0; i < names.length; i++) {
+    					names[i] = `[${names[i]}]`;
+    				}
+    				names.join(' ');
+    			}
+    		}
+    	}
+    };
+
+    /**
+     * @file src/mode.js
      * 
+     * @module sj-superellipse/mode
+     * @since 1.0.0
+     * @author f4n70m
      * 
+     * @description
+     * Базовый класс `SuperellipseMode`, от которого наследуются конкретные реализации режимов.
+     * Содержит общую логику захвата стилей и размеров элемента, пересчёта SVG-пути суперэллипса,
+     * применения/восстановления CSS-свойств (`clip-path`). Определяет защищённые методы, которые должны
+     * быть переопределены в дочерних классах.
      * 
+     * @example
+     * class MyMode extends SuperellipseMode {
+     *   _getActivatedStyles() { return { /* стили активации *\}; }
+     *   _getModeName() { return 'my-mode'; }
+     *   _appendVirtualElements() { /* реализация *\/ }
+     *   _removeVirtualElements() { /* реализация *\/ }
+     * }
+     */
+
+
+    /**
+     * Базовый класс для реализации режимов суперэллипса.
      */
     class SuperellipseMode {
 
     	_element;
+
+    	_isInitiated;
     	_isActivated;
+    	_isDebug;
 
     	_size = {
     		width:  0,
@@ -288,105 +469,152 @@
     	 */
 
 
-    	constructor(element) {
+        /**
+         * @param {Element} element - Целевой элемент.
+         * @param {boolean} [debug=false] - Флаг отладки.
+         */
+    	constructor(element, debug = false) {
+
     		this._element = element;
+
+    		this._isDebug = debug;
+    		this._isActivated = false;
+
     		this._curveFactor = jsse_getBorderRadiusFactor();
     		this._precision = 2;
-    		this._isActivated = false;
 
     		this._init();
     	}
 
+        /**
+         * Активирует режим.
+         */
     	activate() {
     		if (this.isActivated()) return;
-
-    		// Установить статус
-    		this._isActivated = true;
-    		// Подготовить к активации
-    		this._captureStyles();
-    		this._recalculateCurve();
-    		// Применить Стили и кривую
-    		this._applyCurrentInlineStyles();
-    		this._applyCurrentCurve();
+    		/** Актуализировать данные захвата **/
+    		this._updateCaptured();
+    		/** Установить статус **/
+    		this._setStatus(true);
+    		/** Создать виртуальные элементы **/
+    		this._appendVirtualElements();
+    		/** Подготовить обновление **/
+    		this._prepareUpdate();
+    		/** Выполнить обновление **/
+    		this._executeUpdate();
     	}
+
+        /**
+         * Деактивирует режим.
+         */
     	deactivate() {
     		if (!this.isActivated()) return;
-
-    		// Установить статус
-    		this._isActivated = false;
-    		// Применить Стили и кривую
-    		this._applyCurrentInlineStyles();
-    		this._applyCurrentCurve();
+    		/** Установить статус **/
+    		this._setStatus(false);
+    		/** Удалить элементы виртуальных слоев **/
+    		this._removeVirtualElements();
+    		/** Выполнить обновление **/
+    		this._executeUpdate();
     	}
 
+        /**
+         * Полное обновление (стили, размер, путь).
+         */
     	update() {
-    		this.updatePrepare();
-    		this.updateExecute();
-    	}
-    	updatePrepare() {
-    		this._captureStyles();
-    		this._captureSize();
-    		this._recalculateCurve();
-    	}
-    	updateExecute() {
-    		this._applyCurrentInlineStyles();
-    		this._applyCurrentCurve();
+    		/** Актуализировать данные захвата **/
+    		this._updateCaptured();
+    		/** Подготовить обновление **/
+    		this._prepareUpdate();
+    		/** Выполнить обновление **/
+    		this._executeUpdate();
     	}
 
+        /**
+         * Обновление только размеров.
+         */
+    	updateSize() {
+    		/** Актуализировать размеры **/
+    		this._updateCapturedSize();
+    		/** Подготовить обновление **/
+    		this._prepareUpdate();
+    		/** Выполнить обновление **/
+    		this._executeUpdate();
 
-    	updateSize(update = true) {
-    		this.updateSizePrepare();
-    		if (update) {
-    			this.updateSizeExecute();
-    		}
-    	}
-    	updateSizePrepare() {
-    		this._captureSize();
-    		this._recalculateCurve();
-    	}
-    	updateSizeExecute() {
-    		this._applyCurrentCurve();
     	}
 
-
-    	updateStyles(update = true) {
-    		this.updateStylesPrepare();
-    		if (update) {
-    			this.updateStylesExecute();
-    		}
-    	}
-    	updateStylesPrepare() {
-    		this._captureStyles();
-    		this._recalculateCurve();
-    	}
-    	updateStylesExecute() {
-    		this._applyCurrentInlineStyles();
-    		this._applyCurrentCurve();
+        /**
+         * Обновление только стилей.
+         */
+    	updateStyles() {
+    		/** Актуализировать стили **/
+    		this._updateCapturedStyles();
+    		/** Подготовить обновление **/
+    		this._prepareUpdate();
+    		/** Выполнить обновление **/
+    		this._executeUpdate();
     	}
 
+        /**
+         * Обновление коэффициента кривизны.
+         * @param {number} value
+         */
+    	updateCurveFactor(value) {
+    		this.setCurveFactor(value);
+    		/** Подготовить обновление **/
+    		this._prepareUpdate();
+    		/** Выполнить обновление **/
+    		this._executeUpdate();
+    	}
 
-    	setCurveFactor(value, update = true) {
+        /**
+         * Обновление точности округления.
+         * @param {number} value
+         */
+    	updatePrecision(value) {
+    		this.setPrecision(value);
+    		/** Подготовить обновление **/
+    		this._prepareUpdate();
+    		/** Выполнить обновление **/
+    		this._executeUpdate();
+    	}
+
+        /**
+         * Устанавливает коэффициент кривизны.
+         * @param {number} value
+         */
+    	setCurveFactor(value) {
     		this._curveFactor = value;
-    		if (update) {
-    			this._recalculateCurve();
-    			this._applyCurrentCurve();
-    		}
     	}
 
-    	setPrecision(value, update = true) {
+        /**
+         * Устанавливает точность округления.
+         * @param {number} value
+         */
+    	setPrecision(value) {
     		this._precision = value;
-    		if (update) {
-    			this._recalculateCurve();
-    			this._applyCurrentCurve();
-    		}
     	}
 
+        /**
+         * Возвращает текущий SVG-путь.
+         * @returns {string}
+         */
     	getPath() {
     		return this._path;
     	}
 
+        /**
+         * Проверяет, активирован ли режим.
+         * @returns {boolean}
+         */
     	isActivated() {
     		return this._isActivated;
+    	}
+
+        /**
+         * Уничтожает режим, удаляет все артефакты.
+         */
+    	destroy() {
+    		this.deactivate();
+    		this._removeModeAttr();
     	}
 
 
@@ -397,17 +625,238 @@
     	 */
 
 
+        /**
+         * Инициализация режима.
+         * @private
+         */
     	_init() {
+    		this._id = Math.random().toString(36).slice(2, 10);
     		this._initStyles();
+    		this._setModeAttr();
     		this._initSize();
     		this._initCurve();
+    		this._isInitiated = true;
     	}
 
-    	_getResetStyles() {
+        /**
+         * Устанавливает статус активации.
+         * @param {boolean} status
+         * @private
+         */
+    	_setStatus(status) {
+    		this._isActivated = status;
+    		if (status) {
+    			this._setActivatedAttr();
+    		} else {
+    			this._removeActivatedAttr();
+    		}
+    	}
+
+        /**
+         * Захватывает актуальные стили и размеры.
+         * @private
+         */
+    	_updateCaptured() {
+    		this._updateCapturedStyles();
+    		this._updateCapturedSize();
+    	}
+
+        /**
+         * Подготавливает обновление (пересчёт кривой).
+         * @private
+         */
+    	_prepareUpdate() {
+    		this._recalculateCurve();
+    	}
+
+        /**
+         * Выполняет обновление (применяет кривую).
+         * @private
+         */
+    	_executeUpdate() {
+    		this._applyCurrentCurve();
+    	}
+
+        /**
+         * Возвращает имя режима.
+         * @returns {string}
+         * @protected
+         */
+    	_getModeName() {
+    		return 'clip-path';
+    	}
+
+        /**
+         * Возвращает карту стилей, которые нужно временно применить для корректного чтения.
+         * @returns {Object<string, string>}
+         * @protected
+         */
+    	_getReadingStyles() {
+    		return {
+    			'transition': 'unset'
+    		};
+    	}
+
+        /**
+         * Возвращает карту стилей, применяемых при активации режима.
+         * @returns {Object<string, string>}
+         * @protected
+         */
+    	_getActivatedStyles() {
     		return {
     			'border-radius': '0px'
     		};
     	}
+
+
+    	/**
+    	 * =============================================================
+    	 * VIRTUAL
+    	 * =============================================================
+    	 */
+
+
+        /**
+         * Создаёт виртуальные элементы (если нужно).
+         * @protected
+         */
+    	_appendVirtualElements() {}
+
+        /**
+         * Удаляет виртуальные элементы.
+         * @protected
+         */
+    	_removeVirtualElements() {}
+
+
+    	/**
+    	 * =============================================================
+    	 * ATTRIBUTES
+    	 * =============================================================
+    	 */
+
+
+        /**
+         * Устанавливает атрибут `data-jsse-mode`.
+         * @protected
+         */
+    	_setModeAttr() {
+    		this._element.setAttribute('data-jsse-mode', this._getModeName());
+    	}
+
+        /**
+         * Удаляет атрибут `data-jsse-mode`.
+         * @protected
+         */
+    	_removeModeAttr() {
+    		this._element.removeAttribute('data-jsse-mode');
+    	}
+
+        /**
+         * Устанавливает атрибут `data-jsse-activated`.
+         * @protected
+         */
+    	_setActivatedAttr() {
+    		this._element.setAttribute('data-jsse-activated', true);
+    	}
+
+        /**
+         * Удаляет атрибут `data-jsse-activated`.
+         * @protected
+         */
+    	_removeActivatedAttr() {
+    		this._element.removeAttribute('data-jsse-activated');
+    	}
+
+        /**
+         * Устанавливает атрибут `data-jsse-reading`.
+         * @protected
+         */
+    	_setReadingAttr() {
+    		this._element.setAttribute('data-jsse-reading', true);
+    	}
+
+        /**
+         * Удаляет атрибут `data-jsse-reading`.
+         * @protected
+         */
+    	_removeReadingAttr() {
+    		this._element.removeAttribute('data-jsse-reading');
+    	}
+
+
+    	/**
+    	 * =============================================================
+    	 * CSS
+    	 * =============================================================
+    	 */
+
+
+        /**
+         * Инициализирует глобальные CSS-правила для режима.
+         * @protected
+         */
+    	_initResetStyles() {
+    		const modeName = this._getModeName();
+    		if (jsse_css.isset(modeName)) return;
+
+    		let cssString = '';
+
+    		const activatedStyles = this._getActivatedStyles();
+    		cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]{`;
+    		for (const prop in activatedStyles) {
+    			if (activatedStyles[prop] === '') continue;
+    			cssString += `\n\t${prop}: ${activatedStyles[prop]};`;
+    		}
+    		cssString += `\n}`;
+
+    		cssString += `\n`;
+
+    		const readingStyles = this._getReadingStyles();
+    		cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]{`;
+    		for (const prop in readingStyles) {
+    			if (readingStyles[prop] === '') continue;
+    			cssString += `\n\t${prop}: ${readingStyles[prop]};`;
+    		}
+    		cssString += `\n}`;
+
+    		this._initModeCssStyleElement(modeName, cssString);
+    	}
+
+        /**
+         * Создаёт элемент `<style>` для режима.
+         * @param {string} modeName
+         * @param {string} textContent
+         * @protected
+         */
+    	_initModeCssStyleElement(modeName, textContent) {
+    		/** Создать элемент <style> **/
+    		const styleElement = document.createElement('style');
+    		styleElement.setAttribute('id', `jsse__css_${modeName}`);
+    		/** Заполнить элемент CSS-правилами **/
+    		styleElement.textContent = textContent;
+    		/** Сохранить глобально **/
+    		jsse_css.set(modeName, styleElement);
+    		/** Добавить элемент в конец <body> **/
+    		this._appendModeCssStyleElement(styleElement);
+    	}
+
+    	/**
+    	 * 
+    	 * TODO: доработать _appendModeCssStyleElement()
+    	 * 
+    	 */
+    	_appendModeCssStyleElement(styleElement) {
+    		document.body.appendChild(styleElement);
+    	}
+
+    	/**
+    	 * 
+    	 * TODO: реализовать _removeModeCssStyleElement()
+    	 * 
+    	 */
+    	_removeModeCssStyleElement(styleElement) {}
+
 
     	/**
     	 * =============================================================
@@ -415,156 +864,102 @@
     	 * =============================================================
     	 */
 
-    	_initStyles() {
-    		this._styles = jsse_styles.get(this._element);
-    		this._dropStyles();
-    	}
 
-    	_dropStyles() {
-    		this._styles.computed = {};	// вычисленные значения элемента
-    		this._styles.inline = {};	// inline значения элемента
-    		this._styles.reset = {}; 	// значения для расчета кривой и виртуальных элементов
-    	}
+        /**
+         * Обновляет захваченные стили.
+         * @protected
+         */
+    	_updateCapturedStyles() {
+    		jsse_debug.print(this._isDebug, this._element, ['MODE', 'CAPTURE']);
 
-    	_captureStyles() {
-    		/** 1. Получить актуальные inline-стили **/
-    		// Получить актуальные очищенные inline
-    		const capturedInlineStyles = this._getClearCapturedInlineStyles();
-    		// Сохранить inline-стили
-    		this._styles.inline = capturedInlineStyles;
-    		/** 2. Вычислить актуальные computed-стили **/
-    		// Восстановить inline-стили
-    		if (this.isActivated()) {
-    			this._clearResetStyles();
-    		}
-    		// получить текущие computed-стили
-    		const capturedComputedStyles = this._getCapturedComputedStyles();
-    		// Сохранить computed-стили
+    		const capturedComputedStyles = this._getCapturedStyles();
+    		/** Сохранить computed-стили **/
     		this._styles.computed = capturedComputedStyles;
-    		/** 3. Обновить reset-стили **/
-    		this._recalculateResetStyles();
-    		/** 4. Возвращение исходных inline-стилей **/
-    		this._applyInlineStyles(capturedInlineStyles, this._element);
-
     	}
 
-    	_recalculateResetStyles() {
-    		this._styles.reset = {};
-    		const resetStyles = this._getResetStyles();
-    		for (const prop in resetStyles) {
-    			const computedValue = this._styles.computed[prop];
-    			const inlineValue = this._styles.inline[prop]; 
-    			const resetValue = resetStyles[prop];
+        /**
+         * Получает вычисленные стили с временным снятием атрибута активации.
+         * @param {boolean} [clear=true] - Снимать ли атрибут активации перед чтением.
+         * @returns {Object<string, string>}
+         * @protected
+         */
+    	_getCapturedStyles(clear = true) {
+    		const hasAttribute = this._element.hasAttribute('data-jsse-activated');
 
-    			// Запомнить необходимые inline для сброса
-    			if (resetValue !== computedValue && resetValue !== inlineValue) {
-    				this._styles.reset[prop] = resetValue;
-    			}
+    		if (hasAttribute && clear) {
+    			this._removeActivatedAttr();
     		}
-    	}
+    		this._setReadingAttr();
 
-    	_applyInlineStyles(props, element) {
-    		const managedProperties = this._getManagedProperties();
-    		for(const prop of managedProperties) {
-    			const inlineValue = props[prop];
-    			const currentValue = element.style.getPropertyValue(prop);
-    			if (inlineValue !== undefined) {
-    				if (currentValue !== inlineValue) {
-    					// console.log(`[DEBUG] _applyInlineStyles: setting ${prop} from "${currentValue}" to "${inlineValue}"`);
-    					element.style.setProperty(prop, inlineValue);
-    				}
-    			} else {
-    				if (currentValue !== '') {
-    					// console.log(`[DEBUG] _applyInlineStyles: removing ${prop} (was "${currentValue}")`);
-    					element.style.removeProperty(prop);
-    				}
-    			}
-    		}
-    	}
+    		const result = this._getManagedComputedStyle();
 
-    	_getCurrentInlineStyles() {
-    		const managedProperties = this._getManagedProperties();
-    		const result = {};
-    		for (const prop of managedProperties) {
-    			let inlineValue = this._styles.inline[prop];
-    			if (this.isActivated() && prop in this._styles.reset) {
-    				inlineValue = this._styles.reset[prop];
-    			}
-    			if (inlineValue !== undefined) {
-    				result[prop] = inlineValue;
-    			}
+    		if (hasAttribute && clear) {
+    			this._setActivatedAttr();
     		}
+    		this._removeReadingAttr();
     		return result;
     	}
 
-    	_applyCurrentInlineStyles() {
-    		this._applyCurrentInlineElementStyles();
-    	}
-
-    	_applyCurrentInlineElementStyles() {
-    		const inlineProps = this._getCurrentInlineStyles();
-    		this._applyInlineStyles(inlineProps, this._element);
-    	}
-
-    	_applyResetStyles() {
-    		for(const prop in this._styles.reset) {
-    			const value = this._styles.reset[prop];
-    			this._element.style.setProperty(prop, value);
-    		}
-    	}
-    	_clearResetStyles() {
-    		for(const prop in this._styles.reset) {
-    			const inlineValue = this._styles.inline[prop];
-    			if (inlineValue !== undefined) {
-    				this._element.style.setProperty(prop, inlineValue);
-    			} else {
-    				this._element.style.removeProperty(prop);
-    			}
-    		}
-    	}
-
-    	_getClearCapturedInlineStyles() {
-    		// Получить текущие inline
-    		const result = this._getCapturedInlineStyles();
-    		// Очистить полученные inline от сброшенных режимом значений
-    		const managedProperties = this._getManagedProperties();
-    		for (const prop of managedProperties) {
-    			// если режим включен и значение совпадает с примененным reset
-    			if (this.isActivated() && prop in this._styles.reset && result[prop] === this._styles.reset[prop]) {
-    				if (prop in this._styles.inline) {
-    					result[prop] = this._styles.inline[prop];
-    				} else {
-    					delete result[prop];
-    				}
-    			}
-    			// иначе остается inline значение элемента
-    		}
-    		return result;
-    	}
-
-    	_getCapturedInlineStyles() {
-    		const result = {};
-    		const capturedStyles = this._element.style;
-    		for (const prop of this._getManagedProperties()) {
-    			const value = capturedStyles.getPropertyValue(prop);
-    			if (value !== '') result[prop] = value;
-    		}
-    		return result;
-    	}
-
-    	_getCapturedComputedStyles() {
+        /**
+         * Получает вычисленные стили для управляемых свойств.
+         * @returns {Object<string, string>}
+         * @protected
+         */
+    	_getManagedComputedStyle() {
     		const result = {};
     		const capturedStyles = getComputedStyle(this._element);
     		for (const prop of this._getManagedProperties()) {
     			result[prop] = capturedStyles.getPropertyValue(prop);
-    			// const value = capturedStyles.getPropertyValue(prop);
-    			// result[prop] = value !== '' ? value   : null;
     		}
     		return result;
     	}
 
+        /**
+         * Возвращает значение захваченного вычисленного свойства.
+         * @param {string} prop
+         * @returns {string}
+         * @protected
+         */
+    	_getComputedProp(prop) {
+    		if ('computed' in this._styles && prop in this._styles.computed)
+    			return this._styles.computed[prop];
+    	}
+
+
+        /**
+         * 
+         * TODO: _dropStyles()
+         * 
+         * Сбрасывает захваченные стили.
+         * @protected
+         */
+    	_dropStyles() {
+    		this._styles.computed = {};	// вычисленные значения элемента
+    	}
+
+        /**
+         * Возвращает массив свойств CSS, управляемых режимом.
+         * @returns {string[]}
+         * @protected
+         */
     	_getManagedProperties() {
-    		return Object.keys(this._getResetStyles());
+    		return Object.keys(this._getActivatedStyles());
+    	}
+
+
+    	/**
+    	 * =============================================================
+    	 * CACHE
+    	 * =============================================================
+    	 */
+
+        /**
+         * Инициализирует хранилище стилей.
+         * @protected
+         */
+    	_initStyles() {
+    		this._styles = jsse_styles.get(this._element);
+    		this._initResetStyles();
     	}
 
     	/**
@@ -573,11 +968,20 @@
     	 * =============================================================
     	 */
 
+
+        /**
+         * Инициализирует размеры.
+         * @protected
+         */
     	_initSize() {
-    		this._captureSize();
+    		this._updateCapturedSize();
     	}
 
-    	_captureSize() {
+        /**
+         * Обновляет захваченные размеры.
+         * @protected
+         */
+    	_updateCapturedSize() {
     		const rect = this._element.getBoundingClientRect();
 
     		this._size.width = rect.width;
@@ -591,25 +995,42 @@
     	 * =============================================================
     	 */
 
+
+        /**
+         * Инициализирует кривую.
+         * @protected
+         */
     	_initCurve() {
     		this._initInlinePath();
     	}
 
+        /**
+         * Сохраняет исходный `clip-path`.
+         * @protected
+         */
     	_initInlinePath() {
     		this._resetPath = this._element.style.getPropertyValue('clip-path');
     	}
 
+        /**
+         * Пересчитывает путь на основе текущих размеров и радиуса.
+         * @protected
+         */
     	_recalculateCurve() {
     		this._recalculatePath();
     	}
 
+        /**
+         * Генерирует SVG-путь.
+         * @protected
+         */
     	_recalculatePath() {
     		if ( !( this._size.width > 0 && this._size.height > 0 ) ) {
     			this._path = 'none'; // Сбрасываем путь
     			return;
     		}
 
-    		const radiusValue = this._styles.computed['border-radius'];
+    		const radiusValue = this._getComputedProp('border-radius');
     		const radiusNumber = radiusValue ? parseFloat(radiusValue) : 0;
 
     		this._path  = jsse_generateSuperellipsePath(
@@ -620,18 +1041,25 @@
     			this._precision
     		);
     	}
-    	
+
+        /**
+         * Применяет текущий путь (если активирован) или восстанавливает исходный.
+         * @protected
+         */
     	_applyCurrentCurve() {
-    		// console.log('[DEBUG]', '_applyCurrentCurve:', 'isActivated()', this.isActivated(), '_path', this._path);
     		if (this.isActivated()) {
     			this._applyCurve();
     		} else {
     			this._restoreCurve();
     		}
     	}
-    	
+
+        /**
+         * Применяет суперэллипс через `clip-path`.
+         * @protected
+         */
     	_applyCurve() {
-    		if (this._path) {
+    		if (this._path && this._path !== 'none') {
     			const newPath = `path("${this._path}")`;
     			if (this._element.style.getPropertyValue('clip-path') !== newPath) {
     				this._element.style.setProperty('clip-path', newPath);
@@ -642,7 +1070,11 @@
     			}
     		}
     	}
-    	
+
+        /**
+         * Восстанавливает исходный `clip-path`.
+         * @protected
+         */
     	_restoreCurve() {
     		if (this._resetPath) {
     			this._element.style.setProperty('clip-path', this._resetPath);
@@ -659,12 +1091,31 @@
     	 */
     }
 
-    // src/mode-svg-layer.js
+    /**
+     * @file src/mode-svg-layer.js
+     * 
+     * @module sj-superellipse/mode-svg-layer
+     * @since 1.0.0
+     * @author f4n70m
+     * 
+     * @description
+     * Режим `svg-layer` – полнофункциональный режим, создающий наложенный SVG-слой для отрисовки
+     * суперэллипса. Позволяет корректно отображать `background`, `border`, `box-shadow` элемента.
+     * Переносит дочернее содержимое во внутренний div-контейнер, а поверх него размещает SVG,
+     * который повторяет геометрию суперэллипса с возможностью применения градиентов, теней и
+     * произвольных стилей обводки.
+     * 
+     * @extends SuperellipseMode
+     * @example
+     * const mode = new SuperellipseModeSvgLayer(element);
+     * mode.activate();
+     */
+
+
 
     /**
-     * 
-     * 
-     * 
+     * Режим, создающий наложенный SVG-слой для отрисовки фона, границ и теней.
+     * @extends SuperellipseMode
      */
     class SuperellipseModeSvgLayer extends SuperellipseMode {
 
@@ -673,47 +1124,22 @@
     	_viewbox;
 
 
-
-
     	/**
     	 * =============================================================
     	 * PUBLIC
     	 * =============================================================
     	 */
 
-    	constructor(element) {
-    		super(element);
+
+        /**
+         * @param {Element} element - Целевой элемент.
+         * @param {boolean} [debug=false] - Флаг отладки.
+         */
+    	constructor(element, debug = false) {
+    		super(element, debug);
 
     		this._initViewbox();
     		this._initVirtualElementList();
-    	}
-
-    	activate() {
-    		if (this.isActivated()) return;
-
-    		// Установить статус
-    		this._isActivated = true;
-    		// Подготовить к активации
-    		this._captureStyles();
-    		this._recalculateCurve();
-    		// Создать элементы виртуальных слоев
-    		this._createInnerWrapper();
-    		this._createSvgLayer();
-    		// Применить Стили и кривую
-    		this._applyCurrentInlineStyles();
-    		this._applyCurrentCurve();
-    	}
-    	deactivate() {
-    		if (!this.isActivated()) return;
-
-    		// Установить статус
-    		this._isActivated = false;
-    		// Удалить элементы виртуальных слоев
-    		this._removeInnerWrapper();
-    		this._removeSvgLayer();
-    		// Применить Стили и кривую
-    		this._applyCurrentInlineStyles();
-    		this._applyCurrentCurve();
     	}
 
 
@@ -724,12 +1150,38 @@
     	 */
 
 
-    	_getResetStyles() {
+        /**
+         * Выполняет обновление: применяет стили к слою div и обновляет путь.
+         * @override
+         * @protected
+         */
+    	_executeUpdate() {
+    		this._applyCurrentInlineVirtualSvgLayerStyles();
+    		this._applyCurrentCurve();
+    	}
+
+        /**
+         * Возвращает имя режима ('svg-layer').
+         * @override
+         * @protected
+         * @returns {string}
+         */
+    	_getModeName() {
+    		return 'svg-layer';
+    	}
+
+        /**
+         * Возвращает стили, применяемые к основному элементу при активации.
+         * @override
+         * @protected
+         * @returns {Object<string, string>}
+         */
+    	_getActivatedStyles() {
     		return {
-    			'background': 'unset',
-    			'border-color': '',
+    			'background': 'none',
+    			'border-color': 'transparent',
     			'border-width': '0px',
-    			'border-style': '',
+    			'border-style': 'none',
     			// 'border': 'unset',
     			'border-radius': '0px',
     			'box-shadow': 'unset',
@@ -737,27 +1189,30 @@
     		};
     	}
 
-
-    	_getInliteSvgLayerStyles() {
+        /**
+         * Возвращает стили для SVG-контейнера.
+         * @protected
+         * @returns {Object<string, string>}
+         */
+    	_getSvgLayerStyles() {
     		return {
-    				// 'border' : '',
-    				// 'border-radius' : '',
-    				// 'background': '',
-    				// 'box-shadow': '',
     			'position': 'absolute',
     			'top': '0px',
     			'left': '0px',
     			'width': '100%',
     			'height': '100%',
-    			'pointer-events': 'none',
-    			// TODO: 
-    			// 'clip-path': `url(#${clipId})`
+    			'pointer-events': 'none'
     		};
     	}
 
-
-    	_getInliteSvgLayerDivProps() {
+        /**
+         * Возвращает список CSS-свойств, которые переносятся во внутренний div.
+         * @protected
+         * @returns {string[]}
+         */
+    	_getSvgLayerDivProps() {
     		return [
+    			// 'color',
     			'background',
     			// 'background-size',
     			// 'background-position',
@@ -772,11 +1227,35 @@
     	 * =============================================================
     	 */
 
-    	_applyCurrentInlineStyles() {
-    		this._applyCurrentInlineElementStyles();
-    		this._applyCurrentInlineVirtualSvgLayerStyles();
+
+        /**
+         * Применяет инлайновые стили к указанному элементу.
+         * @param {Object<string, string>} props - Объект стилей.
+         * @param {HTMLElement|SVGElement} element - Целевой элемент.
+         * @protected
+         */
+    	_applyInlineStyles(props, element) {
+    		const managedProperties = this._getManagedProperties();
+    		for(const prop of managedProperties) {
+    			const inlineValue = props[prop];
+    			const currentValue = element.style.getPropertyValue(prop);
+    			if (inlineValue !== undefined) {
+    				if (currentValue !== inlineValue) {
+    					element.style.setProperty(prop, inlineValue);
+    				}
+    			} else {
+    				if (currentValue !== '') {
+    					element.style.removeProperty(prop);
+    				}
+    			}
+    		}
     	}
 
+    	/**
+    	 * 
+    	 * TODO: _applyCurrentInlineVirtualSvgLayerStyles()
+    	 * 
+    	 */
     	_applyCurrentInlineVirtualSvgLayerStyles() {
     		if ( this.isActivated() ) {
     			this._applyCurrentInlineVirtualSvgLayerDivStyles();
@@ -784,44 +1263,66 @@
     			this._applyCurrentInlineVirtualSvgLayerShadowsStyles();
     		}
     	}
+
+
+        /**
+         * Применяет стили к виртуальному div-слою.
+         * @protected
+         */
     	_applyCurrentInlineVirtualSvgLayerDivStyles() {
     		const inlineSvgLayerDivStyles = this._getCurrentInlineVirtualSvgLayerDivStyles();
     		const svgLayerDiv = this._virtualElementList.svgLayerDiv;
     		this._applyInlineStyles(inlineSvgLayerDivStyles, svgLayerDiv);
     	}
+
+        /**
+         * Возвращает стили для внутреннего div-слоя, извлечённые из вычисленных стилей элемента.
+         * @protected
+         * @returns {Object<string, string>}
+         */
     	_getCurrentInlineVirtualSvgLayerDivStyles() {
+    		jsse_debug.print(this._isDebug, this._element, ['_getCurrentInlineVirtualSvgLayerDivStyles']);
     		const result = {};
-    		const svgLayerDivProps = this._getInliteSvgLayerDivProps();
+    		const svgLayerDivProps = this._getSvgLayerDivProps();
     		for (const prop of svgLayerDivProps) {
-    			// Если есть общее свойство reset
-    			if (prop in this._styles.computed) {
-    				result[prop] = this._styles.computed[prop];
+    			const value = this._getComputedProp(prop);
+    			if (value !== undefined) {
+    				result[prop] = value;
     			}
     		}
     		return result;
     	}
 
+        /**
+         * Применяет стили границы (цвет, толщину, стиль) к SVG-элементу `border`.
+         * @protected
+         */
     	_applyCurrentInlineVirtualSvgLayerBorderStyles() {
     		const svgLayerBorder = this._virtualElementList.svgLayerBorder;
-    		// this._applyInlineStyles(inlineSvgLayerDivStyles, svgLayerBorder);
-    		const borderColor = this._styles.computed['border-color'];
+    		const borderColor = this._getComputedProp('border-color');
     		svgLayerBorder.setAttribute('stroke', borderColor);
-    		const borderWidth = this._styles.computed['border-width'];
+    		const borderWidth = this._getComputedProp('border-width');
     		const borderWidthNumber = borderWidth ? (parseFloat(borderWidth) * 2) : 0;
     		svgLayerBorder.setAttribute('stroke-width', borderWidthNumber);
-    		const borderStyle = this._styles.computed['border-style'];
+    		const borderStyle = this._getComputedProp('border-style');
     		this._applyBorderStyleToStroke(borderStyle, svgLayerBorder);
     	}
 
+        /**
+         * Преобразует CSS-стиль границы в атрибуты SVG-элемента.
+         * @param {string} borderStyle - Стиль границы (solid, dotted, dashed и т.д.).
+         * @param {SVGElement} pathElement - Элемент, к которому применяется обводка.
+         * @protected
+         */
     	_applyBorderStyleToStroke(borderStyle, pathElement) {
-    		// Сброс атрибутов
+    		/** Сброс атрибутов **/
     		pathElement.removeAttribute('stroke-dasharray');
     		pathElement.removeAttribute('stroke-linecap');
     		pathElement.removeAttribute('stroke-linejoin');
     		
     		switch(borderStyle) {
     			case 'solid':
-    				// Сплошная линия (значения по умолчанию)
+    				/** Сплошная линия (значения по умолчанию) **/
     				break;
     				
     			case 'dotted':
@@ -834,7 +1335,7 @@
     				break;
     				
     			case 'double':
-    				// Для double нужно два отдельных пути или фильтр
+    				/** Для double нужно два отдельных пути или фильтр **/
     				console.warn('double требует два отдельных элемента');
     				break;
     				
@@ -848,7 +1349,7 @@
     				break;
     				
     			case 'inset':
-    				// Имитация inset через полупрозрачность
+    				/** Имитация inset через полупрозрачность **/
     				pathElement.setAttribute('stroke-opacity', '0.7');
     				break;
     				
@@ -857,19 +1358,23 @@
     				break;
     				
     			case 'dash-dot':
-    				// Кастомный стиль
+    				/** Кастомный стиль **/
     				pathElement.setAttribute('stroke-dasharray', '15, 5, 5, 5');
     				break;
     				
     			case 'dash-dot-dot':
-    				// Кастомный стиль
+    				/** Кастомный стиль **/
     				pathElement.setAttribute('stroke-dasharray', '15, 5, 5, 5, 5, 5');
     				break;
     		}
     	}
 
+        /**
+         * Применяет тени (`box-shadow`) к SVG-слою, создавая фильтры.
+         * @protected
+         */
     	_applyCurrentInlineVirtualSvgLayerShadowsStyles() {
-    		const boxShadowValue = this._styles.computed['box-shadow'];
+    		const boxShadowValue = this._getComputedProp('box-shadow');
     		const shadows = this._parseBoxShadow(boxShadowValue);
 
     		const svg = this._virtualElementList.svgLayer;
@@ -934,10 +1439,16 @@
     		}
     	}
 
+        /**
+         * Разбирает значение `box-shadow` на массив объектов теней.
+         * @param {string} boxShadowValue - Строка свойства `box-shadow`.
+         * @returns {Array<Object>} Массив теней с полями: inset, color, offsetX, offsetY, blurRadius, spreadRadius.
+         * @protected
+         */
     	_parseBoxShadow(boxShadowValue) {
     	    if (!boxShadowValue || boxShadowValue === 'none') return [];
     	    
-    	    // Разделяем тени
+    	    /** Разделяем тени **/
     	    const shadows = [];
     	    let current = '';
     	    let depth = 0;
@@ -955,7 +1466,7 @@
     	    shadows.push(current.trim());
     	    
     	    return shadows.map(shadow => {
-    	        // Парсим одну тень
+    	        /** Парсим одну тень **/
     	        const parts = shadow.match(/(?:rgba?\([^)]+\)|\S+)/g);
     	        if (!parts) return null;
     	        
@@ -969,14 +1480,14 @@
     	            originalColorFormat: null  // исходный формат (уже нормализован getComputedStyle)
     	        };
     	        
-    	        // Проверяем inset
+    	        /** Проверяем inset **/
     	        const insetIndex = parts.indexOf('inset');
     	        if (insetIndex !== -1) {
     	            result.inset = true;
     	            parts.splice(insetIndex, 1);
     	        }
     	        
-    	        // Цвет всегда будет в формате rgb/rgba после getComputedStyle
+    	        /** Цвет всегда будет в формате rgb/rgba после getComputedStyle **/
     	        const colorPart = parts.find(p => p.startsWith('rgb'));
     	        if (colorPart) {
     	            result.color = colorPart;
@@ -984,7 +1495,7 @@
     	            parts.splice(parts.indexOf(colorPart), 1);
     	        }
     	        
-    	        // Парсим числовые значения
+    	        /** Парсим числовые значения **/
     	        const numbers = parts
     	            .map(p => parseFloat(p))
     	            .filter(n => !isNaN(n));
@@ -999,7 +1510,6 @@
     	}
 
 
-
     	/**
     	 * =============================================================
     	 * VIRTUAL
@@ -1007,19 +1517,23 @@
     	 */
 
 
-
+        /**
+         * Инициализирует список виртуальных элементов (div, svg и пр.).
+         * @protected
+         */
     	_initVirtualElementList() {
     		this._initVirtualInnerWrapper();
     		this._initVirtualSvgLayer();
     	}
 
-
-
-
+        /**
+         * Создаёт SVG-элементы для слоя.
+         * @protected
+         */
     	_initVirtualSvgLayer() {
     		if (this._virtualElementList.svgLayer) return;
 
-    		const id = Math.random().toString(36).slice(2, 10);
+    		const id = this._id;
     		const svgId		= `jsse_${id}`;
     		const clipId	= `jsse_${id}__clip`;
     		const pathId	= `jsse_${id}__path`;
@@ -1043,11 +1557,10 @@
     		svg.classList.add('jsse--svg-layer--bg');
     		svg.setAttribute('viewBox', this._getViewbox());
     		svg.setAttribute('preserveAspectRatio', 'none');
-    		const svgProps = this._getInliteSvgLayerStyles();
+    		const svgProps = this._getSvgLayerStyles();
     		for (const prop in svgProps) {
     			svg.style.setProperty(prop, svgProps[prop]);
     		}
-    		// svg.style.setProperty('clip-path', `url(#${clipId})`);
     		svg.style.setProperty('overflow', 'visible');
     		svg.appendChild(defs);
     		svg.appendChild(gShadows);
@@ -1093,6 +1606,10 @@
     		this._virtualElementList.svgLayerBorder = border;
     	}
 
+        /**
+         * Создаёт внутренний div-обёртку для контента.
+         * @protected
+         */
     	_initVirtualInnerWrapper() {
     		if (this._virtualElementList.innerWrapper) return;
 
@@ -1103,15 +1620,40 @@
     		this._virtualElementList.innerWrapper = innerWrapper;
     	}
 
+        /**
+         * Добавляет виртуальные элементы в DOM.
+         * @override
+         * @protected
+         */
+    	_appendVirtualElements() {
+    		this._appendInnerWrapper();
+    		this._appendSvgLayer();
+    	}
 
+        /**
+         * Удаляет виртуальные элементы из DOM.
+         * @override
+         * @protected
+         */
+    	_removeVirtualElements() {
+    		this._removeSvgLayer();
+    		this._removeInnerWrapper();
+    	}
 
-
-    	_createSvgLayer() {
+        /**
+         * Добавляет SVG-слой в начало элемента.
+         * @protected
+         */
+    	_appendSvgLayer() {
     		const svgLayer = this._virtualElementList.svgLayer;
     		// TODO: нужна ли проверка на наличие svgLayer у this._element?
     		this._element.insertBefore(svgLayer, this._element.firstChild);
     	}
 
+        /**
+         * Удаляет SVG-слой.
+         * @protected
+         */
     	_removeSvgLayer() {
     		const svgLayer = this._virtualElementList.svgLayer;
     		if (svgLayer && svgLayer.parentNode === this._element) {
@@ -1119,10 +1661,14 @@
     		}
     	}
 
-    	_createInnerWrapper() {
+        /**
+         * Перемещает дочерние элементы элемента во внутреннюю обёртку.
+         * @protected
+         */
+    	_appendInnerWrapper() {
     		const innerWrapper = this._virtualElementList.innerWrapper;
 
-    		// Перемещаем внутренние элемены this._element в innerWrapper
+    		/** Перемещаем внутренние элемены this._element в innerWrapper **/
     		const children = Array.from(this._element.childNodes);
     		for (const child of children) {
     			innerWrapper.appendChild(child);
@@ -1131,10 +1677,14 @@
     		this._element.appendChild(innerWrapper);
     	}
 
+        /**
+         * Возвращает дочерние элементы из обёртки обратно в элемент.
+         * @protected
+         */
     	_removeInnerWrapper() {
     		const innerWrapper = this._virtualElementList.innerWrapper;
 
-    		// Перемещаем внутренние элемены innerWrapper в this._element
+    		/** Перемещаем внутренние элемены innerWrapper в this._element **/
     		const children = Array.from(innerWrapper.childNodes);
     		for (const child of children) {
     			this._element.appendChild(child);
@@ -1151,16 +1701,30 @@
     	 * =============================================================
     	 */
 
+
+        /**
+         * Инициализирует viewBox.
+         * @protected
+         */
     	_initViewbox() {
     		this._recalculateViewbox();
     	}
 
+        /**
+         * Пересчитывает viewBox при изменении размеров.
+         * @override
+         * @protected
+         */
     	_recalculateCurve() {
     		super._recalculateCurve();
 
     		this._recalculateViewbox();
     	}
 
+        /**
+         * Обновляет viewBox на основе текущих размеров.
+         * @protected
+         */
     	_recalculateViewbox() {
     		if ( this._size.width > 0 && this._size.height > 0 ) {
     			this._viewbox = `0 0 ${this._size.width} ${this._size.height}`;
@@ -1169,21 +1733,21 @@
     		}
     	}
 
+        /**
+         * Возвращает строку viewBox.
+         * @protected
+         * @returns {string}
+         */
     	_getViewbox() {
     		return this._viewbox;
     	}
-    	
-    	_applyCurve() {
-    		// Избегаем лишних мутаций
-    		const currentClipPath = this._element.style.getPropertyValue('clip-path');
-    		if (currentClipPath !== 'none') {
-    			this._element.style.setProperty('clip-path', 'none');
-    		}
-    		// if (!(currentClipPath === '' || currentClipPath === undefined )) {
-    		// 	this._element.style.setProperty('clip-path', '');
-    		// }
-    			// this._element.style.setProperty('clip-path', 'none');
 
+        /**
+         * Применяет кривую, обновляя viewBox и d-атрибут пути.
+         * @override
+         * @protected
+         */
+    	_applyCurve() {
     		const svgLayer = this._virtualElementList.svgLayer;
     		svgLayer.setAttribute('viewBox', this._getViewbox());
 
@@ -1192,15 +1756,18 @@
     			svgLayerPath.setAttribute('d', this._path);
     		} else {
     			svgLayerPath.setAttribute('d', '');
-    			// svgLayerPath.removeAttribute('d');
     		}
     	}
-    	
+
+        /**
+         * Восстанавливает исходный путь и очищает d-атрибут.
+         * @override
+         * @protected
+         */
     	_restoreCurve() {
     		const svgLayerPath = this._virtualElementList.svgLayerPath;
 
     		svgLayerPath.setAttribute('d', '');
-    		// svgLayerPath.removeAttribute('d');
 
     		super._restoreCurve();
     	}
@@ -1213,12 +1780,29 @@
     	 */
     }
 
-    // src/mode-clip-path.js
+    /**
+     * @file src/mode-clip-path.js
+     * 
+     * @module sj-superellipse/mode-clip-path
+     * @since 1.0.0
+     * @author f4n70m
+     * 
+     * @description
+     * Режим `clip-path` – самый лёгкий способ применения суперэллипса. Использует CSS-свойство `clip-path`
+     * для обрезки элемента по форме суперэллипса. Не требует создания дополнительных DOM-узлов,
+     * но не поддерживает корректное отображение теней (`box-shadow`), границ и сложных фонов.
+     * 
+     * @extends SuperellipseMode
+     * @example
+     * const mode = new SuperellipseModeClipPath(element);
+     * mode.activate();
+     */
+
+
 
     /**
-     * 
-     * 
-     * 
+     * Режим, использующий CSS-свойство `clip-path`.
+     * @extends SuperellipseMode
      */
     class SuperellipseModeClipPath extends SuperellipseMode {
 
@@ -1229,8 +1813,12 @@
     	 * =============================================================
     	 */
 
-    	constructor(element) {
-    		super(element);
+        /**
+         * @param {Element} element - Целевой элемент.
+         * @param {boolean} [debug=false] - Флаг отладки.
+         */
+    	constructor(element, debug = false) {
+    		super(element, debug);
     	}
 
 
@@ -1241,12 +1829,35 @@
     	 */
     }
 
-    // src/controller.js
+    /**
+     * @file src/controller.js
+     * 
+     * @module sj-superellipse/controller
+     * @since 1.0.0
+     * @author f4n70m
+     * 
+     * @description
+     * Класс `SuperellipseController` – основной контроллер, связывающий DOM-элемент с выбранным режимом
+     * (`svg-layer` или `clip-path`). Отслеживает изменения размеров, стилей, атрибутов и удаление элемента
+     * через `ResizeObserver`, `MutationObserver`, `IntersectionObserver`. Управляет кэшированием стилей,
+     * переключением режимов, активацией/деактивацией эффекта.
+     * 
+     * @example
+     * const controller = new SuperellipseController(element, { mode: 'svg-layer' });
+     * controller.setCurveFactor(0.9);
+     * controller.enable();
+     */
 
-    // const superellipseStyleTracking = new WeakMap();
 
+
+    /**
+     * Контроллер, управляющий применением суперэллипса к DOM-элементу.
+     */
     class SuperellipseController
     {
+    	#id;
+    	#debug;
+
     	#mode;
     	#element;
 
@@ -1257,6 +1868,11 @@
     	#resizeFrame;
     	#intersectionFrame;
     	
+
+    	#prepareTimer;
+    	#executeTimer;
+    	#isSelfMutation = false;
+
     	#resizeObserver;
     	#mutationObserver;
     	#removalObserver;
@@ -1265,7 +1881,6 @@
     	#needsUpdate;
     	#isSelfApply;
 
-    	#debugCounter = 0;
 
     	/**
     	 * =============================================================
@@ -1274,7 +1889,26 @@
     	 */
 
 
+        /**
+         * Создаёт экземпляр контроллера.
+         * @param {Element} element - Целевой DOM-элемент.
+         * @param {Object} [options] - Опции инициализации.
+         * @param {boolean} [options.force] - Принудительное пересоздание.
+         * @param {string} [options.mode='svg-layer'] - Режим работы.
+         * @param {number} [options.curveFactor] - Коэффициент кривизны.
+         * @param {number} [options.precision=2] - Точность округления.
+         */
     	constructor(element, options = {}) {
+
+    		this.#initId();
+    		this.#initDebug();
+    		
+    		/** Проверка существующего контроллера **/
+    		if (this.#inControllers() && !options.force) {
+    			console.warn('[Superellipse] Элемент уже инициализирован. Используйте force: true для пересоздания');
+    			return this.#getController();
+    		}
+
     		options = {
     			mode: 'svg-layer',
     			...options
@@ -1286,65 +1920,93 @@
     		this.#needsUpdate = false;
     		this.#isSelfApply = false;
 
-    		// Слушатели
+    		/** Слушатели **/
     		this.#resizeObserver = null;
     		this.#mutationObserver = null;
     		this.#removalObserver = null;
     		this.#intersectionObserver = null;
 
-    		// init
+    		/** init **/
     		this.#initCacheStyles();
+    		this.#setInitiatedAttr();
+    		
     		this.#setMode(options.mode);
     		this.#connectObservers();
     	}
 
+        /**
+         * Переключает режим работы.
+         * @param {string} modeName - Имя режима ('svg-layer' или 'clip-path').
+         * @returns {SuperellipseController} this (для цепочек).
+         */
     	switchMode(modeName) {
     		this.#unsetMode();
     		this.#setMode(modeName);
-
     		return this;
     	}
 
+        /**
+         * Проверяет, активирован ли суперэллипс.
+         * @returns {boolean} true, если активирован.
+         */
+    	isEnabled() {
+    		return this.#mode.isActivated();
+    	}
+
+        /**
+         * Активирует суперэллипс.
+         * @returns {SuperellipseController} this.
+         */
     	enable() {
-    		// this.#mode.activate();
-    		this.#isSelfApply = true;
-    		try {
-    			this.#mode.activate();
-    		} finally {
-    			this.#isSelfApply = false;
-    		}
-
+    		this.#mode.activate();
     		return this;
     	}
 
+        /**
+         * Деактивирует суперэллипс, восстанавливая исходные стили.
+         * @returns {Element} Целевой элемент.
+         */
     	disable() {
     		this.#mode.deactivate();
-
-    		return this._element;
+    		return this.#element;
     	}
 
+        /**
+         * Устанавливает коэффициент кривизны углов.
+         * @param {number} value - Новое значение (диапазон -2..2).
+         * @returns {SuperellipseController} this.
+         */
     	setCurveFactor(value) {
     		this.#curveFactor = value;
-    		this.#mode.setCurveFactor(value);
-
+    		this.#mode.updateCurveFactor(value);
     		return this;
     	}
 
+        /**
+         * Устанавливает точность округления координат пути.
+         * @param {number} value - Количество знаков после запятой.
+         * @returns {SuperellipseController} this.
+         */
     	setPrecision(value) {
     		this.#precision = value;
-    		this.#mode.setPrecision(value);
-
+    		this.#mode.updatePrecision(value);
     		return this;
     	}
 
+        /**
+         * Возвращает текущий SVG-путь суперэллипса.
+         * @returns {string} Строка с командами path.
+         */
     	getPath() {
     		return this.#mode.getPath();
     	}
 
+        /**
+         * Полностью уничтожает контроллер и удаляет все связанные эффекты.
+         * @returns {Element} Целевой элемент.
+         */
     	destroy() {
-    		this.#destroyController();
-
-    		return this._element;
+    		return this.#destroyController();
     	}
 
 
@@ -1355,10 +2017,78 @@
     	 */
 
 
+        /**
+         * Инициализирует уникальный идентификатор контроллера.
+         * @private
+         */
+    	#initId() {
+    		this.#id = jsse_counter.value;
+    		jsse_counter.increment();
+    	}
 
+        /**
+         * Инициализирует флаг отладки.
+         * @private
+         */
+    	#initDebug() {
+    		this.#debug = (jsse_debug.id === null );
+    	}
+
+        /**
+         * Проверяет, включён ли режим отладки для данного контроллера.
+         * @returns {boolean}
+         * @private
+         */
+    	#isDebug() {
+    		return this.#debug;
+    	}
+
+        /**
+         * Проверяет, не скрыт ли элемент (`display: none`).
+         * @returns {boolean}
+         * @private
+         */
     	#isDisplay() {
     		const capturedStyles = getComputedStyle(this.#element);
     		return capturedStyles.getPropertyValue('display') !== 'none';
+    	}
+
+
+    	/**
+    	 * Метод полного уничтожения контроллера (внутренняя логика).
+         * @private
+         */
+    	#destroyController() {
+    		this.#disconnectObservers();
+    		this.#unsetMode();
+    		this.#removeInitiatedAttr();
+
+    		this.#deleteCacheStyles();
+    		this.#deleteFromControllers();
+    	}
+
+
+    	/**
+    	 * =============================================================
+    	 * ATTRIBUTES
+    	 * =============================================================
+    	 */
+
+
+        /**
+         * Присваивает элементу атрибут `data-jsse-initiated`.
+         * @private
+         */
+    	#setInitiatedAttr() {
+    		this.#element.setAttribute('data-jsse-initiated', true);
+    	}
+
+        /**
+         * Удаляет атрибут `data-jsse-initiated`.
+         * @private
+         */
+    	#removeInitiatedAttr() {
+    		this.#element.removeAttribute('data-jsse-initiated');
     	}
 
 
@@ -1369,16 +2099,46 @@
     	 */
 
 
+        /**
+         * Инициализирует кэш стилей для элемента.
+         * @private
+         */
     	#initCacheStyles() {
-    		let cacheStyles = jsse_styles.get(this.#element);
-    		if (!cacheStyles) {
-    			cacheStyles = {};
-    			jsse_styles.set(this.#element, cacheStyles);
+    		if (!jsse_styles.get(this.#element)) {
+    			jsse_styles.set(this.#element, {});
     		}
     	}
 
+        /**
+         * Удаляет кэш стилей элемента.
+         * @private
+         */
     	#deleteCacheStyles() {
     		jsse_styles.delete(this.#element);
+    	}
+
+        /**
+         * Получает контроллер (если есть)
+         * @private
+         */
+    	#getController() {
+    		return jsse_controllers.get(this.#element);
+    	}
+
+        /**
+         * Проверяет существует ли контроллер
+         * @private
+         */
+    	#inControllers() {
+    		return !!this.#getController();
+    	}
+
+        /**
+         * Удаляет ссылку на контроллер из глобальной WeakMap.
+         * @private
+         */
+    	#deleteFromControllers() {
+    		jsse_controllers.delete(this.#element);
     	}
 
 
@@ -1389,58 +2149,48 @@
     	 */
 
 
+        /**
+         * Устанавливает активный режим.
+         * @param {string} modeName - Имя режима.
+         * @private
+         */
     	#setMode(modeName) {
     		switch (modeName) {
     			case 'svg-layer':
-    				this.#mode = new SuperellipseModeSvgLayer(this.#element);
+    				this.#mode = new SuperellipseModeSvgLayer(this.#element, this.#isDebug());
     				break;
 
     			case 'clip-path':
     			default:
-    				this.#mode = new SuperellipseModeClipPath(this.#element);
+    				this.#mode = new SuperellipseModeClipPath(this.#element, this.#isDebug());
     				break;
     		}
-    		this.#mode.setCurveFactor(this.#curveFactor, false);
-    		this.#mode.setPrecision(this.#precision, false);
+    		this.#mode.setCurveFactor(this.#curveFactor);
+    		this.#mode.setPrecision(this.#precision);
 
     		this.#mode.activate();
     	}
 
+        /**
+         * Удаляет текущий режим, вызывая его деструктор.
+         * @private
+         */
     	#unsetMode() {
-    		this.#mode.deactivate();
+    		this.#mode.destroy();
     		this.#mode = null;
     	}
 
 
     	/**
     	 * =============================================================
-    	 * 
+    	 * OBSERVERS
     	 * =============================================================
     	 */
 
-    	/**
-    	 * Метод уничтожения контроллера
-    	 */
-    	#destroyController() {
-    		this.#disconnectObservers();
-    		this.#unsetMode();
-
-    		this.#deleteCacheStyles();
-    		this.#deleteFromControllers();
-    	}
-    	
-    	#deleteFromControllers() {
-    		jsse_controllers.delete(this.#element);
-    	}
-
-
-    	/**
-    	 * =============================================================
-    	 * 
-    	 * =============================================================
-    	 */
-
-
+        /**
+         * Подключает наблюдатели (MutationObserver, ResizeObserver, IntersectionObserver и пр.).
+         * @private
+         */
     	#connectObservers() {
     		this.#mutationObserver = new MutationObserver(() => {
     			this.#mutationHandler();
@@ -1473,14 +2223,13 @@
     		});
     	}
 
+        /**
+         * Отключает всех наблюдателей.
+         * @private
+         */
     	#disconnectObservers() {
-    		// if (this.#mutationFrame) cancelAnimationFrame(this.#mutationFrame);
-    		// if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
-    		// if (this.#intersectionFrame) cancelAnimationFrame(this.#intersectionFrame);
-    		// clearTimeout вместо cancelAnimationFrame
-    		if (this.#mutationFrame) clearTimeout(this.#mutationFrame);
-    		if (this.#resizeFrame) clearTimeout(this.#resizeFrame);
-    		if (this.#intersectionFrame) clearTimeout(this.#intersectionFrame);
+    		if (this.#prepareTimer) clearTimeout(this.#prepareTimer);
+    		if (this.#executeTimer) clearTimeout(this.#executeTimer);
 
     		if (this.#resizeObserver) this.#resizeObserver.disconnect();
     		if (this.#mutationObserver) this.#mutationObserver.disconnect();
@@ -1488,34 +2237,47 @@
     		if (this.#removalObserver) this.#removalObserver.disconnect();
     	}
 
-
-    	/**
-    	 * =============================================================
-    	 * 
-    	 * =============================================================
-    	 */
+        /**
+         * Обработчик мутаций атрибутов/классов.
+         * @private
+         */
     	#mutationHandler() {
-
-    		const counter = this.#debugCounter++;
-    		console.log(`[DEBUG] "${this.#element.classList}" #mutationHandler(): start ${counter}"`);
-
-    		this.#mutationObserver.disconnect();
-    		try {
-    			if (this.#isDisplay() && this.#needsUpdate) {
-    				this.#mode.update();
-    				this.#needsUpdate = false;
-    			} else {
-    				this.#mode.updateStyles();
-    			}
-    		} finally {
-    			this.#mutationObserver.observe(this.#element, {
-    				attributes: true,
-    				attributeFilter: ['style', 'class']
-    			});
-    			console.log(`[DEBUG] #mutationHandler(): end ${counter}"`);
+    		jsse_debug.print(this.#isDebug(), this.#element, ['MUTATION', 'DETECT', this.#isSelfMutation ? 'self' : 'flow']);
+    		if (this.#isSelfMutation)
+    			return;
+    		if (this.#prepareTimer !== null) {
+    			clearTimeout(this.#prepareTimer);
     		}
+    		this.#prepareTimer = setTimeout(() => {
+    			this.#prepareTimer = null;
+    			jsse_debug.print(this.#isDebug(), this.#element, ['MUTATION', 'START']);
+    			this.#isSelfMutation = true;
+    			try {
+    				jsse_debug.print(this.#isDebug(), this.#element, ['MUTATION', 'UPDATE']);
+    				if (this.#isDisplay() && this.#needsUpdate) {
+    					this.#mode.update();
+    					this.#needsUpdate = false;
+    				} else {
+    					this.#mode.updateStyles();
+    				}
+    			} finally {
+    				if (this.#executeTimer !== null) {
+    					clearTimeout(this.#executeTimer);
+    				}
+    				this.#executeTimer = setTimeout(() => {
+    					this.#executeTimer = null;
+    					jsse_debug.print(this.#isDebug(), this.#element, ['MUTATION', 'END']);
+    					this.#isSelfMutation = false;
+
+    				}, 0);
+    			}
+    		}, 0);
     	}
 
+        /**
+         * Обработчик изменения размеров.
+         * @private
+         */
     	#resizeHandler() {
     		if (this.#isDisplay()) {
     			try {
@@ -1527,6 +2289,11 @@
     		}
     	}
 
+        /**
+         * Обработчик видимости элемента (IntersectionObserver).
+         * @param {IntersectionObserverEntry[]} entries - Записи пересечений.
+         * @private
+         */
     	#intersectionHandler(entries) {
     		if (entries[0].isIntersecting && this.#needsUpdate) {
     			try {
@@ -1537,6 +2304,10 @@
     		}
     	}
 
+        /**
+         * Обработчик удаления элемента из DOM.
+         * @private
+         */
     	#destroyHandler() {
     		if (!document.body.contains(this.#element)) {
     			this.#destroyController();
@@ -1544,27 +2315,79 @@
     	}
     }
 
-    const jsse_controllers = new WeakMap(); // экспортируем
+    /**
+     * @file src/api.js
+     * 
+     * @module sj-superellipse/api
+     * @since 1.0.0
+     * @author f4n70m
+     * 
+     * @description
+     * Публичное API библиотеки. Определяет глобальную функцию инициализации `superellipseInit`,
+     * а также расширяет `Element.prototype` методами `superellipse` (геттер) и `superellipseInit`.
+     * Управляет слабой картой контроллеров `jsse_controllers`.
+     * 
+     * @example
+     * // Инициализация через глобальную функцию
+     * const controller = superellipseInit('.card', { curveFactor: 1.2 });
+     * 
+     * @example
+     * // Инициализация через метод элемента
+     * const el = document.querySelector('.card');
+     * el.superellipseInit({ mode: 'clip-path' });
+     * const controller = el.superellipse;
+     */
 
-    // Геттер для доступа к контроллеру через element.superellipse
+
+    /**
+     * Геттер для доступа к контроллеру через element.superellipse.
+     * @name Element.prototype.superellipse
+     * @function
+     * @returns {SuperellipseController|undefined} Контроллер, если элемент инициализирован, иначе undefined.
+     */
     Object.defineProperty(Element.prototype, 'superellipse', {
         get() {
             return jsse_controllers.get(this);
         }
     });
 
-    // Метод инициализации на элементе
+
+    /**
+     * Инициализирует контроллер суперэллипса на DOM-элементе.
+     * @name Element.prototype.superellipseInit
+     * @function
+     * @param {Object} [options] - Опции инициализации.
+     * @param {boolean} [options.force] - Если true, пересоздаёт контроллер, даже если он уже существует.
+     * @param {string} [options.mode='svg-layer'] - Режим работы ('svg-layer' или 'clip-path').
+     * @param {number} [options.curveFactor] - Коэффициент кривизны углов (диапазон -2..2).
+     * @param {number} [options.precision=2] - Количество знаков после запятой в генерируемом пути.
+     * @returns {SuperellipseController} Контроллер, связанный с элементом.
+     */
     Element.prototype.superellipseInit = function(options) {
         let controller = jsse_controllers.get(this);
+
+        if (controller && !options?.force) {
+            console.warn('[Superellipse] Элемент уже имеет контроллер. Используйте { force: true } для пересоздания');
+            return controller;
+        }
+        
         if (controller) {
             controller.destroy();
         }
         controller = new SuperellipseController(this, options);
         jsse_controllers.set(this, controller);
-        return this; // для цепочек
+        return controller; // для цепочек
     };
 
-    // Глобальная функция superellipseInit
+
+    /**
+     * Инициализирует один или несколько элементов суперэллипсом.
+     * @function superellipseInit
+     * @param {string|Element|NodeList|Array<Element>} target - CSS-селектор, DOM-элемент или коллекция элементов.
+     * @param {Object} [options] - Опции инициализации (см. Element.prototype.superellipseInit).
+     * @returns {SuperellipseController|Array<SuperellipseController>} Контроллер для одного элемента или массив контроллеров для нескольких.
+     * @throws {Error} Если первый аргумент не является селектором, элементом или коллекцией.
+     */
     function superellipseInit(target, options) {
         if (typeof target === 'string') {
             const elements = document.querySelectorAll(target);

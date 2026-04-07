@@ -2,6 +2,10 @@ const resolve = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const terser = require('@rollup/plugin-terser');
 
+const fs = require('fs');
+// Читаем файл с комментарием
+const headerComment = fs.readFileSync('src/header.js', 'utf8');
+
 module.exports = {
     input: 'src/index.js',
     output: [
@@ -9,12 +13,14 @@ module.exports = {
             file: 'dist/superellipse.js',
             format: 'umd',
             name: 'Superellipse',
+            banner: headerComment,
             sourcemap: false
         },
         {
             file: 'dist/superellipse.min.js',
             format: 'umd',
             name: 'Superellipse',
+            banner: headerComment,
             plugins: [terser()],
             sourcemap: false
         }
