@@ -22,7 +22,7 @@ import { jsse_getBorderRadiusFactor } from './core.js';
 import { jsse_controllers } from './global-cache.js';
 import { SuperellipseModeSvgLayer } from './mode-svg-layer.js';
 import { SuperellipseModeClipPath } from './mode-clip-path.js';
-import { jsse_element_has_class, jsse_debug } from './support.js';
+import { jsse_element_has_class, jsse_console } from './support.js';
 
 
 /**
@@ -30,31 +30,31 @@ import { jsse_element_has_class, jsse_debug } from './support.js';
  */
 export class SuperellipseController
 {
-	#id;
-	#debug;
+	_id;
+	_debug;
 
-	#mode;
-	#element;
+	_mode;
+	_element;
 
-	#precision; // Количество знаков после запятой
-	#curveFactor;
+	_precision; // Количество знаков после запятой
+	_curveFactor;
 
-	#mutationFrame;
-	#resizeFrame;
-	#intersectionFrame;
+	_mutationFrame;
+	_resizeFrame;
+	_intersectionFrame;
 	
 
-	#prepareTimer;
-	#executeTimer;
-	#isSelfMutation = false;
+	_prepareTimer;
+	_executeTimer;
+	_isSelfMutation = false;
 
-	#resizeObserver;
-	#mutationObserver;
-	#removalObserver;
-	#intersectionObserver;
+	_resizeObserver;
+	_mutationObserver;
+	_removalObserver;
+	_intersectionObserver;
 
-	#needsUpdate;
-	#isSelfApply;
+	_needsUpdate;
+	_isSelfApply;
 
 
 	/**
@@ -75,38 +75,38 @@ export class SuperellipseController
 	 */
 	constructor(element, options = {}) {
 
-		this.#initId();
+		this._initId();
 		
 		/** Проверка существующего контроллера **/
-		if (this.#inControllers() && !options.force) {
+		if (this._inControllers() && !options.force) {
 			console.warn('[Superellipse] The element is already initialized. Use {force:true} to recreate it.');
-			return this.#getController();
+			return this._getController();
 		}
 
 		options = {
 			mode: 'svg-layer',
 			...options
 		};
-		this.#element = element;
-		this.#initDebug((!!options.debug) ?? false);
-		this.#curveFactor = options.curveFactor ?? jsse_getBorderRadiusFactor();
-		this.#precision = options.precision ?? 2;
+		this._element = element;
+		this._initDebug((!!options.debug) ?? false);
+		this._curveFactor = options.curveFactor ?? jsse_getBorderRadiusFactor();
+		this._precision = options.precision ?? 2;
 
-		this.#needsUpdate = false;
-		this.#isSelfApply = false;
+		this._needsUpdate = false;
+		this._isSelfApply = false;
 
 		/** Слушатели **/
-		this.#resizeObserver = null;
-		this.#mutationObserver = null;
-		this.#removalObserver = null;
-		this.#intersectionObserver = null;
+		this._resizeObserver = null;
+		this._mutationObserver = null;
+		this._removalObserver = null;
+		this._intersectionObserver = null;
 
 		/** init **/
-		this.#initCacheStyles();
-		this.#setInitiatedAttr();
+		this._initCacheStyles();
+		this._setInitiatedAttr();
 		
-		this.#setMode(options.mode);
-		this.#connectObservers();
+		this._setMode(options.mode);
+		this._connectObservers();
 	}
 
 	/**
@@ -115,8 +115,8 @@ export class SuperellipseController
 	 * @returns {SuperellipseController} this (для цепочек).
 	 */
 	switchMode(modeName) {
-		this.#unsetMode();
-		this.#setMode(modeName);
+		this._unsetMode();
+		this._setMode(modeName);
 		return this;
 	}
 
@@ -125,7 +125,7 @@ export class SuperellipseController
 	 * @returns {boolean} true, если активирован.
 	 */
 	isEnabled() {
-		return this.#mode.isActivated();
+		return this._mode.isActivated();
 	}
 
 	/**
@@ -133,7 +133,7 @@ export class SuperellipseController
 	 * @returns {SuperellipseController} this.
 	 */
 	enable() {
-		this.#mode.activate();
+		this._mode.activate();
 		return this;
 	}
 
@@ -142,8 +142,8 @@ export class SuperellipseController
 	 * @returns {Element} Целевой элемент.
 	 */
 	disable() {
-		this.#mode.deactivate();
-		return this.#element;
+		this._mode.deactivate();
+		return this._element;
 	}
 
 	/**
@@ -152,8 +152,8 @@ export class SuperellipseController
 	 * @returns {SuperellipseController} this.
 	 */
 	setCurveFactor(value) {
-		this.#curveFactor = value;
-		this.#mode.updateCurveFactor(value);
+		this._curveFactor = value;
+		this._mode.updateCurveFactor(value);
 		return this;
 	}
 
@@ -163,8 +163,8 @@ export class SuperellipseController
 	 * @returns {SuperellipseController} this.
 	 */
 	setPrecision(value) {
-		this.#precision = value;
-		this.#mode.updatePrecision(value);
+		this._precision = value;
+		this._mode.updatePrecision(value);
 		return this;
 	}
 
@@ -173,7 +173,7 @@ export class SuperellipseController
 	 * @returns {string} Строка с командами path.
 	 */
 	getPath() {
-		return this.#mode.getPath();
+		return this._mode.getPath();
 	}
 
 	/**
@@ -181,7 +181,7 @@ export class SuperellipseController
 	 * @returns {Element} Целевой элемент.
 	 */
 	destroy() {
-		return this.#destroyController();
+		return this._destroyController();
 	}
 
 
@@ -196,8 +196,8 @@ export class SuperellipseController
 	 * Инициализирует уникальный идентификатор контроллера.
 	 * @private
 	 */
-	#initId() {
-		this.#id = jsse_counter.value;
+	_initId() {
+		this._id = jsse_counter.value;
 		jsse_counter.increment();
 	}
 
@@ -205,10 +205,10 @@ export class SuperellipseController
 	 * Инициализирует флаг отладки.
 	 * @private
 	 */
-	#initDebug(bool) {
-		this.#debug = bool;
+	_initDebug(bool) {
+		this._debug = bool;
 		if (bool) {
-			jsse_debug.set(this.#element);
+			jsse_console.set(this._element);
 		}
 	}
 
@@ -217,8 +217,8 @@ export class SuperellipseController
 	 * @returns {boolean}
 	 * @private
 	 */
-	#isDebug() {
-		return this.#debug;
+	_isDebug() {
+		return this._debug;
 	}
 
 	/**
@@ -226,8 +226,8 @@ export class SuperellipseController
 	 * @returns {boolean}
 	 * @private
 	 */
-	#isDisplay() {
-		const capturedStyles = getComputedStyle(this.#element);
+	_isDisplay() {
+		const capturedStyles = getComputedStyle(this._element);
 		return capturedStyles.getPropertyValue('display') !== 'none';
 	}
 
@@ -236,13 +236,13 @@ export class SuperellipseController
 	 * Метод полного уничтожения контроллера (внутренняя логика).
 	 * @private
 	 */
-	#destroyController() {
-		this.#disconnectObservers();
-		this.#unsetMode();
-		this.#removeInitiatedAttr();
+	_destroyController() {
+		this._disconnectObservers();
+		this._unsetMode();
+		this._removeInitiatedAttr();
 
-		this.#deleteCacheStyles();
-		this.#deleteFromControllers();
+		this._deleteCacheStyles();
+		this._deleteFromControllers();
 	}
 
 
@@ -257,16 +257,16 @@ export class SuperellipseController
 	 * Присваивает элементу атрибут `data-jsse-initiated`.
 	 * @private
 	 */
-	#setInitiatedAttr() {
-		this.#element.setAttribute('data-jsse-initiated', true);
+	_setInitiatedAttr() {
+		this._element.setAttribute('data-jsse-initiated', true);
 	}
 
 	/**
 	 * Удаляет атрибут `data-jsse-initiated`.
 	 * @private
 	 */
-	#removeInitiatedAttr() {
-		this.#element.removeAttribute('data-jsse-initiated');
+	_removeInitiatedAttr() {
+		this._element.removeAttribute('data-jsse-initiated');
 	}
 
 
@@ -281,9 +281,9 @@ export class SuperellipseController
 	 * Инициализирует кэш стилей для элемента.
 	 * @private
 	 */
-	#initCacheStyles() {
-		if (!jsse_styles.get(this.#element)) {
-			jsse_styles.set(this.#element, {});
+	_initCacheStyles() {
+		if (!jsse_styles.get(this._element)) {
+			jsse_styles.set(this._element, {});
 		}
 	}
 
@@ -291,32 +291,32 @@ export class SuperellipseController
 	 * Удаляет кэш стилей элемента.
 	 * @private
 	 */
-	#deleteCacheStyles() {
-		jsse_styles.delete(this.#element);
+	_deleteCacheStyles() {
+		jsse_styles.delete(this._element);
 	}
 
 	/**
 	 * Получает контроллер (если есть)
 	 * @private
 	 */
-	#getController() {
-		return jsse_controllers.get(this.#element);
+	_getController() {
+		return jsse_controllers.get(this._element);
 	}
 
 	/**
 	 * Проверяет существует ли контроллер
 	 * @private
 	 */
-	#inControllers() {
-		return !!this.#getController();
+	_inControllers() {
+		return !!this._getController();
 	}
 
 	/**
 	 * Удаляет ссылку на контроллер из глобальной WeakMap.
 	 * @private
 	 */
-	#deleteFromControllers() {
-		jsse_controllers.delete(this.#element);
+	_deleteFromControllers() {
+		jsse_controllers.delete(this._element);
 	}
 
 
@@ -332,30 +332,30 @@ export class SuperellipseController
 	 * @param {string} modeName - Имя режима.
 	 * @private
 	 */
-	#setMode(modeName) {
+	_setMode(modeName) {
 		switch (modeName) {
 			case 'svg-layer':
-				this.#mode = new SuperellipseModeSvgLayer(this.#element);
+				this._mode = new SuperellipseModeSvgLayer(this._element);
 				break;
 
 			case 'clip-path':
 			default:
-				this.#mode = new SuperellipseModeClipPath(this.#element);
+				this._mode = new SuperellipseModeClipPath(this._element);
 				break;
 		}
-		this.#mode.setCurveFactor(this.#curveFactor);
-		this.#mode.setPrecision(this.#precision);
+		this._mode.setCurveFactor(this._curveFactor);
+		this._mode.setPrecision(this._precision);
 
-		this.#mode.activate();
+		this._mode.activate();
 	}
 
 	/**
 	 * Удаляет текущий режим, вызывая его деструктор.
 	 * @private
 	 */
-	#unsetMode() {
-		this.#mode.destroy();
-		this.#mode = null;
+	_unsetMode() {
+		this._mode.destroy();
+		this._mode = null;
 	}
 
 
@@ -369,33 +369,33 @@ export class SuperellipseController
 	 * Подключает наблюдатели (MutationObserver, ResizeObserver, IntersectionObserver и пр.).
 	 * @private
 	 */
-	#connectObservers() {
-		this.#mutationObserver = new MutationObserver(() => {
-			this.#mutationHandler();
+	_connectObservers() {
+		this._mutationObserver = new MutationObserver(() => {
+			this._mutationHandler();
 		});
-		this.#mutationObserver.observe(this.#element, {
+		this._mutationObserver.observe(this._element, {
 			attributes: true,
 			attributeFilter: ['style', 'class']
 		});
 
 		if (typeof IntersectionObserver !== 'undefined') {
-			this.#intersectionObserver = new IntersectionObserver((entries) => {
-				this.#intersectionHandler(entries);
+			this._intersectionObserver = new IntersectionObserver((entries) => {
+				this._intersectionHandler(entries);
 			});
-			this.#intersectionObserver.observe(this.#element);
+			this._intersectionObserver.observe(this._element);
 		}
 
 		if (typeof ResizeObserver !== 'undefined') {
-			this.#resizeObserver = new ResizeObserver(() => {
-				this.#resizeHandler();
+			this._resizeObserver = new ResizeObserver(() => {
+				this._resizeHandler();
 			});
-			this.#resizeObserver.observe(this.#element);
+			this._resizeObserver.observe(this._element);
 		}
 
-		this.#removalObserver = new MutationObserver(() => {
-			this.#destroyHandler();
+		this._removalObserver = new MutationObserver(() => {
+			this._destroyHandler();
 		});
-		this.#removalObserver.observe(document.body, {
+		this._removalObserver.observe(document.body, {
 			childList: true,
 			subtree: true
 		});
@@ -405,47 +405,47 @@ export class SuperellipseController
 	 * Отключает всех наблюдателей.
 	 * @private
 	 */
-	#disconnectObservers() {
-		if (this.#prepareTimer) clearTimeout(this.#prepareTimer);
-		if (this.#executeTimer) clearTimeout(this.#executeTimer);
+	_disconnectObservers() {
+		if (this._prepareTimer) clearTimeout(this._prepareTimer);
+		if (this._executeTimer) clearTimeout(this._executeTimer);
 
-		if (this.#resizeObserver) this.#resizeObserver.disconnect();
-		if (this.#mutationObserver) this.#mutationObserver.disconnect();
-		if (this.#intersectionObserver) this.#intersectionObserver.disconnect();
-		if (this.#removalObserver) this.#removalObserver.disconnect();
+		if (this._resizeObserver) this._resizeObserver.disconnect();
+		if (this._mutationObserver) this._mutationObserver.disconnect();
+		if (this._intersectionObserver) this._intersectionObserver.disconnect();
+		if (this._removalObserver) this._removalObserver.disconnect();
 	}
 
 	/**
 	 * Обработчик мутаций атрибутов/классов.
 	 * @private
 	 */
-	#mutationHandler() {
-		jsse_debug.names(this.#element, ['MUTATION', 'DETECT', this.#isSelfMutation ? 'self' : 'flow']);
-		if (this.#isSelfMutation)
+	_mutationHandler() {
+		jsse_console.debug(this._element, '[MUTATION]', '[DETECT]', this._isSelfMutation ? 'self' : 'flow');
+		if (this._isSelfMutation)
 			return;
-		if (this.#prepareTimer !== null) {
-			clearTimeout(this.#prepareTimer);
+		if (this._prepareTimer !== null) {
+			clearTimeout(this._prepareTimer);
 		}
-		this.#prepareTimer = setTimeout(() => {
-			this.#prepareTimer = null;
-			jsse_debug.names(this.#element, ['MUTATION', 'START']);
-			this.#isSelfMutation = true;
+		this._prepareTimer = setTimeout(() => {
+			this._prepareTimer = null;
+			jsse_console.debug(this._element, '[MUTATION]', '[START]');
+			this._isSelfMutation = true;
 			try {
-				jsse_debug.names(this.#element, ['MUTATION', 'UPDATE']);
-				if (this.#isDisplay() && this.#needsUpdate) {
-					this.#mode.update();
-					this.#needsUpdate = false;
+				jsse_console.debug(this._element, '[MUTATION]', '[UPDATE]');
+				if (this._isDisplay() && this._needsUpdate) {
+					this._mode.update();
+					this._needsUpdate = false;
 				} else {
-					this.#mode.updateStyles();
+					this._mode.updateStyles();
 				}
 			} finally {
-				if (this.#executeTimer !== null) {
-					clearTimeout(this.#executeTimer);
+				if (this._executeTimer !== null) {
+					clearTimeout(this._executeTimer);
 				}
-				this.#executeTimer = setTimeout(() => {
-					this.#executeTimer = null;
-					jsse_debug.names(this.#element, ['MUTATION', 'END']);
-					this.#isSelfMutation = false;
+				this._executeTimer = setTimeout(() => {
+					this._executeTimer = null;
+					jsse_console.debug(this._element, '[MUTATION]', '[END]');
+					this._isSelfMutation = false;
 
 				}, 0);
 			}
@@ -456,14 +456,14 @@ export class SuperellipseController
 	 * Обработчик изменения размеров.
 	 * @private
 	 */
-	#resizeHandler() {
-		if (this.#isDisplay()) {
+	_resizeHandler() {
+		if (this._isDisplay()) {
 			try {
-				this.#mode.updateSize();
+				this._mode.updateSize();
 			} finally {
 			}
 		} else {
-			this.#needsUpdate = true;
+			this._needsUpdate = true;
 		}
 	}
 
@@ -472,11 +472,11 @@ export class SuperellipseController
 	 * @param {IntersectionObserverEntry[]} entries - Записи пересечений.
 	 * @private
 	 */
-	#intersectionHandler(entries) {
-		if (entries[0].isIntersecting && this.#needsUpdate) {
+	_intersectionHandler(entries) {
+		if (entries[0].isIntersecting && this._needsUpdate) {
 			try {
-				this.#mode.update();
-				this.#needsUpdate = false;
+				this._mode.update();
+				this._needsUpdate = false;
 			} finally {
 			}
 		}
@@ -486,9 +486,9 @@ export class SuperellipseController
 	 * Обработчик удаления элемента из DOM.
 	 * @private
 	 */
-	#destroyHandler() {
-		if (!document.body.contains(this.#element)) {
-			this.#destroyController();
+	_destroyHandler() {
+		if (!document.body.contains(this._element)) {
+			this._destroyController();
 		}
 	}
 }

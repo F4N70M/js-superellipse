@@ -23,7 +23,7 @@
 import { jsse_styles, jsse_css } from './global-cache.js';
 import { jsse_generateSuperellipsePath, jsse_getBorderRadiusFactor } from './core.js';
 
-import { jsse_element_has_class, jsse_debug } from './support.js';
+import { jsse_element_has_class, jsse_console } from './support.js';
 
 /**
  * Базовый класс для реализации режимов суперэллипса.
@@ -79,7 +79,7 @@ export class SuperellipseMode {
 	 * Активирует режим.
 	 */
 	activate() {
-		jsse_debug.names(this._element, ['MODE', 'ACTIVATE']);
+		jsse_console.debug(this._element, '[MODE]', '[ACTIVATE]');
 		if (this.isActivated()) return;
 		/** Актуализировать данные захвата **/
 		this._updateCaptured();
@@ -97,7 +97,7 @@ export class SuperellipseMode {
 	 * Деактивирует режим.
 	 */
 	deactivate() {
-		jsse_debug.names(this._element, ['MODE', 'DEACTIVATE']);
+		jsse_console.debug(this._element, '[MODE]', '[DEACTIVATE]');
 		if (!this.isActivated()) return;
 		/** Установить статус **/
 		this._setStatus(false);
@@ -111,7 +111,7 @@ export class SuperellipseMode {
 	 * Полное обновление (стили, размер, путь).
 	 */
 	update() {
-		jsse_debug.names(this._element, ['MODE', 'UPDATE']);
+		jsse_console.debug(this._element, '[MODE]', '[UPDATE]');
 		/** Актуализировать данные захвата **/
 		this._updateCaptured();
 		/** Подготовить обновление **/
@@ -137,7 +137,7 @@ export class SuperellipseMode {
 	 * Обновление только стилей.
 	 */
 	updateStyles() {
-		jsse_debug.names(this._element, ['MODE', 'UPDATE', 'STULES']);
+		jsse_console.debug(this._element, '[MODE]', '[UPDATE]', '[STULES]');
 		/** Актуализировать стили **/
 		this._updateCapturedStyles();
 		/** Подготовить обновление **/
@@ -463,7 +463,7 @@ export class SuperellipseMode {
 	 * @protected
 	 */
 	_updateCapturedStyles() {
-		jsse_debug.names(this._element, ['MODE', 'UPDATE', 'capturedStyles']);
+		jsse_console.debug(this._element, '[MODE]', '[CAPTURE]', '[STYLES]');
 		const capturedComputedStyles = this._getCapturedStyles();
 		/** Сохранить computed-стили **/
 		this._styles.computed = capturedComputedStyles;

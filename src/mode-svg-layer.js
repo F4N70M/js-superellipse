@@ -20,7 +20,7 @@
 
 
 import { SuperellipseMode } from './mode.js';
-import { jsse_debug } from './support.js';
+import { jsse_console } from './support.js';
 
 
 /**
@@ -193,7 +193,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	 * @returns {Object<string, string>}
 	 */
 	_getCurrentInlineVirtualSvgLayerDivStyles() {
-		jsse_debug.print(this._isDebug, this._element, ['_getCurrentInlineVirtualSvgLayerDivStyles']);
+		// jsse_console.debug(this._element, '[MODE SvgLayer]', '_getCurrentInlineVirtualSvgLayerDivStyles()');
 		const result = {};
 		const svgLayerDivProps = this._getSvgLayerDivProps();
 		for (const prop of svgLayerDivProps) {
