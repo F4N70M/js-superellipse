@@ -34,7 +34,7 @@ export class SuperellipseMode {
 
 	_isInitiated;
 	_isActivated;
-	_isDebug;
+	// _isDebug;
 
 	_size = {
 		width:  0,
@@ -58,15 +58,15 @@ export class SuperellipseMode {
 	 */
 
 
-    /**
-     * @param {Element} element - Целевой элемент.
-     * @param {boolean} [debug=false] - Флаг отладки.
-     */
-	constructor(element, debug = false) {
+	/**
+	 * @param {Element} element - Целевой элемент.
+	 * @param {boolean} [debug=false] - Флаг отладки.
+	 */
+	constructor(element) {
 
 		this._element = element;
 
-		this._isDebug = debug;
+		// this._isDebug = debug;
 		this._isActivated = false;
 
 		this._curveFactor = jsse_getBorderRadiusFactor();
@@ -75,10 +75,11 @@ export class SuperellipseMode {
 		this._init();
 	}
 
-    /**
-     * Активирует режим.
-     */
+	/**
+	 * Активирует режим.
+	 */
 	activate() {
+		jsse_debug.names(this._element, ['MODE', 'ACTIVATE']);
 		if (this.isActivated()) return;
 		/** Актуализировать данные захвата **/
 		this._updateCaptured();
@@ -92,10 +93,11 @@ export class SuperellipseMode {
 		this._executeUpdate();
 	}
 
-    /**
-     * Деактивирует режим.
-     */
+	/**
+	 * Деактивирует режим.
+	 */
 	deactivate() {
+		jsse_debug.names(this._element, ['MODE', 'DEACTIVATE']);
 		if (!this.isActivated()) return;
 		/** Установить статус **/
 		this._setStatus(false);
@@ -105,10 +107,11 @@ export class SuperellipseMode {
 		this._executeUpdate();
 	}
 
-    /**
-     * Полное обновление (стили, размер, путь).
-     */
+	/**
+	 * Полное обновление (стили, размер, путь).
+	 */
 	update() {
+		jsse_debug.names(this._element, ['MODE', 'UPDATE']);
 		/** Актуализировать данные захвата **/
 		this._updateCaptured();
 		/** Подготовить обновление **/
@@ -117,9 +120,9 @@ export class SuperellipseMode {
 		this._executeUpdate();
 	}
 
-    /**
-     * Обновление только размеров.
-     */
+	/**
+	 * Обновление только размеров.
+	 */
 	updateSize() {
 		/** Актуализировать размеры **/
 		this._updateCapturedSize();
@@ -130,10 +133,11 @@ export class SuperellipseMode {
 
 	}
 
-    /**
-     * Обновление только стилей.
-     */
+	/**
+	 * Обновление только стилей.
+	 */
 	updateStyles() {
+		jsse_debug.names(this._element, ['MODE', 'UPDATE', 'STULES']);
 		/** Актуализировать стили **/
 		this._updateCapturedStyles();
 		/** Подготовить обновление **/
@@ -142,10 +146,10 @@ export class SuperellipseMode {
 		this._executeUpdate();
 	}
 
-    /**
-     * Обновление коэффициента кривизны.
-     * @param {number} value
-     */
+	/**
+	 * Обновление коэффициента кривизны.
+	 * @param {number} value
+	 */
 	updateCurveFactor(value) {
 		this.setCurveFactor(value);
 		/** Подготовить обновление **/
@@ -154,10 +158,10 @@ export class SuperellipseMode {
 		this._executeUpdate();
 	}
 
-    /**
-     * Обновление точности округления.
-     * @param {number} value
-     */
+	/**
+	 * Обновление точности округления.
+	 * @param {number} value
+	 */
 	updatePrecision(value) {
 		this.setPrecision(value);
 		/** Подготовить обновление **/
@@ -166,41 +170,41 @@ export class SuperellipseMode {
 		this._executeUpdate();
 	}
 
-    /**
-     * Устанавливает коэффициент кривизны.
-     * @param {number} value
-     */
+	/**
+	 * Устанавливает коэффициент кривизны.
+	 * @param {number} value
+	 */
 	setCurveFactor(value) {
 		this._curveFactor = value;
 	}
 
-    /**
-     * Устанавливает точность округления.
-     * @param {number} value
-     */
+	/**
+	 * Устанавливает точность округления.
+	 * @param {number} value
+	 */
 	setPrecision(value) {
 		this._precision = value;
 	}
 
-    /**
-     * Возвращает текущий SVG-путь.
-     * @returns {string}
-     */
+	/**
+	 * Возвращает текущий SVG-путь.
+	 * @returns {string}
+	 */
 	getPath() {
 		return this._path;
 	}
 
-    /**
-     * Проверяет, активирован ли режим.
-     * @returns {boolean}
-     */
+	/**
+	 * Проверяет, активирован ли режим.
+	 * @returns {boolean}
+	 */
 	isActivated() {
 		return this._isActivated;
 	}
 
-    /**
-     * Уничтожает режим, удаляет все артефакты.
-     */
+	/**
+	 * Уничтожает режим, удаляет все артефакты.
+	 */
 	destroy() {
 		this.deactivate();
 		this._removeModeAttr();
@@ -214,10 +218,10 @@ export class SuperellipseMode {
 	 */
 
 
-    /**
-     * Инициализация режима.
-     * @private
-     */
+	/**
+	 * Инициализация режима.
+	 * @private
+	 */
 	_init() {
 		this._id = Math.random().toString(36).slice(2, 10);
 		this._initStyles();
@@ -227,11 +231,11 @@ export class SuperellipseMode {
 		this._isInitiated = true;
 	}
 
-    /**
-     * Устанавливает статус активации.
-     * @param {boolean} status
-     * @private
-     */
+	/**
+	 * Устанавливает статус активации.
+	 * @param {boolean} status
+	 * @private
+	 */
 	_setStatus(status) {
 		this._isActivated = status;
 		if (status) {
@@ -241,56 +245,56 @@ export class SuperellipseMode {
 		}
 	}
 
-    /**
-     * Захватывает актуальные стили и размеры.
-     * @private
-     */
+	/**
+	 * Захватывает актуальные стили и размеры.
+	 * @private
+	 */
 	_updateCaptured() {
 		this._updateCapturedStyles();
 		this._updateCapturedSize();
 	}
 
-    /**
-     * Подготавливает обновление (пересчёт кривой).
-     * @private
-     */
+	/**
+	 * Подготавливает обновление (пересчёт кривой).
+	 * @private
+	 */
 	_prepareUpdate() {
 		this._recalculateCurve();
 	}
 
-    /**
-     * Выполняет обновление (применяет кривую).
-     * @private
-     */
+	/**
+	 * Выполняет обновление (применяет кривую).
+	 * @private
+	 */
 	_executeUpdate() {
 		this._applyCurrentCurve();
 	}
 
-    /**
-     * Возвращает имя режима.
-     * @returns {string}
-     * @protected
-     */
+	/**
+	 * Возвращает имя режима.
+	 * @returns {string}
+	 * @protected
+	 */
 	_getModeName() {
 		return 'clip-path';
 	}
 
-    /**
-     * Возвращает карту стилей, которые нужно временно применить для корректного чтения.
-     * @returns {Object<string, string>}
-     * @protected
-     */
+	/**
+	 * Возвращает карту стилей, которые нужно временно применить для корректного чтения.
+	 * @returns {Object<string, string>}
+	 * @protected
+	 */
 	_getReadingStyles() {
 		return {
 			'transition': 'unset'
 		};
 	}
 
-    /**
-     * Возвращает карту стилей, применяемых при активации режима.
-     * @returns {Object<string, string>}
-     * @protected
-     */
+	/**
+	 * Возвращает карту стилей, применяемых при активации режима.
+	 * @returns {Object<string, string>}
+	 * @protected
+	 */
 	_getActivatedStyles() {
 		return {
 			'border-radius': '0px'
@@ -305,16 +309,16 @@ export class SuperellipseMode {
 	 */
 
 
-    /**
-     * Создаёт виртуальные элементы (если нужно).
-     * @protected
-     */
+	/**
+	 * Создаёт виртуальные элементы (если нужно).
+	 * @protected
+	 */
 	_appendVirtualElements() {}
 
-    /**
-     * Удаляет виртуальные элементы.
-     * @protected
-     */
+	/**
+	 * Удаляет виртуальные элементы.
+	 * @protected
+	 */
 	_removeVirtualElements() {}
 
 
@@ -325,50 +329,50 @@ export class SuperellipseMode {
 	 */
 
 
-    /**
-     * Устанавливает атрибут `data-jsse-mode`.
-     * @protected
-     */
+	/**
+	 * Устанавливает атрибут `data-jsse-mode`.
+	 * @protected
+	 */
 	_setModeAttr() {
 		this._element.setAttribute('data-jsse-mode', this._getModeName());
 	}
 
-    /**
-     * Удаляет атрибут `data-jsse-mode`.
-     * @protected
-     */
+	/**
+	 * Удаляет атрибут `data-jsse-mode`.
+	 * @protected
+	 */
 	_removeModeAttr() {
 		this._element.removeAttribute('data-jsse-mode');
 	}
 
-    /**
-     * Устанавливает атрибут `data-jsse-activated`.
-     * @protected
-     */
+	/**
+	 * Устанавливает атрибут `data-jsse-activated`.
+	 * @protected
+	 */
 	_setActivatedAttr() {
 		this._element.setAttribute('data-jsse-activated', true);
 	}
 
-    /**
-     * Удаляет атрибут `data-jsse-activated`.
-     * @protected
-     */
+	/**
+	 * Удаляет атрибут `data-jsse-activated`.
+	 * @protected
+	 */
 	_removeActivatedAttr() {
 		this._element.removeAttribute('data-jsse-activated');
 	}
 
-    /**
-     * Устанавливает атрибут `data-jsse-reading`.
-     * @protected
-     */
+	/**
+	 * Устанавливает атрибут `data-jsse-reading`.
+	 * @protected
+	 */
 	_setReadingAttr() {
 		this._element.setAttribute('data-jsse-reading', true);
 	}
 
-    /**
-     * Удаляет атрибут `data-jsse-reading`.
-     * @protected
-     */
+	/**
+	 * Удаляет атрибут `data-jsse-reading`.
+	 * @protected
+	 */
 	_removeReadingAttr() {
 		this._element.removeAttribute('data-jsse-reading');
 	}
@@ -381,10 +385,10 @@ export class SuperellipseMode {
 	 */
 
 
-    /**
-     * Инициализирует глобальные CSS-правила для режима.
-     * @protected
-     */
+	/**
+	 * Инициализирует глобальные CSS-правила для режима.
+	 * @protected
+	 */
 	_initResetStyles() {
 		const modeName = this._getModeName();
 		if (jsse_css.isset(modeName)) return;
@@ -412,12 +416,12 @@ export class SuperellipseMode {
 		this._initModeCssStyleElement(modeName, cssString);
 	}
 
-    /**
-     * Создаёт элемент `<style>` для режима.
-     * @param {string} modeName
-     * @param {string} textContent
-     * @protected
-     */
+	/**
+	 * Создаёт элемент `<style>` для режима.
+	 * @param {string} modeName
+	 * @param {string} textContent
+	 * @protected
+	 */
 	_initModeCssStyleElement(modeName, textContent) {
 		/** Создать элемент <style> **/
 		const styleElement = document.createElement('style');
@@ -454,24 +458,23 @@ export class SuperellipseMode {
 	 */
 
 
-    /**
-     * Обновляет захваченные стили.
-     * @protected
-     */
+	/**
+	 * Обновляет захваченные стили.
+	 * @protected
+	 */
 	_updateCapturedStyles() {
-		jsse_debug.print(this._isDebug, this._element, ['MODE', 'CAPTURE']);
-
+		jsse_debug.names(this._element, ['MODE', 'UPDATE', 'capturedStyles']);
 		const capturedComputedStyles = this._getCapturedStyles();
 		/** Сохранить computed-стили **/
 		this._styles.computed = capturedComputedStyles;
 	}
 
-    /**
-     * Получает вычисленные стили с временным снятием атрибута активации.
-     * @param {boolean} [clear=true] - Снимать ли атрибут активации перед чтением.
-     * @returns {Object<string, string>}
-     * @protected
-     */
+	/**
+	 * Получает вычисленные стили с временным снятием атрибута активации.
+	 * @param {boolean} [clear=true] - Снимать ли атрибут активации перед чтением.
+	 * @returns {Object<string, string>}
+	 * @protected
+	 */
 	_getCapturedStyles(clear = true) {
 		const hasAttribute = this._element.hasAttribute('data-jsse-activated');
 
@@ -489,11 +492,11 @@ export class SuperellipseMode {
 		return result;
 	}
 
-    /**
-     * Получает вычисленные стили для управляемых свойств.
-     * @returns {Object<string, string>}
-     * @protected
-     */
+	/**
+	 * Получает вычисленные стили для управляемых свойств.
+	 * @returns {Object<string, string>}
+	 * @protected
+	 */
 	_getManagedComputedStyle() {
 		const result = {};
 		const capturedStyles = getComputedStyle(this._element);
@@ -503,34 +506,34 @@ export class SuperellipseMode {
 		return result;
 	}
 
-    /**
-     * Возвращает значение захваченного вычисленного свойства.
-     * @param {string} prop
-     * @returns {string}
-     * @protected
-     */
+	/**
+	 * Возвращает значение захваченного вычисленного свойства.
+	 * @param {string} prop
+	 * @returns {string}
+	 * @protected
+	 */
 	_getComputedProp(prop) {
 		if ('computed' in this._styles && prop in this._styles.computed)
 			return this._styles.computed[prop];
 	}
 
 
-    /**
-     * 
-     * TODO: _dropStyles()
-     * 
-     * Сбрасывает захваченные стили.
-     * @protected
-     */
+	/**
+	 * 
+	 * TODO: _dropStyles()
+	 * 
+	 * Сбрасывает захваченные стили.
+	 * @protected
+	 */
 	_dropStyles() {
 		this._styles.computed = {};	// вычисленные значения элемента
 	}
 
-    /**
-     * Возвращает массив свойств CSS, управляемых режимом.
-     * @returns {string[]}
-     * @protected
-     */
+	/**
+	 * Возвращает массив свойств CSS, управляемых режимом.
+	 * @returns {string[]}
+	 * @protected
+	 */
 	_getManagedProperties() {
 		return Object.keys(this._getActivatedStyles());
 	}
@@ -542,10 +545,10 @@ export class SuperellipseMode {
 	 * =============================================================
 	 */
 
-    /**
-     * Инициализирует хранилище стилей.
-     * @protected
-     */
+	/**
+	 * Инициализирует хранилище стилей.
+	 * @protected
+	 */
 	_initStyles() {
 		this._styles = jsse_styles.get(this._element);
 		this._initResetStyles();
@@ -558,18 +561,18 @@ export class SuperellipseMode {
 	 */
 
 
-    /**
-     * Инициализирует размеры.
-     * @protected
-     */
+	/**
+	 * Инициализирует размеры.
+	 * @protected
+	 */
 	_initSize() {
 		this._updateCapturedSize();
 	}
 
-    /**
-     * Обновляет захваченные размеры.
-     * @protected
-     */
+	/**
+	 * Обновляет захваченные размеры.
+	 * @protected
+	 */
 	_updateCapturedSize() {
 		const rect = this._element.getBoundingClientRect();
 
@@ -585,34 +588,34 @@ export class SuperellipseMode {
 	 */
 
 
-    /**
-     * Инициализирует кривую.
-     * @protected
-     */
+	/**
+	 * Инициализирует кривую.
+	 * @protected
+	 */
 	_initCurve() {
 		this._initInlinePath();
 	}
 
-    /**
-     * Сохраняет исходный `clip-path`.
-     * @protected
-     */
+	/**
+	 * Сохраняет исходный `clip-path`.
+	 * @protected
+	 */
 	_initInlinePath() {
 		this._resetPath = this._element.style.getPropertyValue('clip-path');
 	}
 
-    /**
-     * Пересчитывает путь на основе текущих размеров и радиуса.
-     * @protected
-     */
+	/**
+	 * Пересчитывает путь на основе текущих размеров и радиуса.
+	 * @protected
+	 */
 	_recalculateCurve() {
 		this._recalculatePath();
 	}
 
-    /**
-     * Генерирует SVG-путь.
-     * @protected
-     */
+	/**
+	 * Генерирует SVG-путь.
+	 * @protected
+	 */
 	_recalculatePath() {
 		if ( !( this._size.width > 0 && this._size.height > 0 ) ) {
 			this._path = 'none'; // Сбрасываем путь
@@ -631,10 +634,10 @@ export class SuperellipseMode {
 		);
 	}
 
-    /**
-     * Применяет текущий путь (если активирован) или восстанавливает исходный.
-     * @protected
-     */
+	/**
+	 * Применяет текущий путь (если активирован) или восстанавливает исходный.
+	 * @protected
+	 */
 	_applyCurrentCurve() {
 		if (this.isActivated()) {
 			this._applyCurve();
@@ -643,10 +646,10 @@ export class SuperellipseMode {
 		}
 	}
 
-    /**
-     * Применяет суперэллипс через `clip-path`.
-     * @protected
-     */
+	/**
+	 * Применяет суперэллипс через `clip-path`.
+	 * @protected
+	 */
 	_applyCurve() {
 		if (this._path && this._path !== 'none') {
 			const newPath = `path("${this._path}")`;
@@ -660,10 +663,10 @@ export class SuperellipseMode {
 		}
 	}
 
-    /**
-     * Восстанавливает исходный `clip-path`.
-     * @protected
-     */
+	/**
+	 * Восстанавливает исходный `clip-path`.
+	 * @protected
+	 */
 	_restoreCurve() {
 		if (this._resetPath) {
 			this._element.style.setProperty('clip-path', this._resetPath);

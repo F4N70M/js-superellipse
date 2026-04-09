@@ -31,9 +31,9 @@ import { jsse_controllers } from './global-cache.js';
  * @returns {SuperellipseController|undefined} Контроллер, если элемент инициализирован, иначе undefined.
  */
 Object.defineProperty(Element.prototype, 'superellipse', {
-    get() {
-        return jsse_controllers.get(this);
-    }
+	get() {
+		return jsse_controllers.get(this);
+	}
 });
 
 
@@ -49,19 +49,19 @@ Object.defineProperty(Element.prototype, 'superellipse', {
  * @returns {SuperellipseController} Контроллер, связанный с элементом.
  */
 Element.prototype.superellipseInit = function(options) {
-    let controller = jsse_controllers.get(this);
+	let controller = jsse_controllers.get(this);
 
-    if (controller && !options?.force) {
-        console.warn('[Superellipse] Элемент уже имеет контроллер. Используйте { force: true } для пересоздания');
-        return controller;
-    }
-    
-    if (controller) {
-        controller.destroy();
-    }
-    controller = new SuperellipseController(this, options);
-    jsse_controllers.set(this, controller);
-    return controller; // для цепочек
+	if (controller && !options?.force) {
+		console.warn('[Superellipse] The element already has a controller. Use {force:true} to recreate it.');
+		return controller;
+	}
+	
+	if (controller) {
+		controller.destroy();
+	}
+	controller = new SuperellipseController(this, options);
+	jsse_controllers.set(this, controller);
+	return controller; // для цепочек
 };
 
 
@@ -74,31 +74,31 @@ Element.prototype.superellipseInit = function(options) {
  * @throws {Error} Если первый аргумент не является селектором, элементом или коллекцией.
  */
 export function superellipseInit(target, options) {
-    if (typeof target === 'string') {
-        const elements = document.querySelectorAll(target);
-        const controllersList = [];
-        elements.forEach(el => {
-            el.superellipseInit(options);
-            controllersList.push(el.superellipse);
-        });
-        return controllersList;
-    } else if (target instanceof Element) {
-        target.superellipseInit(options);
-        return target.superellipse;
-    } else if (target instanceof NodeList || Array.isArray(target)) {
-        const controllersList = [];
-        for (let i = 0; i < target.length; i++) {
-            const el = target[i];
-            if (el instanceof Element) {
-                el.superellipseInit(options);
-                controllersList.push(el.superellipse);
-            }
-        }
-        return controllersList;
-    } else {
-        throw new Error('superellipseInit: первый аргумент должен быть селектором, элементом или коллекцией элементов');
-    }
+	if (typeof target === 'string') {
+		const elements = document.querySelectorAll(target);
+		const controllersList = [];
+		elements.forEach(el => {
+			el.superellipseInit(options);
+			controllersList.push(el.superellipse);
+		});
+		return controllersList;
+	} else if (target instanceof Element) {
+		target.superellipseInit(options);
+		return target.superellipse;
+	} else if (target instanceof NodeList || Array.isArray(target)) {
+		const controllersList = [];
+		for (let i = 0; i < target.length; i++) {
+			const el = target[i];
+			if (el instanceof Element) {
+				el.superellipseInit(options);
+				controllersList.push(el.superellipse);
+			}
+		}
+		return controllersList;
+	} else {
+		throw new Error('superellipseInit: первый аргумент должен быть селектором, элементом или коллекцией элементов');
+	}
 }
 if (typeof window !== 'undefined') {
-    window.superellipseInit = superellipseInit;
+	window.superellipseInit = superellipseInit;
 }

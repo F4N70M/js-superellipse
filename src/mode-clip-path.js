@@ -32,10 +32,10 @@ export class SuperellipseModeClipPath extends SuperellipseMode {
 	 * =============================================================
 	 */
 
-    /**
-     * @param {Element} element - Целевой элемент.
-     * @param {boolean} [debug=false] - Флаг отладки.
-     */
+	/**
+	 * @param {Element} element - Целевой элемент.
+	 * @param {boolean} [debug=false] - Флаг отладки.
+	 */
 	constructor(element, debug = false) {
 		super(element, debug);
 	}

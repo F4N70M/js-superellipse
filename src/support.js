@@ -28,17 +28,33 @@ export function jsse_element_has_class(element, classname) {
  * @namespace jsse_debug
  */
 export const jsse_debug = {
-	id : null,
-	// id : 1,
-	print : (debug, element, names, value = null) => {
-		if (debug) {
-			let string = '';
-			if (names.length > 0) {
-				for (var i = 0; i < names.length; i++) {
-					names[i] = `[${names[i]}]`;
-				}
-				string = names.join(' ');
+	_list: [],
+	set(element) {
+		this._list.push(element);
+		console.log(this._list);
+	},
+	names(element, names = []) {
+		if (this._list.includes(element)) {
+			let namesString = '';
+			if (Array.isArray(names) && names.length > 0) {
+				const bracketed = names.map(name => `[${name}]`);
+				namesString = bracketed.join(' ');
 			}
+			const hasString = namesString.length > 0;
+			const string = '[DEBUG]' + (hasString ? ' ' + namesString : '');
+			console.log(string, [element]);
+		}
+	},
+	print(element, names = [], value) {
+		if (this._list.includes(element)) {
+			let namesString = '';
+			if (Array.isArray(names) && names.length > 0) {
+				const bracketed = names.map(name => `[${name}]`);
+				namesString = bracketed.join(' ');
+			}
+			const hasString = namesString.length > 0;
+			const string = '[DEBUG]' + (hasString ? ' ' + namesString : '');
+			console.log(string, value, [element]);
 		}
 	}
 };

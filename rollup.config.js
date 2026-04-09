@@ -7,23 +7,29 @@ const fs = require('fs');
 const headerComment = fs.readFileSync('src/header.js', 'utf8');
 
 module.exports = {
-    input: 'src/index.js',
-    output: [
-        {
-            file: 'dist/superellipse.js',
-            format: 'umd',
-            name: 'Superellipse',
-            banner: headerComment,
-            sourcemap: false
-        },
-        {
-            file: 'dist/superellipse.min.js',
-            format: 'umd',
-            name: 'Superellipse',
-            banner: headerComment,
-            plugins: [terser()],
-            sourcemap: false
-        }
-    ],
-    plugins: [resolve(), commonjs()]
+	input: 'src/index.js',
+	output: [
+		{
+			file: 'dist/superellipse.js',
+			format: 'umd',
+			name: 'Superellipse',
+			banner: headerComment,
+			sourcemap: false
+		},
+		{
+			file: 'dist/superellipse.min.js',
+			format: 'umd',
+			name: 'Superellipse',
+			banner: headerComment,
+			plugins: [terser({
+				mangle: {
+					properties: {
+						regex: /^_/
+					}
+				}
+			})],
+			sourcemap: false
+		}
+	],
+	plugins: [resolve(), commonjs()]
 };

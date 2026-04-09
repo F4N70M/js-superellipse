@@ -32,16 +32,16 @@ export const jsse_styles = new WeakMap();
  * @namespace jsse_css
  */
 export const jsse_css = {
-    _list: {},
-    get(key) {
-        return this._list[key];
-    },
-    set(key, el) {
-        this._list[key] = el;
-    },
-    isset(key) {
-        return this._list[key] !== undefined;
-    }
+	_list: {},
+	get(key) {
+		return this._list[key];
+	},
+	set(key, el) {
+		this._list[key] = el;
+	},
+	isset(key) {
+		return this._list[key] !== undefined;
+	}
 };
 
 /**
