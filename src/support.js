@@ -32,23 +32,19 @@ export const jsse_console = {
 	_list: [],
 	set(element) {
 		this._list.push(element);
-		console.log(this._list);
+		// this.debug('set', {element});
+		// console.log(this._list);
+		// console.debug(`[DEBUG]`, {src:'jsse_console::set', element});
+		console.debug('[JSSE]', '[CONSOLE]', '[SET TO DEBUG]', '\n\t', {element:element});
 	},
-	debug(...values) {
-		if (values.length == 0) {
-			throw new Error('Нет параметров для вывода');
-		}
-		if (values.length > 1 && (values[0] instanceof Element)) {
-			// Удалить из массива и вернуть первый элемент
-			const element = values.shift();
-			if(this._list.includes(element)) {
-				console.debug('[DEBUG]', {element});
-				console.debug(' └──', ...values);
+	debug(options, ...values) {
+		if (options.element) {
+			if(this._list.includes(options.element)) {
+				console.debug('[JSSE]', `[${options?.label??'DEBUG'}]`, ...values, '\n\t', {element:options.element});
 			}
 		}
 		else {
-			console.debug('[DEBUG]');
-			console.debug('└──', ...values);
+			console.debug('[JSSE]', `[${options?.label??'DEBUG'}]`, ...values);
 		}
 	}
 };

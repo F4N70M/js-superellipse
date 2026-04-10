@@ -20,7 +20,7 @@
  * }
  */
 
-import { jsse_styles, jsse_css } from './global-cache.js';
+import { jsse_styles, jsse_reset_css } from './global-cache.js';
 import { jsse_generateSuperellipsePath, jsse_getBorderRadiusFactor } from './core.js';
 
 import { jsse_element_has_class, jsse_console } from './support.js';
@@ -79,8 +79,8 @@ export class SuperellipseMode {
 	 * Активирует режим.
 	 */
 	activate() {
-		jsse_console.debug(this._element, '[MODE]', '[ACTIVATE]');
 		if (this.isActivated()) return;
+		jsse_console.debug({label:'MODE',element:this._element}, `activate(${this._getModeName()})`);
 		/** Актуализировать данные захвата **/
 		this._updateCaptured();
 		/** Установить статус **/
@@ -97,8 +97,8 @@ export class SuperellipseMode {
 	 * Деактивирует режим.
 	 */
 	deactivate() {
-		jsse_console.debug(this._element, '[MODE]', '[DEACTIVATE]');
 		if (!this.isActivated()) return;
+		jsse_console.debug({label:'MODE',element:this._element}, `deactivate(${this._getModeName()})`);
 		/** Установить статус **/
 		this._setStatus(false);
 		/** Удалить элементы виртуальных слоев **/
@@ -111,7 +111,7 @@ export class SuperellipseMode {
 	 * Полное обновление (стили, размер, путь).
 	 */
 	update() {
-		jsse_console.debug(this._element, '[MODE]', '[UPDATE]');
+		jsse_console.debug({label:'MODE',element:this._element}, 'update()');
 		/** Актуализировать данные захвата **/
 		this._updateCaptured();
 		/** Подготовить обновление **/
@@ -137,7 +137,7 @@ export class SuperellipseMode {
 	 * Обновление только стилей.
 	 */
 	updateStyles() {
-		jsse_console.debug(this._element, '[MODE]', '[UPDATE]', '[STULES]');
+		jsse_console.debug({label:'MODE',element:this._element}, 'updateStyles()');
 		/** Актуализировать стили **/
 		this._updateCapturedStyles();
 		/** Подготовить обновление **/
@@ -391,25 +391,31 @@ export class SuperellipseMode {
 	 */
 	_initResetStyles() {
 		const modeName = this._getModeName();
-		if (jsse_css.isset(modeName)) return;
+		if (jsse_reset_css.isset(modeName)) return;
 
 		let cssString = '';
 
 		const activatedStyles = this._getActivatedStyles();
-		cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]{`;
+		cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-activated=true],`;
+		cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:hover,`;
+		cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]`;
+		cssString += `{`;
 		for (const prop in activatedStyles) {
 			if (activatedStyles[prop] === '') continue;
-			cssString += `\n\t${prop}: ${activatedStyles[prop]};`;
+			cssString += `\n\t${prop}: ${activatedStyles[prop]} !important;`;
 		}
 		cssString += `\n}`;
 
 		cssString += `\n`;
 
 		const readingStyles = this._getReadingStyles();
-		cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]{`;
+		cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-reading=true],`;
+		cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]:hover,`;
+		cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]`;
+		cssString += `{`;
 		for (const prop in readingStyles) {
 			if (readingStyles[prop] === '') continue;
-			cssString += `\n\t${prop}: ${readingStyles[prop]};`;
+			cssString += `\n\t${prop}: ${readingStyles[prop]} !important;`;
 		}
 		cssString += `\n}`;
 
@@ -429,7 +435,7 @@ export class SuperellipseMode {
 		/** Заполнить элемент CSS-правилами **/
 		styleElement.textContent = textContent;
 		/** Сохранить глобально **/
-		jsse_css.set(modeName, styleElement);
+		jsse_reset_css.set(modeName, styleElement);
 		/** Добавить элемент в конец <body> **/
 		this._appendModeCssStyleElement(styleElement);
 	}
@@ -463,7 +469,7 @@ export class SuperellipseMode {
 	 * @protected
 	 */
 	_updateCapturedStyles() {
-		jsse_console.debug(this._element, '[MODE]', '[CAPTURE]', '[STYLES]');
+		jsse_console.debug({label:'MODE',element:this._element}, '_updateCapturedStyles()');
 		const capturedComputedStyles = this._getCapturedStyles();
 		/** Сохранить computed-стили **/
 		this._styles.computed = capturedComputedStyles;

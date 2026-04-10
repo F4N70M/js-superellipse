@@ -14,7 +14,7 @@ module.exports = {
 			format: 'umd',
 			name: 'Superellipse',
 			banner: headerComment,
-			sourcemap: false
+			sourcemap: true
 		},
 		{
 			file: 'dist/superellipse.min.js',
@@ -28,7 +28,7 @@ module.exports = {
 					}
 				}
 			})],
-			sourcemap: false
+			sourcemap: true
 		}
 	],
 	plugins: [resolve(), commonjs()]

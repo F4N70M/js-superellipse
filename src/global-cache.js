@@ -8,9 +8,11 @@
  * @description
  * Глобальные хранилища для кэширования данных между экземплярами контроллеров и режимов.
  * - `jsse_styles` (WeakMap) – кэш захваченных стилей для каждого элемента.
- * - `jsse_css` – хранилище глобально добавленных элементов `<style>` для режимов.
+ * - `jsse_reset_css` – хранилище глобально добавленных элементов `<style>` для режимов.
  * - `jsse_counter` – счётчик для генерации уникальных идентификаторов контроллеров.
  */
+
+import { StylesheetParser } from './stylesheet-parser.js';
 
 
 /**
@@ -18,6 +20,13 @@
  * @type {WeakMap<Element, SuperellipseController>}
  */
 export const jsse_controllers = new WeakMap(); // экспортируем
+
+
+/**
+ * 
+ */
+export const jsse_stylesheet = new StylesheetParser();
+export const jsse_target_handlers = new WeakMap();
 
 
 /**
@@ -29,9 +38,9 @@ export const jsse_styles = new WeakMap();
 
 /**
  * Объект для хранения глобальных CSS-правил режимов.
- * @namespace jsse_css
+ * @namespace jsse_reset_css
  */
-export const jsse_css = {
+export const jsse_reset_css = {
 	_list: {},
 	get(key) {
 		return this._list[key];

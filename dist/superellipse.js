@@ -74,6 +74,669 @@
 })(this, (function (exports) { 'use strict';
 
 	/**
+	 * @file src/support.js
+	 * 
+	 * @module sj-superellipse/support
+	 * @since 1.0.0
+	 * @author f4n70m
+	 * 
+	 * @description
+	 * Вспомогательные утилиты и инструменты отладки.
+	 * - `jsse_element_has_class` – проверка наличия класса у элемента.
+	 * - `jsse_debug` – объект для условного вывода отладочных сообщений в консоль.
+	 */
+
+
+
+	/**
+	 * Объект для управления отладочным выводом.
+	 * @namespace jsse_debug
+	 */
+	const jsse_console = {
+		_list: [],
+		set(element) {
+			this._list.push(element);
+			// this.debug('set', {element});
+			// console.log(this._list);
+			// console.debug(`[DEBUG]`, {src:'jsse_console::set', element});
+			console.debug('[JSSE]', '[CONSOLE]', '[SET TO DEBUG]', '\n\t', {element:element});
+		},
+		debug(options, ...values) {
+			if (options.element) {
+				if(this._list.includes(options.element)) {
+					console.debug('[JSSE]', `[${options?.label??'DEBUG'}]`, ...values, '\n\t', {element:options.element});
+				}
+			}
+			else {
+				console.debug('[JSSE]', `[${options?.label??'DEBUG'}]`, ...values);
+			}
+		}
+	};
+
+	/**
+	 * @file src/support.js
+	 * 
+	 * @module sj-superellipse/css-parser
+	 * @since 1.0.0
+	 * @author f4n70m
+	 * 
+	 * @description
+	 * Модуль парсинга css стилей страницы.
+	 * - `StylesheetParser`
+	 * - `StylesheetParserSelectorList`
+	 * - `StylesheetParserSelector`
+	 * - `StylesheetParserFragmentList`
+	 * - `StylesheetParserFragment`
+	 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	class StylesheetParserFragment {
+		_combinator;
+		_full;
+		_clean;
+		_pseudo;
+
+		constructor(options) {
+			this._combinator = options.combinator;
+			const isRoot = options.full === ':root';
+			this._clean = isRoot||options.clean?options.clean:`*`;
+			this._full = isRoot||options.clean?options.full:`*${options.full}`;
+			this._pseudo = [...new Set(options.pseudo)];
+		}
+
+		getCombinator() { return this._combinator };
+		getFull() { return this._full };
+		getClean() { return this._clean };
+		getPseudoList() { return this.pseudo };
+
+		hasPseudo(pseudo) {
+			return this._pseudo.includes(pseudo);
+		}
+
+		hasHover() {
+			return this.hasPseudo(':hover');
+		}
+
+		getFull() {
+			return this._full;
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	class StylesheetParserFragmentList extends Array {
+
+		// _triggerList = null;
+		// _triggerIndexList = null;
+
+
+		/**
+		 * =============================================================
+		 * ARRAY
+		 * =============================================================
+		 */
+
+
+		// Проверка валидности
+		static #isValid(item) {
+			return item instanceof StylesheetParserFragment;
+		}
+
+		// Переопределяем push - добавляем только валидные
+		push(...items) {
+			const valid = items.filter(item => StylesheetParserFragmentList.#isValid(item));
+			return super.push(...valid);
+		}
+
+		// Переопределяем unshift
+		unshift(...items) {
+			const valid = items.filter(item => StylesheetParserFragmentList.#isValid(item));
+			return super.unshift(...valid);
+		}
+
+		// Переопределяем splice
+		splice(start, deleteCount, ...items) {
+			const valid = items.filter(item => StylesheetParserFragmentList.#isValid(item));
+			return super.splice(start, deleteCount, ...valid);
+		}
+
+		// Все остальные методы (forEach, map, filter, find, pop, shift и т.д.) 
+		// работают автоматически, так как они наследуются от Array
+
+
+		/**
+		 * =============================================================
+		 * PUBLIC
+		 * =============================================================
+		 */
+
+		getTarget() {
+			return this[this.length-1];
+		}
+
+		getTriggerIndexList() {
+			return this.reduce((indexes, element, index) => {
+				if (element.hasHover()) {
+					indexes.push(index);
+				}
+				return indexes;
+			}, []);
+		}
+
+		hasTrigger() {
+			return this.getTriggerIndexList().length > 0;
+		}
+
+		targetIsTriggered() {
+			return this.getTarget().hasHover();
+		}
+
+
+		/**
+		 * =============================================================
+		 * PRIVATE
+		 * =============================================================
+		 */
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	class StylesheetParserSelector {
+
+		_media;
+		_selector;
+		_fragments = null;
+		_styles;
+
+		_triggerFragments = null;
+		_triggerIndexList = null;
+		_triggerParts = null;
+
+		constructor(selector, styles, media) {
+			this._selector = selector;
+			this._styles = styles;
+			this._media = media;
+
+			this.getFragments().getTarget();
+			this.getFragments().targetIsTriggered();
+		}
+
+		/**
+		 * =============================================================
+		 * PUBLIC
+		 * =============================================================
+		 */
+
+		getSelector() {
+			return this._selector;
+		}
+
+		getStyles() {
+			return this._styles;
+		}
+
+		getFragments() {
+			if (this._fragments === null) {
+				this._fragments = this._getSelectorFragments(this._selector);
+			}
+			return this._fragments;
+		}
+
+		matchMedia() {
+			return !this._media || window.matchMedia(this._media).matches;
+		}
+
+		getTriggerParts() {
+			if (this._triggerParts === null) {
+				this._triggerParts = [];
+				const fragments = this.getFragments();
+				const targetIndexList = fragments.getTriggerIndexList();
+				for(const targetIndex of targetIndexList) {
+					const parts = {parent:'',child:null};
+					for (let i = 0; i<fragments.length; i++) {
+						const fragment = fragments[i];
+						if (i <= targetIndex) {
+							if (!parts.parent) parts.parent = '';
+							parts.parent += fragment.getCombinator() + fragment.getClean();
+						} else {
+							if (!parts.child) parts.child = '';
+							parts.child += fragment.getCombinator() + fragment.getClean();
+						}
+					}
+					this._triggerParts.push(parts);
+				}
+			}
+			return this._triggerParts;
+		}
+
+		getTriggerFragments() {
+			if (this._triggerFragments === null) {
+				this._triggerFragments = new StylesheetParserFragmentList();
+				const fragments = this.getFragments();
+				const indexList = fragments.getTriggerIndexList();
+				for(const index of indexList) {
+					const fragment = fragments[index];
+					this._triggerFragments.push(fragment);
+				}
+			}
+			return this._triggerFragments;
+		}
+
+
+
+		/**
+		 * =============================================================
+		 * PRIVATE
+		 * =============================================================
+		 */
+
+		_getSelectorFragments(selector) {
+			const s = selector;
+			const result = new StylesheetParserFragmentList();
+			let options = {
+				combinator : '',
+				full  : '',
+				clean : '',
+				pseudo: []
+			};
+			let pseudo = '';
+			let i = 0;
+			while (i < s.length) {
+				if (s[i] === ':') {
+					/** завершение записи текущего фрагмента перед псевдоэлементом **/
+					if (i > 0 && s[i + 1] === ':') {
+
+						if (options.combinator === '') options.combinator = ' ';
+
+						result.push(new StylesheetParserFragment(options));
+						options = {
+							combinator : '',
+							full  : '',
+							clean : '',
+							pseudo: []
+						};
+					}
+					/** Псевдоэлемент (два двоеточия) **/
+					if (s[i + 1] === ':' || (i > 0 && s[i - 1] === ':')) {
+						options.full += s[i];
+						options.clean += s[i];
+						i++;
+					}
+					/** Псевдокласс **/
+					else {
+
+						pseudo += s[i];
+						let j = i + 1;
+						// pseudo += s[i];
+						while (j < s.length && /[\w-]/.test(s[j])) {
+							pseudo += s[j];
+							j++;
+						}
+						// если есть аргументы в скобках
+						if (s[j] === '(') {
+							pseudo += s[j];
+							let depth = 1, k = j + 1;
+							while (k < selector.length && depth) {
+								if (selector[k] === '(') depth++;
+								else if (selector[k] === ')') depth--;
+								pseudo += s[k];
+								k++;
+							}
+							options.pseudo.push(pseudo);
+							options.full += pseudo;
+							pseudo = '';
+							i = k;
+						}
+						// если
+						else {
+							options.pseudo.push(pseudo);
+							options.full += pseudo;
+							pseudo = '';
+							i = j;
+						}
+					}
+				} else {
+					/** проверка combinator **/
+					if (s[i] === ' ') {
+
+						result.push(new StylesheetParserFragment(options));
+
+						let combinator = ' ';
+						if (/[\>\~\+]/.test(s[i+1]) && s[i + 2] === ' ') {
+							combinator = s[i]+s[i+1]+s[i+2];
+							i += 2;
+						}
+
+						options = {
+							combinator : combinator,
+							full  : '',
+							clean : '',
+							pseudo: []
+						};
+
+						i++;
+					}
+					else {
+						options.full += s[i];
+						options.clean += s[i];
+						i++;
+					}
+				}
+			}
+			result.push(new StylesheetParserFragment(options));
+			return result;
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	class StylesheetParserSelectorList extends Array {
+
+
+		/**
+		 * =============================================================
+		 * ARRAY
+		 * =============================================================
+		 */
+
+
+		// Проверка валидности
+		static #isValid(item) {
+			return item instanceof StylesheetParserSelector;
+		}
+
+		// Переопределяем push - добавляем только валидные
+		push(...items) {
+			const valid = items.filter(item => StylesheetParserSelectorList.#isValid(item));
+			return super.push(...valid);
+		}
+
+		// Переопределяем unshift
+		unshift(...items) {
+			const valid = items.filter(item => StylesheetParserSelectorList.#isValid(item));
+			return super.unshift(...valid);
+		}
+
+		// Переопределяем splice
+		splice(start, deleteCount, ...items) {
+			const valid = items.filter(item => StylesheetParserSelectorList.#isValid(item));
+			return super.splice(start, deleteCount, ...valid);
+		}
+
+		// Все остальные методы (forEach, map, filter, find, pop, shift и т.д.) 
+		// работают автоматически, так как они наследуются от Array
+
+
+		/**
+		 * =============================================================
+		 * PUBLIC
+		 * =============================================================
+		 */
+
+
+		getSelectorsWithHover() {
+			return this.filter(item => item.getFragments().hasTrigger());
+		}
+
+
+		/**
+		 * =============================================================
+		 * PRIVATE
+		 * =============================================================
+		 */
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	class StylesheetParser {
+		_selectors;
+
+		constructor() {
+			this._init();
+		}
+		
+		/**
+		 * =============================================================
+		 * PUBLIC
+		 * =============================================================
+		 */
+
+		getSelectors() {
+			return this._selectors;
+		}
+
+		getSelectorsHasHover() {
+			return this._selectors.getSelectorsWithHover();
+		}
+
+		getTargetSelectors(element, options={}) {
+			const targetList = this._createList();
+			const parserList = this.getSelectors();
+			for(const selector of parserList) {
+				const fragments = selector.getFragments();
+				const clean = fragments.getTarget().getClean();
+				if (!clean) continue;
+				const isMatch = element.matches(clean);
+				fragments.hasTrigger();
+				if (
+					isMatch &&
+					( !options?.selectorHasHover || options.selectorHasHover && fragments.hasTrigger() )
+				) {
+					targetList.push(selector);
+				}
+			}
+			return targetList;
+		}
+
+		/**
+		 * =============================================================
+		 * PRIVATE
+		 * =============================================================
+		 */
+
+		_init() {
+			this._selectors = this._createList();
+			this._parseCssRules();
+			jsse_console.debug({label:'STYLESHEET'}, '[LOADED]');
+		}
+
+		_createList() {
+			return new StylesheetParserSelectorList();
+		}
+
+		_parseCssRules() {
+			for (const styleSheet of document.styleSheets) {
+				try {
+					const rules = styleSheet.cssRules || styleSheet.rules;
+					if (!rules) continue;
+
+					for (const rule of rules) {
+						if (rule.type === CSSRule.STYLE_RULE) {
+							this._selectors.push(...this._getParsedCssRule(rule));
+						}
+						else if (rule.type === CSSRule.MEDIA_RULE) {
+							try {
+								for (const subRule of rule.cssRules) {
+									this._selectors.push(...this._getParsedCssRule(subRule, rule.media.mediaText));
+								}
+							} catch (e) {
+								console.warn(`[STYLESHEET] Ошибка при обработке @media правила из ${styleSheet.href || 'inline'}:`, e.message);
+							}
+						}
+						// Можно добавить другие типы правил (CSSRule.IMPORT_RULE, CSSRule.SUPPORTS_RULE и т.д.)
+					}
+				} catch (e) {
+					if (e.name === 'SecurityError') {
+						console.warn(
+							`[STYLESHEET] Нет доступа к правилам таблицы стилей:\n${styleSheet.href || 'inline / blob'}.\n` +
+							`Причина: CORS или file:// протокол.\nЧтобы это исправить, используйте локальный сервер (http://) или добавьте crossorigin атрибут.`
+						);
+					} else if (e.name === 'InvalidAccessError') {
+						console.warn(`[STYLESHEET] Таблица стилей ${styleSheet.href || 'inline'} ещё не загружена или имеет некорректный доступ.`);
+					} else {
+						console.warn(`[STYLESHEET] Неизвестная ошибка при чтении ${styleSheet.href || 'inline'}:`, e.message);
+					}
+					console.debug(e);
+				}
+			}
+		}
+
+		_getParsedCssRule(rule, media=false) {
+			const result = [];
+			const selectorGroup = rule.selectorText;
+			const styles = this._getCssRuleStyles(rule);
+			const selectorList = this._splitSelectorGroup(selectorGroup);
+			const uniqueSelectorList = [...new Set(selectorList)];
+			for (const selector of uniqueSelectorList) {
+				result.push( new StylesheetParserSelector(selector, styles, media) );
+			}
+			return result;
+		}
+
+		_getCssRuleStyles(rule) {
+			const styles = {};
+			if (rule.style.cssText) {
+				const declarations = rule.style.cssText.split(';');
+				for (const decl of declarations) {
+					const colonIndex = decl.indexOf(':');
+					if (colonIndex > 0) {
+						const prop = decl.substring(0, colonIndex).trim();
+						const value = decl.substring(colonIndex + 1).trim();
+						if (prop && value) {
+							styles[prop] = value;
+						}
+					}
+				}
+			}
+			return styles;
+		}
+
+
+		/**
+		 * Разбивает группу селекторов по запятым, но не внутри скобок.
+		 * Пример: ":not(.a, .b), .c" → [":not(.a, .b)", ".c"]
+		 */
+		_splitSelectorGroup(selectorText) {
+			const result = [];
+			let current = '';
+			let depth = 0;          // глубина вложенности в круглые скобки
+			let inString = false;   // для простоты не поддерживаем строки (в CSS их почти нет в селекторах)
+			let escape = false;
+
+			for (let i = 0; i < selectorText.length; i++) {
+				const ch = selectorText[i];
+				
+				if (escape) {
+					current += ch;
+					escape = false;
+					continue;
+				}
+				
+				if (ch === '\\') {
+					escape = true;
+					current += ch;
+					continue;
+				}
+				
+				if (ch === '"' || ch === "'") {
+					inString = !inString;
+					current += ch;
+					continue;
+				}
+				
+				if (!inString) {
+					if (ch === '(') {
+						depth++;
+					} else if (ch === ')') {
+						depth--;
+					}
+				}
+				
+				if (ch === ',' && depth === 0 && !inString) {
+					// Запятая на нулевом уровне – разделитель
+					result.push(current.trim());
+					current = '';
+				} else {
+					current += ch;
+				}
+			}
+			
+			if (current.trim() !== '') {
+				result.push(current.trim());
+			}
+			
+			return result;
+		}
+	}
+
+	/**
 	 * @file src/global-cache.js
 	 * 
 	 * @module sj-superellipse/global-cache
@@ -83,9 +746,10 @@
 	 * @description
 	 * Глобальные хранилища для кэширования данных между экземплярами контроллеров и режимов.
 	 * - `jsse_styles` (WeakMap) – кэш захваченных стилей для каждого элемента.
-	 * - `jsse_css` – хранилище глобально добавленных элементов `<style>` для режимов.
+	 * - `jsse_reset_css` – хранилище глобально добавленных элементов `<style>` для режимов.
 	 * - `jsse_counter` – счётчик для генерации уникальных идентификаторов контроллеров.
 	 */
+
 
 
 	/**
@@ -93,6 +757,12 @@
 	 * @type {WeakMap<Element, SuperellipseController>}
 	 */
 	const jsse_controllers = new WeakMap(); // экспортируем
+
+
+	/**
+	 * 
+	 */
+	const jsse_stylesheet = new StylesheetParser();
 
 
 	/**
@@ -104,9 +774,9 @@
 
 	/**
 	 * Объект для хранения глобальных CSS-правил режимов.
-	 * @namespace jsse_css
+	 * @namespace jsse_reset_css
 	 */
-	const jsse_css = {
+	const jsse_reset_css = {
 		_list: {},
 		get(key) {
 			return this._list[key];
@@ -381,50 +1051,6 @@
 	}
 
 	/**
-	 * @file src/support.js
-	 * 
-	 * @module sj-superellipse/support
-	 * @since 1.0.0
-	 * @author f4n70m
-	 * 
-	 * @description
-	 * Вспомогательные утилиты и инструменты отладки.
-	 * - `jsse_element_has_class` – проверка наличия класса у элемента.
-	 * - `jsse_debug` – объект для условного вывода отладочных сообщений в консоль.
-	 */
-
-
-
-	/**
-	 * Объект для управления отладочным выводом.
-	 * @namespace jsse_debug
-	 */
-	const jsse_console = {
-		_list: [],
-		set(element) {
-			this._list.push(element);
-			console.log(this._list);
-		},
-		debug(...values) {
-			if (values.length == 0) {
-				throw new Error('Нет параметров для вывода');
-			}
-			if (values.length > 1 && (values[0] instanceof Element)) {
-				// Удалить из массива и вернуть первый элемент
-				const element = values.shift();
-				if(this._list.includes(element)) {
-					console.debug('[DEBUG]', {element});
-					console.debug(' └──', ...values);
-				}
-			}
-			else {
-				console.debug('[DEBUG]');
-				console.debug('└──', ...values);
-			}
-		}
-	};
-
-	/**
 	 * @file src/mode.js
 	 * 
 	 * @module sj-superellipse/mode
@@ -501,8 +1127,8 @@
 		 * Активирует режим.
 		 */
 		activate() {
-			jsse_console.debug(this._element, '[MODE]', '[ACTIVATE]');
 			if (this.isActivated()) return;
+			jsse_console.debug({label:'MODE',element:this._element}, `activate(${this._getModeName()})`);
 			/** Актуализировать данные захвата **/
 			this._updateCaptured();
 			/** Установить статус **/
@@ -519,8 +1145,8 @@
 		 * Деактивирует режим.
 		 */
 		deactivate() {
-			jsse_console.debug(this._element, '[MODE]', '[DEACTIVATE]');
 			if (!this.isActivated()) return;
+			jsse_console.debug({label:'MODE',element:this._element}, `deactivate(${this._getModeName()})`);
 			/** Установить статус **/
 			this._setStatus(false);
 			/** Удалить элементы виртуальных слоев **/
@@ -533,7 +1159,7 @@
 		 * Полное обновление (стили, размер, путь).
 		 */
 		update() {
-			jsse_console.debug(this._element, '[MODE]', '[UPDATE]');
+			jsse_console.debug({label:'MODE',element:this._element}, 'update()');
 			/** Актуализировать данные захвата **/
 			this._updateCaptured();
 			/** Подготовить обновление **/
@@ -559,7 +1185,7 @@
 		 * Обновление только стилей.
 		 */
 		updateStyles() {
-			jsse_console.debug(this._element, '[MODE]', '[UPDATE]', '[STULES]');
+			jsse_console.debug({label:'MODE',element:this._element}, 'updateStyles()');
 			/** Актуализировать стили **/
 			this._updateCapturedStyles();
 			/** Подготовить обновление **/
@@ -813,25 +1439,31 @@
 		 */
 		_initResetStyles() {
 			const modeName = this._getModeName();
-			if (jsse_css.isset(modeName)) return;
+			if (jsse_reset_css.isset(modeName)) return;
 
 			let cssString = '';
 
 			const activatedStyles = this._getActivatedStyles();
-			cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]{`;
+			cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-activated=true],`;
+			cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:hover,`;
+			cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]`;
+			cssString += `{`;
 			for (const prop in activatedStyles) {
 				if (activatedStyles[prop] === '') continue;
-				cssString += `\n\t${prop}: ${activatedStyles[prop]};`;
+				cssString += `\n\t${prop}: ${activatedStyles[prop]} !important;`;
 			}
 			cssString += `\n}`;
 
 			cssString += `\n`;
 
 			const readingStyles = this._getReadingStyles();
-			cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]{`;
+			cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-reading=true],`;
+			cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]:hover,`;
+			cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]`;
+			cssString += `{`;
 			for (const prop in readingStyles) {
 				if (readingStyles[prop] === '') continue;
-				cssString += `\n\t${prop}: ${readingStyles[prop]};`;
+				cssString += `\n\t${prop}: ${readingStyles[prop]} !important;`;
 			}
 			cssString += `\n}`;
 
@@ -851,7 +1483,7 @@
 			/** Заполнить элемент CSS-правилами **/
 			styleElement.textContent = textContent;
 			/** Сохранить глобально **/
-			jsse_css.set(modeName, styleElement);
+			jsse_reset_css.set(modeName, styleElement);
 			/** Добавить элемент в конец <body> **/
 			this._appendModeCssStyleElement(styleElement);
 		}
@@ -885,7 +1517,7 @@
 		 * @protected
 		 */
 		_updateCapturedStyles() {
-			jsse_console.debug(this._element, '[MODE]', '[CAPTURE]', '[STYLES]');
+			jsse_console.debug({label:'MODE',element:this._element}, '_updateCapturedStyles()');
 			const capturedComputedStyles = this._getCapturedStyles();
 			/** Сохранить computed-стили **/
 			this._styles.computed = capturedComputedStyles;
@@ -1195,8 +1827,8 @@
 				'background': 'none',
 				'border-color': 'transparent',
 				'border-width': '',
-				// 'border-width': '0px',
-				'border-style': 'none',
+				'border-width': '0px',
+				// 'border-style': 'none',
 				// 'border': 'unset',
 				'border-radius': '0px',
 				'box-shadow': 'unset',
@@ -1267,8 +1899,6 @@
 		}
 
 		/**
-		 * 
-		 * TODO: _applyCurrentInlineVirtualSvgLayerStyles()
 		 * 
 		 */
 		_applyCurrentInlineVirtualSvgLayerStyles() {
@@ -1915,6 +2545,8 @@
 		_removalObserver;
 		_intersectionObserver;
 
+		_hoverHandlers;
+
 		_needsUpdate;
 		_isSelfApply;
 
@@ -1951,6 +2583,7 @@
 			};
 			this._element = element;
 			this._initDebug((!!options.debug) ?? false);
+			this._initStylesheet();
 			this._curveFactor = options.curveFactor ?? jsse_getBorderRadiusFactor();
 			this._precision = options.precision ?? 2;
 
@@ -2099,6 +2732,7 @@
 		 * @private
 		 */
 		_destroyController() {
+			this._unregisterTargetListeners();
 			this._disconnectObservers();
 			this._unsetMode();
 			this._removeInitiatedAttr();
@@ -2179,6 +2813,113 @@
 		 */
 		_deleteFromControllers() {
 			jsse_controllers.delete(this._element);
+		}
+
+
+		/**
+		 * =============================================================
+		 * STYLESHEET
+		 * =============================================================
+		 */
+
+
+		_initStylesheet() {
+			const targetTriggers = this._getTargetTriggers();
+			this._registerTargetListeners(targetTriggers);
+			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET LISTENERS]', true);
+		}
+
+		_registerTargetListeners(triggers) {
+			this._hoverHandlers = {};
+			for (const selector in triggers) {
+				this._hoverHandlers[selector] = {
+					in : (event) => { this._triggerHandlerIn(selector, event); },
+					out : (event) => { this._triggerHandlerOut(selector, event); },
+					on : [],
+					hovered : false
+				};
+				triggers[selector].forEach((trigger) => {
+					this._hoverHandlers[selector].on.push(trigger);
+					this._registerTriggerListener(trigger, selector);
+				});
+			}
+		}
+
+		_unregisterTargetListeners() {
+			for (const selector in this._hoverHandlers) {
+				for (const trigger of this._hoverHandlers[selector].on) {
+					console.log(selector, trigger);
+					this._unregisterTriggerListener(trigger, selector);
+				}
+			}
+			this._hoverHandlers = {};
+		}
+
+		_registerTriggerListener(trigger, selector) {
+			trigger.addEventListener('pointerenter', this._hoverHandlers[selector].in);
+			trigger.addEventListener('pointerleave', this._hoverHandlers[selector].out);
+		}
+
+		_unregisterTriggerListener(trigger, selector) {
+			trigger.removeEventListener('pointerenter', this._hoverHandlers[selector].in);
+			trigger.removeEventListener('pointerleave', this._hoverHandlers[selector].out);
+		}
+
+			_triggerHandlerIn(selector, event) {
+				if ( !this._element.matches(selector) ) return;
+				this._hoverHandlers[selector].hovered = true;
+				jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector);
+				this._mutationHandler();
+			}
+
+			_triggerHandlerOut(selector, event) {
+				if ( !this._hoverHandlers[selector].hovered ) return;
+				jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector);
+				this._mutationHandler();
+			}
+
+		_getTargetTriggers() {
+			const triggerList = {};
+			const targetSelectors = jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
+			for (const targetSelector of targetSelectors) {
+				const selectorTargetElements = this._getSelectorTriggerElements(targetSelector);
+				if (selectorTargetElements.length > 0) {
+					const selector = targetSelector.getSelector();
+					triggerList[selector] = selectorTargetElements;
+				}
+			}
+			return triggerList;
+		}
+
+		_getSelectorTriggerElements(selector) {
+			const selectorTargetElements = [];
+			const selectorParts = selector.getTriggerParts();
+			for (const selectorPart of selectorParts) {
+				const parents = this._getSelectorElements(selectorPart.parent);
+				const triggerElements = Array.from(parents).filter(parent => 
+					this._elementMatchesChildSelector(parent, selectorPart.child)
+				);
+				selectorTargetElements.push(...triggerElements);
+			}
+			return selectorTargetElements;
+		}
+
+		_elementMatchesChildSelector(parent, selector) {
+			if (!(parent.contains(this._element) || parent === this._element)) {
+				return false;
+			}
+			if (parent === this._element) return true;
+
+			const children = this._getSelectorElements(selector, parent);
+			return Array.from(children).includes(this._element);
+		}
+
+		_getSelectorElements(selector, parent=document) {
+			return parent.querySelectorAll(selector);
+		}
+
+		_getTriggerElements() {
+			jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
 		}
 
 
@@ -2282,7 +3023,7 @@
 		 * @private
 		 */
 		_mutationHandler() {
-			jsse_console.debug(this._element, '[MUTATION]', '[DETECT]', this._isSelfMutation ? 'self' : 'flow');
+			jsse_console.debug({label:'MUTATION', element:this._element}, '[DETECT]', this._isSelfMutation ? 'self' : 'flow');
 			if (this._isSelfMutation)
 				return;
 			if (this._prepareTimer !== null) {
@@ -2290,10 +3031,10 @@
 			}
 			this._prepareTimer = setTimeout(() => {
 				this._prepareTimer = null;
-				jsse_console.debug(this._element, '[MUTATION]', '[START]');
+				jsse_console.debug({label:'MUTATION', element:this._element}, '[START]');
 				this._isSelfMutation = true;
 				try {
-					jsse_console.debug(this._element, '[MUTATION]', '[UPDATE]');
+					jsse_console.debug({label:'MUTATION', element:this._element}, '[UPDATE]');
 					if (this._isDisplay() && this._needsUpdate) {
 						this._mode.update();
 						this._needsUpdate = false;
@@ -2306,7 +3047,7 @@
 					}
 					this._executeTimer = setTimeout(() => {
 						this._executeTimer = null;
-						jsse_console.debug(this._element, '[MUTATION]', '[END]');
+						jsse_console.debug({label:'MUTATION', element:this._element}, '[END]');
 						this._isSelfMutation = false;
 
 					}, 0);
@@ -2463,3 +3204,4 @@
 	exports.superellipseInit = superellipseInit;
 
 }));
+//# sourceMappingURL=superellipse.js.map

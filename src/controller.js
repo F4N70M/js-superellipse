@@ -17,7 +17,7 @@
  * controller.enable();
  */
 
-import { jsse_styles, jsse_counter } from './global-cache.js';
+import { jsse_styles, jsse_counter, jsse_stylesheet } from './global-cache.js';
 import { jsse_getBorderRadiusFactor } from './core.js';
 import { jsse_controllers } from './global-cache.js';
 import { SuperellipseModeSvgLayer } from './mode-svg-layer.js';
@@ -52,6 +52,8 @@ export class SuperellipseController
 	_mutationObserver;
 	_removalObserver;
 	_intersectionObserver;
+
+	_hoverHandlers;
 
 	_needsUpdate;
 	_isSelfApply;
@@ -89,6 +91,7 @@ export class SuperellipseController
 		};
 		this._element = element;
 		this._initDebug((!!options.debug) ?? false);
+		this._initStylesheet();
 		this._curveFactor = options.curveFactor ?? jsse_getBorderRadiusFactor();
 		this._precision = options.precision ?? 2;
 
@@ -237,6 +240,7 @@ export class SuperellipseController
 	 * @private
 	 */
 	_destroyController() {
+		this._unregisterTargetListeners();
 		this._disconnectObservers();
 		this._unsetMode();
 		this._removeInitiatedAttr();
@@ -317,6 +321,113 @@ export class SuperellipseController
 	 */
 	_deleteFromControllers() {
 		jsse_controllers.delete(this._element);
+	}
+
+
+	/**
+	 * =============================================================
+	 * STYLESHEET
+	 * =============================================================
+	 */
+
+
+	_initStylesheet() {
+		const targetTriggers = this._getTargetTriggers();
+		this._registerTargetListeners(targetTriggers);
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET LISTENERS]', true);
+	}
+
+	_registerTargetListeners(triggers) {
+		this._hoverHandlers = {};
+		for (const selector in triggers) {
+			this._hoverHandlers[selector] = {
+				in : (event) => { this._triggerHandlerIn(selector, event); },
+				out : (event) => { this._triggerHandlerOut(selector, event); },
+				on : [],
+				hovered : false
+			};
+			triggers[selector].forEach((trigger) => {
+				this._hoverHandlers[selector].on.push(trigger);
+				this._registerTriggerListener(trigger, selector);
+			});
+		}
+	}
+
+	_unregisterTargetListeners() {
+		for (const selector in this._hoverHandlers) {
+			for (const trigger of this._hoverHandlers[selector].on) {
+				console.log(selector, trigger);
+				this._unregisterTriggerListener(trigger, selector);
+			}
+		}
+		this._hoverHandlers = {};
+	}
+
+	_registerTriggerListener(trigger, selector) {
+		trigger.addEventListener('pointerenter', this._hoverHandlers[selector].in);
+		trigger.addEventListener('pointerleave', this._hoverHandlers[selector].out);
+	}
+
+	_unregisterTriggerListener(trigger, selector) {
+		trigger.removeEventListener('pointerenter', this._hoverHandlers[selector].in);
+		trigger.removeEventListener('pointerleave', this._hoverHandlers[selector].out);
+	}
+
+		_triggerHandlerIn(selector, event) {
+			if ( !this._element.matches(selector) ) return;
+			this._hoverHandlers[selector].hovered = true;
+			jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector);
+			this._mutationHandler();
+		}
+
+		_triggerHandlerOut(selector, event) {
+			if ( !this._hoverHandlers[selector].hovered ) return;
+			jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector);
+			this._mutationHandler();
+		}
+
+	_getTargetTriggers() {
+		const triggerList = {};
+		const targetSelectors = jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
+		for (const targetSelector of targetSelectors) {
+			const selectorTargetElements = this._getSelectorTriggerElements(targetSelector);
+			if (selectorTargetElements.length > 0) {
+				const selector = targetSelector.getSelector();
+				triggerList[selector] = selectorTargetElements;
+			}
+		}
+		return triggerList;
+	}
+
+	_getSelectorTriggerElements(selector) {
+		const selectorTargetElements = [];
+		const selectorParts = selector.getTriggerParts();
+		for (const selectorPart of selectorParts) {
+			const parents = this._getSelectorElements(selectorPart.parent);
+			const triggerElements = Array.from(parents).filter(parent => 
+				this._elementMatchesChildSelector(parent, selectorPart.child)
+			);
+			selectorTargetElements.push(...triggerElements);
+		}
+		return selectorTargetElements;
+	}
+
+	_elementMatchesChildSelector(parent, selector) {
+		if (!(parent.contains(this._element) || parent === this._element)) {
+			return false;
+		}
+		if (parent === this._element) return true;
+
+		const children = this._getSelectorElements(selector, parent);
+		return Array.from(children).includes(this._element);
+	}
+
+	_getSelectorElements(selector, parent=document) {
+		return parent.querySelectorAll(selector);
+	}
+
+	_getTriggerElements() {
+		const targetSelectors = jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
 	}
 
 
@@ -420,7 +531,7 @@ export class SuperellipseController
 	 * @private
 	 */
 	_mutationHandler() {
-		jsse_console.debug(this._element, '[MUTATION]', '[DETECT]', this._isSelfMutation ? 'self' : 'flow');
+		jsse_console.debug({label:'MUTATION', element:this._element}, '[DETECT]', this._isSelfMutation ? 'self' : 'flow');
 		if (this._isSelfMutation)
 			return;
 		if (this._prepareTimer !== null) {
@@ -428,10 +539,10 @@ export class SuperellipseController
 		}
 		this._prepareTimer = setTimeout(() => {
 			this._prepareTimer = null;
-			jsse_console.debug(this._element, '[MUTATION]', '[START]');
+			jsse_console.debug({label:'MUTATION', element:this._element}, '[START]');
 			this._isSelfMutation = true;
 			try {
-				jsse_console.debug(this._element, '[MUTATION]', '[UPDATE]');
+				jsse_console.debug({label:'MUTATION', element:this._element}, '[UPDATE]');
 				if (this._isDisplay() && this._needsUpdate) {
 					this._mode.update();
 					this._needsUpdate = false;
@@ -444,7 +555,7 @@ export class SuperellipseController
 				}
 				this._executeTimer = setTimeout(() => {
 					this._executeTimer = null;
-					jsse_console.debug(this._element, '[MUTATION]', '[END]');
+					jsse_console.debug({label:'MUTATION', element:this._element}, '[END]');
 					this._isSelfMutation = false;
 
 				}, 0);

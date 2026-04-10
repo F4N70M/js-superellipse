@@ -91,8 +91,8 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 			'background': 'none',
 			'border-color': 'transparent',
 			'border-width': '',
-			// 'border-width': '0px',
-			'border-style': 'none',
+			'border-width': '0px',
+			// 'border-style': 'none',
 			// 'border': 'unset',
 			'border-radius': '0px',
 			'box-shadow': 'unset',
@@ -164,8 +164,6 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	}
 
 	/**
-	 * 
-	 * TODO: _applyCurrentInlineVirtualSvgLayerStyles()
 	 * 
 	 */
 	_applyCurrentInlineVirtualSvgLayerStyles() {
