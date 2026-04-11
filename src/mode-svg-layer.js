@@ -262,7 +262,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 				
 			case 'double':
 				/** Для double нужно два отдельных пути или фильтр **/
-				console.warn('double требует два отдельных элемента');
+				jsse_console.warn({label:'MODE SVG LAYER',element:this._element}, '«border-style: double» is not supported');
 				break;
 				
 			case 'groove':

@@ -46,5 +46,15 @@ export const jsse_console = {
 		else {
 			console.debug('[JSSE]', `[${options?.label??'DEBUG'}]`, ...values);
 		}
+	},
+	warn(options, ...values) {
+		if (options.element) {
+			if(this._list.includes(options.element)) {
+				console.warn('[JSSE]', `[${options?.label??'DEBUG'}]`, ...values, '\n\t', {element:options.element});
+			}
+		}
+		else {
+			console.warn('[JSSE]', `[${options?.label??'DEBUG'}]`, ...values);
+		}
 	}
 };
