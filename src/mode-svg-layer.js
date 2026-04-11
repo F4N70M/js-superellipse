@@ -323,8 +323,11 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 			if (shadows[i].inset) continue;
 
 			const shadowValues = shadows[i];
+			const spreadValue = shadowValues.spreadRadius;
 
 			const filter = this._createVirtualSvgElement('filter');
+					// const feMorphology = this._createVirtualSvgElement('feMorphology');
+					// const feGaussianBlurSpread = this._createVirtualSvgElement('feGaussianBlur');
 				const feGaussianBlur = this._createVirtualSvgElement('feGaussianBlur');
 				const feOffset = this._createVirtualSvgElement('feOffset');
 				const feFlood = this._createVirtualSvgElement('feFlood');
@@ -344,11 +347,54 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 				filter.setAttribute('y', '-100%');
 				filter.setAttribute('width', '300%');
 				filter.setAttribute('height', '300%');
+							// filter.appendChild(feMorphology);
+							// filter.appendChild(feGaussianBlurSpread);
 				filter.appendChild(feGaussianBlur);
 				filter.appendChild(feOffset);
 				filter.appendChild(feFlood);
 				filter.appendChild(feComposite);
+
+						// feMorphology.setAttribute('in', 'SourceAlpha');
+						// feMorphology.setAttribute('operator', shadowValues.spreadRadius >= 0 ? 'dilate' : 'erode');
+						// feMorphology.setAttribute('radius', Math.abs(shadowValues.spreadRadius));
+						// feMorphology.setAttribute('result', 'expanded');
+
+								// spreadRadius через feMorphology + размытие + контраст
+								// if (spreadValue !== 0) {
+								//     const feMorphology = this._createVirtualSvgElement('feMorphology');
+								// 	const filterExpandedId = `${filterId}__expanded`;
+								//     feMorphology.setAttribute('in', 'SourceAlpha');
+								//     feMorphology.setAttribute('operator', 'dilate');
+								//     feMorphology.setAttribute('radius', Math.abs(spreadValue));
+								//     feMorphology.setAttribute('result', filterExpandedId);
+								//     filter.appendChild(feMorphology);
+								    
+								//     const feBlur = this._createVirtualSvgElement('feGaussianBlur');
+								// 	const filterSmoothedId = `${filterId}__smoothed`;
+								//     feBlur.setAttribute('in', filterExpandedId);
+								//     feBlur.setAttribute('stdDeviation', Math.abs(spreadValue) / 6);
+								//     feBlur.setAttribute('result', filterSmoothedId);
+								//     filter.appendChild(feBlur);
+								    
+								//     const feContrast = this._createVirtualSvgElement('feComponentTransfer');
+								// 	const filterSharpId = `${filterId}__sharp`;
+								//     const feFuncA = this._createVirtualSvgElement('feFuncA');
+								//     feFuncA.setAttribute('type', 'linear');
+								//     feFuncA.setAttribute('slope', '10');
+								//     feFuncA.setAttribute('intercept', '-4.5');
+								//     feContrast.appendChild(feFuncA);
+								//     feContrast.setAttribute('in', filterSmoothedId);
+								//     feContrast.setAttribute('result', filterSharpId);
+								//     filter.appendChild(feContrast);
+								    
+								//     // Основное размытие тени использует sharp
+								//     feGaussianBlur.setAttribute('in', filterSharpId);
+								// } else {
+								//     feGaussianBlur.setAttribute('in', 'SourceAlpha');
+								// }
+
 					feGaussianBlur.setAttribute('in', 'SourceAlpha');
+						// feGaussianBlur.setAttribute('in', 'expanded');
 					feGaussianBlur.setAttribute('stdDeviation', shadowValues.blurRadius / 2);
 					feGaussianBlur.setAttribute('result', filterBlurId);
 					feOffset.setAttribute('dx', shadowValues.offsetX);
@@ -366,6 +412,15 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 				shadow.setAttribute('href', `#${pathId}`);
 				shadow.setAttribute('id', shadowId);
 				shadow.setAttribute('filter', `url(#${filterId})`);
+
+				// const spreadValue = shadowValues.spreadRadius;
+				// if (spreadValue !== 0) {
+				//     // const scale = 1 + (spreadValue * 2 / Math.min(this._size.width, this._size.height));
+	            //     const scaleX = 1 + (spreadValue * 2 / this._size.width);
+	            //     const scaleY = 1 + (spreadValue * 2 / this._size.height);
+				//     shadow.setAttribute('transform', `scale(${scaleX}, ${scaleY})`);
+				//     shadow.setAttribute('transform-origin', `${this._size.width/2}px ${this._size.height/2}px`);
+				// }
 		}
 	}
 

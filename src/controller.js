@@ -258,6 +258,8 @@ export class SuperellipseController
 		this._unsetMode();
 		this._removeInitiatedAttr();
 
+		this._destroyStylesheet();
+
 		this._deleteCacheStyles();
 		this._deleteFromControllers();
 	}
@@ -400,6 +402,12 @@ export class SuperellipseController
 		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[INIT]');
 	}
 
+	_destroyStylesheet() {
+		this._targetTriggers = null;
+		this._hoverHandlers = null
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[DESTROY]');
+	}
+
 	_registerTargetListeners(triggers) {
 		this._hoverHandlers = {};
 		for (const selector in triggers) {
@@ -420,7 +428,9 @@ export class SuperellipseController
 	_unregisterTargetListeners() {
 		for (const selector in this._hoverHandlers) {
 			for (const trigger of this._hoverHandlers[selector].on) {
-				this._unregisterTriggerListener(trigger, selector);
+            	if (trigger && trigger.removeEventListener) {
+					this._unregisterTriggerListener(trigger, selector);
+				}
 			}
 		}
 		this._hoverHandlers = {};
@@ -440,14 +450,14 @@ export class SuperellipseController
 	}
 
 		_triggerHandlerIn(selector, event) {
-			if ( !this._element.matches(selector) ) return;
+			if ( !this._element.matches(selector) || !this._hoverHandlers[selector] ) return;
 			this._hoverHandlers[selector].hovered = true;
 			jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector);
 			this._mutationHandler();
 		}
 
 		_triggerHandlerOut(selector, event) {
-			if ( !this._hoverHandlers[selector].hovered ) return;
+			if ( !this._hoverHandlers[selector]?.hovered ) return;
 			this._hoverHandlers[selector].hovered = false;
 			jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector);
 			this._mutationHandler();

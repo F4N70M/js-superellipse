@@ -316,19 +316,22 @@
 		_media;
 		_selector;
 		_fragments = null;
-		_styles;
+
+		_ruleStyle;
+		_styles = null;
 
 		_triggerFragments = null;
 		_triggerIndexList = null;
 		_triggerParts = null;
 
-		constructor(selector, styles, media) {
+		constructor(selector, ruleStyle, media) {
 			this._selector = selector;
-			this._styles = styles;
+			this._ruleStyle = ruleStyle;
+			// this._styles = styles;
 			this._media = media;
 
-			this.getFragments().getTarget();
-			this.getFragments().targetIsTriggered();
+			// const target = this.getFragments().getTarget();
+			// const targetHasHover = this.getFragments().targetIsTriggered();
 		}
 
 		/**
@@ -342,7 +345,11 @@
 		}
 
 		getStyles() {
-			return this._styles;
+			// return this._styles;
+	        if (this._styles === null) {
+	            this._styles = this._parseStyles();
+	        }
+	        return this._styles;
 		}
 
 		getFragments() {
@@ -410,6 +417,24 @@
 		 * PRIVATE
 		 * =============================================================
 		 */
+	    
+	    _parseStyles() {
+	        const styles = {};
+	        if (this._ruleStyle.cssText) {
+	            const declarations = this._ruleStyle.cssText.split(';');
+	            for (const decl of declarations) {
+	                const colonIndex = decl.indexOf(':');
+	                if (colonIndex > 0) {
+	                    const prop = decl.substring(0, colonIndex).trim();
+	                    const value = decl.substring(colonIndex + 1).trim();
+	                    if (prop && value) {
+	                        styles[prop] = value;
+	                    }
+	                }
+	            }
+	        }
+	        return styles;
+	    }
 
 		_getSelectorFragments(selector) {
 			const s = selector;
@@ -597,9 +622,10 @@
 
 	class StylesheetParser {
 		_selectors;
+		_isParsed = false;
 
 		constructor() {
-			this._init();
+			// this._init();
 		}
 		
 		/**
@@ -609,14 +635,17 @@
 		 */
 
 		getSelectors() {
+			this._ensureParsed();
 			return this._selectors;
 		}
 
 		getSelectorsHasHover() {
+			this._ensureParsed();
 			return this._selectors.getSelectorsWithHover();
 		}
 
 		getTargetSelectors(element, options={}) {
+			this._ensureParsed();
 			const targetList = this._createList();
 			const parserList = this.getSelectors();
 			for(const selector of parserList) {
@@ -635,11 +664,23 @@
 			return targetList;
 		}
 
+		reset() {
+			this._selectors = null;
+			this._isParsed = false;
+		}
+
 		/**
 		 * =============================================================
 		 * PRIVATE
 		 * =============================================================
 		 */
+		
+		// Гарантируем, что парсинг выполнится при первом обращении
+		_ensureParsed() {
+			if (this._isParsed) return;
+			this._init();
+			this._isParsed = true;
+		}
 
 		_init() {
 			this._selectors = this._createList();
@@ -691,31 +732,12 @@
 		_getParsedCssRule(rule, media=false) {
 			const result = [];
 			const selectorGroup = rule.selectorText;
-			const styles = this._getCssRuleStyles(rule);
 			const selectorList = this._splitSelectorGroup(selectorGroup);
 			const uniqueSelectorList = [...new Set(selectorList)];
 			for (const selector of uniqueSelectorList) {
-				result.push( new StylesheetParserSelector(selector, styles, media) );
+				result.push( new StylesheetParserSelector(selector, rule.style, media) );
 			}
 			return result;
-		}
-
-		_getCssRuleStyles(rule) {
-			const styles = {};
-			if (rule.style.cssText) {
-				const declarations = rule.style.cssText.split(';');
-				for (const decl of declarations) {
-					const colonIndex = decl.indexOf(':');
-					if (colonIndex > 0) {
-						const prop = decl.substring(0, colonIndex).trim();
-						const value = decl.substring(colonIndex + 1).trim();
-						if (prop && value) {
-							styles[prop] = value;
-						}
-					}
-				}
-			}
-			return styles;
 		}
 
 
@@ -2100,8 +2122,11 @@
 				if (shadows[i].inset) continue;
 
 				const shadowValues = shadows[i];
+				shadowValues.spreadRadius;
 
 				const filter = this._createVirtualSvgElement('filter');
+						// const feMorphology = this._createVirtualSvgElement('feMorphology');
+						// const feGaussianBlurSpread = this._createVirtualSvgElement('feGaussianBlur');
 					const feGaussianBlur = this._createVirtualSvgElement('feGaussianBlur');
 					const feOffset = this._createVirtualSvgElement('feOffset');
 					const feFlood = this._createVirtualSvgElement('feFlood');
@@ -2121,11 +2146,54 @@
 					filter.setAttribute('y', '-100%');
 					filter.setAttribute('width', '300%');
 					filter.setAttribute('height', '300%');
+								// filter.appendChild(feMorphology);
+								// filter.appendChild(feGaussianBlurSpread);
 					filter.appendChild(feGaussianBlur);
 					filter.appendChild(feOffset);
 					filter.appendChild(feFlood);
 					filter.appendChild(feComposite);
+
+							// feMorphology.setAttribute('in', 'SourceAlpha');
+							// feMorphology.setAttribute('operator', shadowValues.spreadRadius >= 0 ? 'dilate' : 'erode');
+							// feMorphology.setAttribute('radius', Math.abs(shadowValues.spreadRadius));
+							// feMorphology.setAttribute('result', 'expanded');
+
+									// spreadRadius через feMorphology + размытие + контраст
+									// if (spreadValue !== 0) {
+									//     const feMorphology = this._createVirtualSvgElement('feMorphology');
+									// 	const filterExpandedId = `${filterId}__expanded`;
+									//     feMorphology.setAttribute('in', 'SourceAlpha');
+									//     feMorphology.setAttribute('operator', 'dilate');
+									//     feMorphology.setAttribute('radius', Math.abs(spreadValue));
+									//     feMorphology.setAttribute('result', filterExpandedId);
+									//     filter.appendChild(feMorphology);
+									    
+									//     const feBlur = this._createVirtualSvgElement('feGaussianBlur');
+									// 	const filterSmoothedId = `${filterId}__smoothed`;
+									//     feBlur.setAttribute('in', filterExpandedId);
+									//     feBlur.setAttribute('stdDeviation', Math.abs(spreadValue) / 6);
+									//     feBlur.setAttribute('result', filterSmoothedId);
+									//     filter.appendChild(feBlur);
+									    
+									//     const feContrast = this._createVirtualSvgElement('feComponentTransfer');
+									// 	const filterSharpId = `${filterId}__sharp`;
+									//     const feFuncA = this._createVirtualSvgElement('feFuncA');
+									//     feFuncA.setAttribute('type', 'linear');
+									//     feFuncA.setAttribute('slope', '10');
+									//     feFuncA.setAttribute('intercept', '-4.5');
+									//     feContrast.appendChild(feFuncA);
+									//     feContrast.setAttribute('in', filterSmoothedId);
+									//     feContrast.setAttribute('result', filterSharpId);
+									//     filter.appendChild(feContrast);
+									    
+									//     // Основное размытие тени использует sharp
+									//     feGaussianBlur.setAttribute('in', filterSharpId);
+									// } else {
+									//     feGaussianBlur.setAttribute('in', 'SourceAlpha');
+									// }
+
 						feGaussianBlur.setAttribute('in', 'SourceAlpha');
+							// feGaussianBlur.setAttribute('in', 'expanded');
 						feGaussianBlur.setAttribute('stdDeviation', shadowValues.blurRadius / 2);
 						feGaussianBlur.setAttribute('result', filterBlurId);
 						feOffset.setAttribute('dx', shadowValues.offsetX);
@@ -2143,6 +2211,15 @@
 					shadow.setAttribute('href', `#${pathId}`);
 					shadow.setAttribute('id', shadowId);
 					shadow.setAttribute('filter', `url(#${filterId})`);
+
+					// const spreadValue = shadowValues.spreadRadius;
+					// if (spreadValue !== 0) {
+					//     // const scale = 1 + (spreadValue * 2 / Math.min(this._size.width, this._size.height));
+		            //     const scaleX = 1 + (spreadValue * 2 / this._size.width);
+		            //     const scaleY = 1 + (spreadValue * 2 / this._size.height);
+					//     shadow.setAttribute('transform', `scale(${scaleX}, ${scaleY})`);
+					//     shadow.setAttribute('transform-origin', `${this._size.width/2}px ${this._size.height/2}px`);
+					// }
 			}
 		}
 
@@ -2800,6 +2877,8 @@
 			this._unsetMode();
 			this._removeInitiatedAttr();
 
+			this._destroyStylesheet();
+
 			this._deleteCacheStyles();
 			this._deleteFromControllers();
 		}
@@ -2942,6 +3021,12 @@
 			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[INIT]');
 		}
 
+		_destroyStylesheet() {
+			this._targetTriggers = null;
+			this._hoverHandlers = null;
+			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[DESTROY]');
+		}
+
 		_registerTargetListeners(triggers) {
 			this._hoverHandlers = {};
 			for (const selector in triggers) {
@@ -2962,7 +3047,9 @@
 		_unregisterTargetListeners() {
 			for (const selector in this._hoverHandlers) {
 				for (const trigger of this._hoverHandlers[selector].on) {
-					this._unregisterTriggerListener(trigger, selector);
+	            	if (trigger && trigger.removeEventListener) {
+						this._unregisterTriggerListener(trigger, selector);
+					}
 				}
 			}
 			this._hoverHandlers = {};
@@ -2982,14 +3069,14 @@
 		}
 
 			_triggerHandlerIn(selector, event) {
-				if ( !this._element.matches(selector) ) return;
+				if ( !this._element.matches(selector) || !this._hoverHandlers[selector] ) return;
 				this._hoverHandlers[selector].hovered = true;
 				jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector);
 				this._mutationHandler();
 			}
 
 			_triggerHandlerOut(selector, event) {
-				if ( !this._hoverHandlers[selector].hovered ) return;
+				if ( !this._hoverHandlers[selector]?.hovered ) return;
 				this._hoverHandlers[selector].hovered = false;
 				jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector);
 				this._mutationHandler();

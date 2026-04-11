@@ -175,19 +175,22 @@ class StylesheetParserSelector {
 	_media;
 	_selector;
 	_fragments = null;
-	_styles;
+
+	_ruleStyle;
+	_styles = null;
 
 	_triggerFragments = null;
 	_triggerIndexList = null;
 	_triggerParts = null;
 
-	constructor(selector, styles, media) {
+	constructor(selector, ruleStyle, media) {
 		this._selector = selector;
-		this._styles = styles;
+		this._ruleStyle = ruleStyle;
+		// this._styles = styles;
 		this._media = media;
 
-		const target = this.getFragments().getTarget();
-		const targetHasHover = this.getFragments().targetIsTriggered();
+		// const target = this.getFragments().getTarget();
+		// const targetHasHover = this.getFragments().targetIsTriggered();
 	}
 
 	/**
@@ -201,7 +204,11 @@ class StylesheetParserSelector {
 	}
 
 	getStyles() {
-		return this._styles;
+		// return this._styles;
+        if (this._styles === null) {
+            this._styles = this._parseStyles();
+        }
+        return this._styles;
 	}
 
 	getFragments() {
@@ -269,6 +276,24 @@ class StylesheetParserSelector {
 	 * PRIVATE
 	 * =============================================================
 	 */
+    
+    _parseStyles() {
+        const styles = {};
+        if (this._ruleStyle.cssText) {
+            const declarations = this._ruleStyle.cssText.split(';');
+            for (const decl of declarations) {
+                const colonIndex = decl.indexOf(':');
+                if (colonIndex > 0) {
+                    const prop = decl.substring(0, colonIndex).trim();
+                    const value = decl.substring(colonIndex + 1).trim();
+                    if (prop && value) {
+                        styles[prop] = value;
+                    }
+                }
+            }
+        }
+        return styles;
+    }
 
 	_getSelectorFragments(selector) {
 		const s = selector;
@@ -456,9 +481,10 @@ class StylesheetParserSelectorList extends Array {
 
 export class StylesheetParser {
 	_selectors;
+	_isParsed = false;
 
 	constructor() {
-		this._init();
+		// this._init();
 	}
 	
 	/**
@@ -468,14 +494,17 @@ export class StylesheetParser {
 	 */
 
 	getSelectors() {
+		this._ensureParsed();
 		return this._selectors;
 	}
 
 	getSelectorsHasHover() {
+		this._ensureParsed();
 		return this._selectors.getSelectorsWithHover();
 	}
 
 	getTargetSelectors(element, options={}) {
+		this._ensureParsed();
 		const targetList = this._createList();
 		const parserList = this.getSelectors();
 		for(const selector of parserList) {
@@ -494,11 +523,23 @@ export class StylesheetParser {
 		return targetList;
 	}
 
+	reset() {
+		this._selectors = null;
+		this._isParsed = false;
+	}
+
 	/**
 	 * =============================================================
 	 * PRIVATE
 	 * =============================================================
 	 */
+	
+	// Гарантируем, что парсинг выполнится при первом обращении
+	_ensureParsed() {
+		if (this._isParsed) return;
+		this._init();
+		this._isParsed = true;
+	}
 
 	_init() {
 		this._selectors = this._createList();
@@ -550,31 +591,12 @@ export class StylesheetParser {
 	_getParsedCssRule(rule, media=false) {
 		const result = [];
 		const selectorGroup = rule.selectorText;
-		const styles = this._getCssRuleStyles(rule);
 		const selectorList = this._splitSelectorGroup(selectorGroup);
 		const uniqueSelectorList = [...new Set(selectorList)];
 		for (const selector of uniqueSelectorList) {
-			result.push( new StylesheetParserSelector(selector, styles, media) );
+			result.push( new StylesheetParserSelector(selector, rule.style, media) );
 		}
 		return result;
-	}
-
-	_getCssRuleStyles(rule) {
-		const styles = {};
-		if (rule.style.cssText) {
-			const declarations = rule.style.cssText.split(';');
-			for (const decl of declarations) {
-				const colonIndex = decl.indexOf(':');
-				if (colonIndex > 0) {
-					const prop = decl.substring(0, colonIndex).trim();
-					const value = decl.substring(colonIndex + 1).trim();
-					if (prop && value) {
-						styles[prop] = value;
-					}
-				}
-			}
-		}
-		return styles;
 	}
 
 

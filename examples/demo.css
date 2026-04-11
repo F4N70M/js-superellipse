@@ -268,7 +268,7 @@ select:focus {
     border-radius: 24px;
     cursor: pointer;
     transition: transform var(--transition);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    box-shadow: 0 8px 10px 10px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
     color: white;
     font-family: inherit;
     margin-bottom: 1.8rem;
@@ -281,7 +281,9 @@ select:focus {
 
 .super-button:hover {
     /*background: linear-gradient(-15deg, var(--primary-dark), #14b8a6);*/
-    box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 12px 20px 0 rgba(59, 130, 246, 0.4);
+    /*box-shadow: 0 12px 0px 50px rgba(59, 130, 246, 0.4);*/
+    /*box-shadow: 0 12px 25px 50px rgba(59, 130, 246, 0.4);*/
     transform: scale(1.025);
 }
 
@@ -292,9 +294,9 @@ select:focus {
     margin: 1.2rem 0 0.8rem;
 }
 
+/*
 .super-button:hover + .mode-buttons .mode-btn {
     background-color: green;
-    /*color: black*/
 }
 .super-button[data-jsse-activated="true"]:hover + .mode-buttons .mode-btn {
     background-color: red;
@@ -304,6 +306,7 @@ select:focus {
     background-color: darkmagenta;
     color: black
 }
+*/
 
 .mode-btn {
     background: #2d2d2e;
