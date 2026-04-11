@@ -219,12 +219,24 @@ class StylesheetParserSelector {
 			const fragments = this.getFragments();
 			const targetIndexList = fragments.getTriggerIndexList();
 			for(const targetIndex of targetIndexList) {
-				const parts = {parent:'',child:null};
+				const parts = {parent:'',neighbor:null,child:null};
 				for (let i = 0; i<fragments.length; i++) {
 					const fragment = fragments[i];
 					if (i <= targetIndex) {
-						if (!parts.parent) parts.parent = '';
 						parts.parent += fragment.getCombinator() + fragment.getClean();
+
+						if (i + 1 < fragments.length) {
+							const nextFragment = fragments[i+1];
+							const nextCombinator = nextFragment.getCombinator();
+							if ([' + ', ' ~ '].includes(nextCombinator)) {
+								parts.neighbor = nextCombinator + nextFragment.getClean();
+								// parts.neighbor = {
+								// 	combinator: nextCombinator,
+								// 	clean: nextFragment.getClean()
+								// };
+								i++;
+							}
+						}
 					} else {
 						if (!parts.child) parts.child = '';
 						parts.child += fragment.getCombinator() + fragment.getClean();

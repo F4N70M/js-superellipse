@@ -19,6 +19,20 @@
     --transition: 0.2s ease;
 }
 
+/*
+* + *,
+* ~ *,
+* > *,
+* *::before,
+* *::after,
+div *:hover,
+div *:focus,
+div *:active
+{
+    vertical-align: middle;
+}
+*/
+/* !!! */
 * {
     margin: 0;
     padding: 0;
@@ -224,14 +238,7 @@ select:focus {
 }
 
 .demo-card {
-    /*background: var(--card-bg);*/
-    /*border-radius: var(--radius-md);*/
-    /*padding: 2rem 2rem 1.8rem;*/
     text-align: center;
-    /*box-shadow: var(--shadow-sm);*/
-    /*width: 100%;*/
-    /*transition: var(--transition);*/
-    /*border: 1px solid rgba(59, 130, 246, 0.15);*/
 }
 
 .card-header {
@@ -252,13 +259,13 @@ select:focus {
 
 .super-button {
     width: 100%;
-    max-width: 300px;
+    max-width: 320px;
     height: 120px;
     font-size: 1.3rem;
     font-weight: 700;
     background: linear-gradient(-15deg, var(--primary), var(--secondary));
     border: solid 4px rgba(255 255 255 / .25);
-    border-radius: 32px;
+    border-radius: 24px;
     cursor: pointer;
     transition: transform var(--transition);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
@@ -266,6 +273,11 @@ select:focus {
     font-family: inherit;
     margin-bottom: 1.8rem;
 }
+
+/*.card.demo-area:hover .super-button {
+    color: black;
+    background: linear-gradient(-15deg, rgb(246 60 60), rgb(212 43 105)) 0% 0% / auto repeat scroll padding-box border-box rgba(0, 0, 0, 0);
+}*/
 
 .super-button:hover {
     /*background: linear-gradient(-15deg, var(--primary-dark), #14b8a6);*/
@@ -345,6 +357,8 @@ select:focus {
     transition: 0.2s;
 }
 
+/*.toggle input:checked+.toggle-slider,*/
+/* !!! */
 .toggle input:checked + .toggle-slider {
     background: linear-gradient(120deg, var(--primary), var(--secondary));
 }

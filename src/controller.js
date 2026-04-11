@@ -53,6 +53,7 @@ export class SuperellipseController
 	_removalObserver;
 	_intersectionObserver;
 
+	_targetTriggers;
 	_hoverHandlers;
 
 	_needsUpdate;
@@ -91,7 +92,7 @@ export class SuperellipseController
 		};
 		this._element = element;
 		this._initDebug((!!options.debug) ?? false);
-		this._initStylesheet();
+		// this._initStylesheet();
 		this._curveFactor = options.curveFactor ?? jsse_getBorderRadiusFactor();
 		this._precision = options.precision ?? 2;
 
@@ -109,6 +110,7 @@ export class SuperellipseController
 		this._setInitiatedAttr();
 		
 		this._setMode(options.mode);
+		this._activateMode();
 		this._connectObservers();
 	}
 
@@ -118,8 +120,10 @@ export class SuperellipseController
 	 * @returns {SuperellipseController} this (для цепочек).
 	 */
 	switchMode(modeName) {
+		this._deactivateMode();
 		this._unsetMode();
 		this._setMode(modeName);
+		this._activateMode();
 		return this;
 	}
 
@@ -136,7 +140,7 @@ export class SuperellipseController
 	 * @returns {SuperellipseController} this.
 	 */
 	enable() {
-		this._mode.activate();
+		this._activateMode();
 		return this;
 	}
 
@@ -145,8 +149,8 @@ export class SuperellipseController
 	 * @returns {Element} Целевой элемент.
 	 */
 	disable() {
-		this._mode.deactivate();
-		return this._element;
+		this._deactivateMode();
+		return this;
 	}
 
 	/**
@@ -240,13 +244,64 @@ export class SuperellipseController
 	 * @private
 	 */
 	_destroyController() {
-		this._unregisterTargetListeners();
 		this._disconnectObservers();
+		this._deactivateMode();
 		this._unsetMode();
 		this._removeInitiatedAttr();
 
 		this._deleteCacheStyles();
 		this._deleteFromControllers();
+	}
+
+
+	/**
+	 * =============================================================
+	 * MODE
+	 * =============================================================
+	 */
+
+
+	/**
+	 * Устанавливает активный режим.
+	 * @param {string} modeName - Имя режима.
+	 * @private
+	 */
+	_setMode(modeName) {
+		switch (modeName) {
+			case 'svg-layer':
+				this._mode = new SuperellipseModeSvgLayer(this._element);
+				break;
+
+			case 'clip-path':
+			default:
+				this._mode = new SuperellipseModeClipPath(this._element);
+				break;
+		}
+		this._mode.setCurveFactor(this._curveFactor);
+		this._mode.setPrecision(this._precision);
+		
+		// this._mode.activate();
+	}
+
+	/**
+	 * Удаляет текущий режим, вызывая его деструктор.
+	 * @private
+	 */
+	_unsetMode() {
+
+		this._mode.destroy();
+		this._mode = null;
+	}
+
+	_activateMode() {
+		this._mode.activate();
+		this._initStylesheet();
+		this._registerTargetListeners(this._targetTriggers);
+	}
+
+	_deactivateMode() {
+		this._mode.deactivate();
+		this._unregisterTargetListeners();
 	}
 
 
@@ -332,9 +387,8 @@ export class SuperellipseController
 
 
 	_initStylesheet() {
-		const targetTriggers = this._getTargetTriggers();
-		this._registerTargetListeners(targetTriggers);
-		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET LISTENERS]', true);
+		this._targetTriggers = this._getTargetTriggers();
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET TRIGGERS]', true);
 	}
 
 	_registerTargetListeners(triggers) {
@@ -351,6 +405,7 @@ export class SuperellipseController
 				this._registerTriggerListener(trigger, selector);
 			});
 		}
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', true);
 	}
 
 	_unregisterTargetListeners() {
@@ -364,11 +419,13 @@ export class SuperellipseController
 	}
 
 	_registerTriggerListener(trigger, selector) {
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', true, selector);
 		trigger.addEventListener('pointerenter', this._hoverHandlers[selector].in);
 		trigger.addEventListener('pointerleave', this._hoverHandlers[selector].out);
 	}
 
 	_unregisterTriggerListener(trigger, selector) {
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', false, selector);
 		trigger.removeEventListener('pointerenter', this._hoverHandlers[selector].in);
 		trigger.removeEventListener('pointerleave', this._hoverHandlers[selector].out);
 	}
@@ -382,6 +439,7 @@ export class SuperellipseController
 
 		_triggerHandlerOut(selector, event) {
 			if ( !this._hoverHandlers[selector].hovered ) return;
+			this._hoverHandlers[selector].hovered = false;
 			jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector);
 			this._mutationHandler();
 		}
@@ -403,13 +461,50 @@ export class SuperellipseController
 		const selectorTargetElements = [];
 		const selectorParts = selector.getTriggerParts();
 		for (const selectorPart of selectorParts) {
-			const parents = this._getSelectorElements(selectorPart.parent);
-			const triggerElements = Array.from(parents).filter(parent => 
-				this._elementMatchesChildSelector(parent, selectorPart.child)
-			);
+
+			let triggersSelector = selectorPart.parent;
+			let neighborSelector = triggersSelector;
+			if (selectorPart.neighbor) {
+				triggersSelector = `${selectorPart.parent}:has(${selectorPart.neighbor})`;
+				neighborSelector = `${selectorPart.parent}${selectorPart.neighbor}`;
+			}
+			const triggers = Array.from(document.querySelectorAll(triggersSelector));
+			const neighbors = Array.from(document.querySelectorAll(neighborSelector));
+
+			const triggerElements = triggers.filter((trigger, index) => {
+			    // Если neighbors имеет ту же длину что и triggers, берем по индексу
+			    // const current = neighbors[index] || trigger;
+			    const current = neighbors[index];
+			    // console.debug(selectorPart);
+			    // console.debug({index, trigger, current});
+				return this._elementMatchesChildSelector(current, selectorPart.child);
+			});
+
+			// console.debug({triggers,neighbors,triggerElements});
+
+			// if (selectorPart.neighbor) {
+			// 	this._getSelectorTriggerNeighborElements(selectorPart.parent, selectorPart.neighbor)
+			// }
+
+			// const parents = this._getSelectorElements(selectorPart.parent);
+			// const triggerElements = Array.from(parents).filter(parent => 
+			// 	this._elementMatchesChildSelector(parent, selectorPart.child)
+			// );
+
 			selectorTargetElements.push(...triggerElements);
 		}
 		return selectorTargetElements;
+	}
+
+	_getSelectorElements(selector, parent=document) {
+		return parent.querySelectorAll(selector);
+	}
+
+	_getSelectorTriggerNeighborElements(parentSelector, neighbor) {
+		console.log(document.querySelectorAll(`${parentSelector}:has(${neighbor.combinator}${neighbor.clean})`));
+		// for (const parent of parents) {
+		// 	console.log({parent}, neighbor);
+		// }
 	}
 
 	_elementMatchesChildSelector(parent, selector) {
@@ -422,51 +517,8 @@ export class SuperellipseController
 		return Array.from(children).includes(this._element);
 	}
 
-	_getSelectorElements(selector, parent=document) {
-		return parent.querySelectorAll(selector);
-	}
-
 	_getTriggerElements() {
 		const targetSelectors = jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
-	}
-
-
-	/**
-	 * =============================================================
-	 * MODE
-	 * =============================================================
-	 */
-
-
-	/**
-	 * Устанавливает активный режим.
-	 * @param {string} modeName - Имя режима.
-	 * @private
-	 */
-	_setMode(modeName) {
-		switch (modeName) {
-			case 'svg-layer':
-				this._mode = new SuperellipseModeSvgLayer(this._element);
-				break;
-
-			case 'clip-path':
-			default:
-				this._mode = new SuperellipseModeClipPath(this._element);
-				break;
-		}
-		this._mode.setCurveFactor(this._curveFactor);
-		this._mode.setPrecision(this._precision);
-
-		this._mode.activate();
-	}
-
-	/**
-	 * Удаляет текущий режим, вызывая его деструктор.
-	 * @private
-	 */
-	_unsetMode() {
-		this._mode.destroy();
-		this._mode = null;
 	}
 
 

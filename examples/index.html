@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Superellipse | Гибкие формы для UI</title>
+    <title>✨ Superellipse Shape Engine</title>
     <link rel="stylesheet" href="demo.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 </head>
@@ -19,10 +19,28 @@
             <div class="controls-grid">
                 <div class="control-group">
                     <label>
+                        <span class="label-text">↔️ Ширина</span>
+                        <div class="slider-wrapper">
+                            <input type="range" id="width" min="64" max="320" step="8" value="320">
+                            <span id="widthVal" class="value-badge">320</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label>
+                        <span class="label-text">↕️ Высота</span>
+                        <div class="slider-wrapper">
+                            <input type="range" id="height" min="64" max="320" step="8" value="120">
+                            <span id="heightVal" class="value-badge">120</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label>
                         <span class="label-text">📐 Радиус скругления</span>
                         <div class="slider-wrapper">
-                            <input type="range" id="radius" min="0" max="100" value="30" step="1">
-                            <span id="radiusVal" class="value-badge">30</span>
+                            <input type="range" id="radius" min="0" max="100" value="24" step="1">
+                            <span id="radiusVal" class="value-badge">24</span>
                         </div>
                     </label>
                 </div>
@@ -30,8 +48,8 @@
                     <label>
                         <span class="label-text">🌀 Кривизна (n)</span>
                         <div class="slider-wrapper">
-                            <input type="range" id="curveFactor" min="-2" max="2" step="0.01" value="1">
-                            <span id="curveVal" class="value-badge">1.00</span>
+                            <input type="range" id="curveFactor" min="-2" max="2" step="0.01" value="0.75">
+                            <span id="curveVal" class="value-badge">0.75</span>
                         </div>
                     </label>
                 </div>
