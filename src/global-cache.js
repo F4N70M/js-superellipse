@@ -46,9 +46,22 @@ export const jsse_reset_css = {
 		return this._list[key];
 	},
 	set(key, el) {
-		this._list[key] = el;
+		if (this.has(key)) {
+			this.unset(key);
+		}
+		this._list[key] = {
+			element: el,
+			count: 1
+		};
+		/** Добавить элемент в конец <head> **/
+		document.head.appendChild(el);
 	},
-	isset(key) {
+	unset(key) {
+		/** Удалить элемент **/
+		this._list[key].element.remove();
+		delete this._list[key];
+	},
+	has(key) {
 		return this._list[key] !== undefined;
 	}
 };

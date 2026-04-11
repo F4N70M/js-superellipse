@@ -85,16 +85,25 @@ export class SuperellipseController
 			console.warn('[Superellipse] The element is already initialized. Use {force:true} to recreate it.');
 			return this._getController();
 		}
-
-		options = {
-			mode: 'svg-layer',
-			...options
-		};
+		
 		this._element = element;
-		this._initDebug((!!options.debug) ?? false);
-		// this._initStylesheet();
-		this._curveFactor = options.curveFactor ?? jsse_getBorderRadiusFactor();
-		this._precision = options.precision ?? 2;
+
+		/** Default options **/
+		const settings = { 
+		    mode: options.mode ?? 'svg-layer',
+		    debug: options.debug ?? false,
+		    curveFactor: options.curveFactor ?? jsse_getBorderRadiusFactor(),
+		    precision: options.precision ?? 2
+		};
+
+		this._initDebug(settings.debug);
+
+		jsse_console.debug({label:'CONTROLLER',element:this._element}, '[SETTINGS]', settings);
+
+
+		this._curveFactor = settings.curveFactor;
+		this._precision = settings.precision;
+
 
 		this._needsUpdate = false;
 		this._isSelfApply = false;
@@ -109,7 +118,7 @@ export class SuperellipseController
 		this._initCacheStyles();
 		this._setInitiatedAttr();
 		
-		this._setMode(options.mode);
+		this._setMode(settings.mode);
 		this._activateMode();
 		this._connectObservers();
 	}
@@ -212,9 +221,9 @@ export class SuperellipseController
 	 * Инициализирует флаг отладки.
 	 * @private
 	 */
-	_initDebug(bool) {
-		this._debug = bool;
-		if (bool) {
+	_initDebug(debug) {
+		this._debug = !!debug;
+		if (this._debug) {
 			jsse_console.set(this._element);
 		}
 	}
@@ -388,7 +397,7 @@ export class SuperellipseController
 
 	_initStylesheet() {
 		this._targetTriggers = this._getTargetTriggers();
-		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET TRIGGERS]', true);
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[INIT]');
 	}
 
 	_registerTargetListeners(triggers) {
@@ -411,23 +420,23 @@ export class SuperellipseController
 	_unregisterTargetListeners() {
 		for (const selector in this._hoverHandlers) {
 			for (const trigger of this._hoverHandlers[selector].on) {
-				console.log(selector, trigger);
 				this._unregisterTriggerListener(trigger, selector);
 			}
 		}
 		this._hoverHandlers = {};
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', false);
 	}
 
 	_registerTriggerListener(trigger, selector) {
-		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', true, selector);
 		trigger.addEventListener('pointerenter', this._hoverHandlers[selector].in);
 		trigger.addEventListener('pointerleave', this._hoverHandlers[selector].out);
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', true, selector);
 	}
 
 	_unregisterTriggerListener(trigger, selector) {
-		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', false, selector);
 		trigger.removeEventListener('pointerenter', this._hoverHandlers[selector].in);
 		trigger.removeEventListener('pointerleave', this._hoverHandlers[selector].out);
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', false, selector);
 	}
 
 		_triggerHandlerIn(selector, event) {

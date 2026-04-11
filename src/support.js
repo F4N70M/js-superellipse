@@ -35,7 +35,7 @@ export const jsse_console = {
 		// this.debug('set', {element});
 		// console.log(this._list);
 		// console.debug(`[DEBUG]`, {src:'jsse_console::set', element});
-		console.debug('[JSSE]', '[CONSOLE]', '[SET TO DEBUG]', '\n\t', {element:element});
+		console.debug('[JSSE]', '[DEBUG]', true, '\n\t', {element:element});
 	},
 	debug(options, ...values) {
 		if (options.element) {

@@ -208,6 +208,7 @@ export class SuperellipseMode {
 	destroy() {
 		this.deactivate();
 		this._removeModeAttr();
+		this._destroyResetStyles();
 	}
 
 
@@ -391,8 +392,34 @@ export class SuperellipseMode {
 	 */
 	_initResetStyles() {
 		const modeName = this._getModeName();
-		if (jsse_reset_css.isset(modeName)) return;
+		if (!jsse_reset_css.has(modeName)) {
+			const styleElement = this._createModeCssStyleElement(modeName);
+			jsse_reset_css.set(modeName, styleElement);
+		} else {
+			jsse_reset_css.get(modeName).count++;
+		}
 
+		jsse_console.debug({label:'MODE',element:this._element}, '[RESET STYLES]', 'INIT');
+		// jsse_console.debug({label:'MODE'}, '[RESET STYLES]', '[INIT]', modeName, jsse_reset_css.get(modeName).count);
+	}
+
+	_destroyResetStyles() {
+		const modeName = this._getModeName();
+		if (!jsse_reset_css.has(modeName)) return;
+
+		const modeResetStyle = jsse_reset_css.get(modeName);
+		modeResetStyle.count--;
+
+		jsse_console.debug({label:'MODE',element:this._element}, '[RESET STYLES]', '[DESTROY]');
+		// jsse_console.debug({label:'MODE'}, '[RESET STYLES]', '[DESTROY]', modeName, jsse_reset_css.get(modeName).count);
+
+		if (modeResetStyle.count <= 0) {
+			jsse_reset_css.unset(modeName);
+		}
+
+	}
+
+	_getResetCssText(modeName) {
 		let cssString = '';
 
 		const activatedStyles = this._getActivatedStyles();
@@ -419,7 +446,7 @@ export class SuperellipseMode {
 		}
 		cssString += `\n}`;
 
-		this._initModeCssStyleElement(modeName, cssString);
+		return cssString;
 	}
 
 	/**
@@ -428,33 +455,15 @@ export class SuperellipseMode {
 	 * @param {string} textContent
 	 * @protected
 	 */
-	_initModeCssStyleElement(modeName, textContent) {
+	_createModeCssStyleElement(modeName) {
+		const textContent = this._getResetCssText(modeName);
 		/** Создать элемент <style> **/
 		const styleElement = document.createElement('style');
 		styleElement.setAttribute('id', `jsse__css_${modeName}`);
 		/** Заполнить элемент CSS-правилами **/
 		styleElement.textContent = textContent;
-		/** Сохранить глобально **/
-		jsse_reset_css.set(modeName, styleElement);
-		/** Добавить элемент в конец <body> **/
-		this._appendModeCssStyleElement(styleElement);
+		return styleElement;
 	}
-
-	/**
-	 * 
-	 * TODO: доработать _appendModeCssStyleElement()
-	 * 
-	 */
-	_appendModeCssStyleElement(styleElement) {
-		document.body.appendChild(styleElement);
-	}
-
-	/**
-	 * 
-	 * TODO: реализовать _removeModeCssStyleElement()
-	 * 
-	 */
-	_removeModeCssStyleElement(styleElement) {}
 
 
 	/**
@@ -521,18 +530,6 @@ export class SuperellipseMode {
 	_getComputedProp(prop) {
 		if ('computed' in this._styles && prop in this._styles.computed)
 			return this._styles.computed[prop];
-	}
-
-
-	/**
-	 * 
-	 * TODO: _dropStyles()
-	 * 
-	 * Сбрасывает захваченные стили.
-	 * @protected
-	 */
-	_dropStyles() {
-		this._styles.computed = {};	// вычисленные значения элемента
 	}
 
 	/**
