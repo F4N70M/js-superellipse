@@ -82,10 +82,27 @@
 	 * 
 	 * @description
 	 * Вспомогательные утилиты и инструменты отладки.
-	 * - `jsse_element_has_class` – проверка наличия класса у элемента.
 	 * - `jsse_debug` – объект для условного вывода отладочных сообщений в консоль.
 	 */
 
+
+	const jsse_css_selector = {
+		list : {},
+		isSupport(selector) {
+			if (this.list[selector] === undefined) {
+				try {
+					const value = `selector(${selector})`;
+					this.list[selector] = CSS.supports(value);
+				} catch (e) {
+					this.list[selector] = false;
+				}
+			}
+			// if (!this.list[selector]) {
+			// 	jsse_console.warn({'label':'SUPPORT'}, '[SELECTOR]', selector, this.list[selector]);
+			// }
+			return this.list[selector];
+		}
+	};
 
 
 	/**
@@ -169,10 +186,12 @@
 			this._pseudo = [...new Set(options.pseudo)];
 		}
 
-		getCombinator() { return this._combinator };
-		getFull() { return this._full };
-		getClean() { return this._clean };
-		getPseudoList() { return this.pseudo };
+		getCombinator() {
+			return this._combinator;
+		};
+		getFull() { return this._full; };
+		getClean() { return this._clean; };
+		getPseudoList() { return this.pseudo; };
 
 		hasPseudo(pseudo) {
 			return this._pseudo.includes(pseudo);
@@ -353,11 +372,10 @@
 								const nextFragment = fragments[i+1];
 								const nextCombinator = nextFragment.getCombinator();
 								if ([' + ', ' ~ '].includes(nextCombinator)) {
-									parts.neighbor = nextCombinator + nextFragment.getClean();
-									// parts.neighbor = {
-									// 	combinator: nextCombinator,
-									// 	clean: nextFragment.getClean()
-									// };
+									parts.neighbor = {
+										combinator: nextCombinator,
+										clean : nextFragment.getClean()
+									};
 									i++;
 								}
 							}
@@ -2994,50 +3012,89 @@
 			const selectorTargetElements = [];
 			const selectorParts = selector.getTriggerParts();
 			for (const selectorPart of selectorParts) {
-
-				let triggersSelector = selectorPart.parent;
-				let neighborSelector = triggersSelector;
-				if (selectorPart.neighbor) {
-					triggersSelector = `${selectorPart.parent}:has(${selectorPart.neighbor})`;
-					neighborSelector = `${selectorPart.parent}${selectorPart.neighbor}`;
-				}
-				const triggers = Array.from(document.querySelectorAll(triggersSelector));
-				const neighbors = Array.from(document.querySelectorAll(neighborSelector));
-
-				const triggerElements = triggers.filter((trigger, index) => {
-				    // Если neighbors имеет ту же длину что и triggers, берем по индексу
-				    // const current = neighbors[index] || trigger;
-				    const current = neighbors[index];
-				    // console.debug(selectorPart);
-				    // console.debug({index, trigger, current});
-					return this._elementMatchesChildSelector(current, selectorPart.child);
-				});
-
-				// console.debug({triggers,neighbors,triggerElements});
-
-				// if (selectorPart.neighbor) {
-				// 	this._getSelectorTriggerNeighborElements(selectorPart.parent, selectorPart.neighbor)
-				// }
-
-				// const parents = this._getSelectorElements(selectorPart.parent);
-				// const triggerElements = Array.from(parents).filter(parent => 
-				// 	this._elementMatchesChildSelector(parent, selectorPart.child)
-				// );
-
+				const triggerElements = this._getSelectorPartTriggerElements(selectorPart);
 				selectorTargetElements.push(...triggerElements);
 			}
 			return selectorTargetElements;
 		}
+			_getSelectorPartTriggerElements(selectorPart) {
+				if (selectorPart.neighbor) {
+					const neighborSelector = `${selectorPart.neighbor.combinator}${selectorPart.neighbor.clean}`;
+					const cssSelectorHasCombinator = `:has(${selectorPart.neighbor.combinator}*)`;
+					const hasCombinatorIsSupport = jsse_css_selector.isSupport(cssSelectorHasCombinator);
+					if (hasCombinatorIsSupport) {
+						return this._getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector);
+					} else {
+						// Браузер НЕ поддерживает :has() — используем fallback
+						jsse_console.warn({label:'HOVER', element: this._element}, '[FALLBACK] Using manual DOM traversal for:', neighborSelector);
+						return  this._getSelectorPartTriggerElementsWithoutHasSupport(selectorPart.parent, neighborSelector, selectorPart.child);
+					}
+				} else {
+					// Нет соседа — обычный селектор
+					const triggers = Array.from(document.querySelectorAll(selectorPart.parent));
+					return triggers.filter(trigger => 
+						this._elementMatchesChildSelector(trigger, selectorPart.child)
+					);
+				}
+			}
+			_getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector) {
+				// Браузер поддерживает :has() — используем быстрый селектор
+				const triggersSelector = `${selectorPart.parent}:has(${neighborSelector})`;
+				const siblingSelector = `${selectorPart.parent}${neighborSelector}`;
+				
+				const triggers = Array.from(document.querySelectorAll(triggersSelector));
+				const siblings = Array.from(document.querySelectorAll(siblingSelector));
+				
+				return triggers.filter((trigger, index) => {
+					const current = siblings[index];
+					return this._elementMatchesChildSelector(current, selectorPart.child);
+				});
+			}
+			_getSelectorPartTriggerElementsWithoutHasSupport(parentSelector, neighborSelector, childSelector) {
+				const result = [];
+				
+				// 1. Находим всех потенциальных родителей
+				const allParents = Array.from(document.querySelectorAll(parentSelector));
+				
+				// 2. Парсим комбинатор и чистый селектор соседа
+				const combinator = neighborSelector.trim()[0]; // '+' или '~'
+				const cleanNeighborSelector = neighborSelector.trim().substring(1).trim();
+				
+				for (const parent of allParents) {
+					// 3. Ищем соседние элементы относительно родителя или внутри него
+					let neighborElements = [];
+					
+					if (combinator === '+') {
+						// Соседний элемент (сразу следующий)
+						const nextSibling = parent.nextElementSibling;
+						if (nextSibling && nextSibling.matches(cleanNeighborSelector)) {
+							neighborElements = [nextSibling];
+						}
+					} else if (combinator === '~') {
+						// Все последующие соседние элементы
+						let sibling = parent.nextElementSibling;
+						while (sibling) {
+							if (sibling.matches(cleanNeighborSelector)) {
+								neighborElements.push(sibling);
+							}
+							sibling = sibling.nextElementSibling;
+						}
+					}
+					
+					// 4. Проверяем, содержит ли найденный сосед целевой элемент
+					for (const neighbor of neighborElements) {
+						if (this._elementMatchesChildSelector(neighbor, childSelector)) {
+							result.push(parent);
+							break; // Нашли триггер для этого родителя
+						}
+					}
+				}
+				
+				return result;
+			}
 
 		_getSelectorElements(selector, parent=document) {
 			return parent.querySelectorAll(selector);
-		}
-
-		_getSelectorTriggerNeighborElements(parentSelector, neighbor) {
-			console.log(document.querySelectorAll(`${parentSelector}:has(${neighbor.combinator}${neighbor.clean})`));
-			// for (const parent of parents) {
-			// 	console.log({parent}, neighbor);
-			// }
 		}
 
 		_elementMatchesChildSelector(parent, selector) {

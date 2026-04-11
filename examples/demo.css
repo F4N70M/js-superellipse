@@ -292,6 +292,19 @@ select:focus {
     margin: 1.2rem 0 0.8rem;
 }
 
+.super-button:hover + .mode-buttons .mode-btn {
+    background-color: green;
+    /*color: black*/
+}
+.super-button[data-jsse-activated="true"]:hover + .mode-buttons .mode-btn {
+    background-color: red;
+    color: black
+}
+.mode-btn:hover + .mode-btn {
+    background-color: darkmagenta;
+    color: black
+}
+
 .mode-btn {
     background: #2d2d2e;
     border: none;

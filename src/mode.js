@@ -23,7 +23,7 @@
 import { jsse_styles, jsse_reset_css } from './global-cache.js';
 import { jsse_generateSuperellipsePath, jsse_getBorderRadiusFactor } from './core.js';
 
-import { jsse_element_has_class, jsse_console } from './support.js';
+import { jsse_console } from './support.js';
 
 /**
  * Базовый класс для реализации режимов суперэллипса.

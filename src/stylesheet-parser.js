@@ -14,7 +14,7 @@
  * - `StylesheetParserFragment`
  */
 
-import { jsse_console } from './support.js';
+import { jsse_console, jsse_css_selector } from './support.js';
 
 
 
@@ -45,10 +45,12 @@ class StylesheetParserFragment {
 		this._pseudo = [...new Set(options.pseudo)];
 	}
 
-	getCombinator() { return this._combinator };
-	getFull() { return this._full };
-	getClean() { return this._clean };
-	getPseudoList() { return this.pseudo };
+	getCombinator() {
+		return this._combinator;
+	};
+	getFull() { return this._full; };
+	getClean() { return this._clean; };
+	getPseudoList() { return this.pseudo; };
 
 	hasPseudo(pseudo) {
 		return this._pseudo.includes(pseudo);
@@ -229,11 +231,10 @@ class StylesheetParserSelector {
 							const nextFragment = fragments[i+1];
 							const nextCombinator = nextFragment.getCombinator();
 							if ([' + ', ' ~ '].includes(nextCombinator)) {
-								parts.neighbor = nextCombinator + nextFragment.getClean();
-								// parts.neighbor = {
-								// 	combinator: nextCombinator,
-								// 	clean: nextFragment.getClean()
-								// };
+								parts.neighbor = {
+									combinator: nextCombinator,
+									clean : nextFragment.getClean()
+								};
 								i++;
 							}
 						}

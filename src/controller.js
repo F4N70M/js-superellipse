@@ -22,7 +22,7 @@ import { jsse_getBorderRadiusFactor } from './core.js';
 import { jsse_controllers } from './global-cache.js';
 import { SuperellipseModeSvgLayer } from './mode-svg-layer.js';
 import { SuperellipseModeClipPath } from './mode-clip-path.js';
-import { jsse_element_has_class, jsse_console } from './support.js';
+import { jsse_console, jsse_css_selector } from './support.js';
 
 
 /**
@@ -470,50 +470,89 @@ export class SuperellipseController
 		const selectorTargetElements = [];
 		const selectorParts = selector.getTriggerParts();
 		for (const selectorPart of selectorParts) {
-
-			let triggersSelector = selectorPart.parent;
-			let neighborSelector = triggersSelector;
-			if (selectorPart.neighbor) {
-				triggersSelector = `${selectorPart.parent}:has(${selectorPart.neighbor})`;
-				neighborSelector = `${selectorPart.parent}${selectorPart.neighbor}`;
-			}
-			const triggers = Array.from(document.querySelectorAll(triggersSelector));
-			const neighbors = Array.from(document.querySelectorAll(neighborSelector));
-
-			const triggerElements = triggers.filter((trigger, index) => {
-			    // Если neighbors имеет ту же длину что и triggers, берем по индексу
-			    // const current = neighbors[index] || trigger;
-			    const current = neighbors[index];
-			    // console.debug(selectorPart);
-			    // console.debug({index, trigger, current});
-				return this._elementMatchesChildSelector(current, selectorPart.child);
-			});
-
-			// console.debug({triggers,neighbors,triggerElements});
-
-			// if (selectorPart.neighbor) {
-			// 	this._getSelectorTriggerNeighborElements(selectorPart.parent, selectorPart.neighbor)
-			// }
-
-			// const parents = this._getSelectorElements(selectorPart.parent);
-			// const triggerElements = Array.from(parents).filter(parent => 
-			// 	this._elementMatchesChildSelector(parent, selectorPart.child)
-			// );
-
+			const triggerElements = this._getSelectorPartTriggerElements(selectorPart);
 			selectorTargetElements.push(...triggerElements);
 		}
 		return selectorTargetElements;
 	}
+		_getSelectorPartTriggerElements(selectorPart) {
+			if (selectorPart.neighbor) {
+				const neighborSelector = `${selectorPart.neighbor.combinator}${selectorPart.neighbor.clean}`;
+				const cssSelectorHasCombinator = `:has(${selectorPart.neighbor.combinator}*)`;
+				const hasCombinatorIsSupport = jsse_css_selector.isSupport(cssSelectorHasCombinator);
+				if (hasCombinatorIsSupport) {
+					return this._getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector);
+				} else {
+					// Браузер НЕ поддерживает :has() — используем fallback
+					jsse_console.warn({label:'HOVER', element: this._element}, '[FALLBACK] Using manual DOM traversal for:', neighborSelector);
+					return  this._getSelectorPartTriggerElementsWithoutHasSupport(selectorPart.parent, neighborSelector, selectorPart.child);
+				}
+			} else {
+				// Нет соседа — обычный селектор
+				const triggers = Array.from(document.querySelectorAll(selectorPart.parent));
+				return triggers.filter(trigger => 
+					this._elementMatchesChildSelector(trigger, selectorPart.child)
+				);
+			}
+		}
+		_getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector) {
+			// Браузер поддерживает :has() — используем быстрый селектор
+			const triggersSelector = `${selectorPart.parent}:has(${neighborSelector})`;
+			const siblingSelector = `${selectorPart.parent}${neighborSelector}`;
+			
+			const triggers = Array.from(document.querySelectorAll(triggersSelector));
+			const siblings = Array.from(document.querySelectorAll(siblingSelector));
+			
+			return triggers.filter((trigger, index) => {
+				const current = siblings[index];
+				return this._elementMatchesChildSelector(current, selectorPart.child);
+			});
+		}
+		_getSelectorPartTriggerElementsWithoutHasSupport(parentSelector, neighborSelector, childSelector) {
+			const result = [];
+			
+			// 1. Находим всех потенциальных родителей
+			const allParents = Array.from(document.querySelectorAll(parentSelector));
+			
+			// 2. Парсим комбинатор и чистый селектор соседа
+			const combinator = neighborSelector.trim()[0]; // '+' или '~'
+			const cleanNeighborSelector = neighborSelector.trim().substring(1).trim();
+			
+			for (const parent of allParents) {
+				// 3. Ищем соседние элементы относительно родителя или внутри него
+				let neighborElements = [];
+				
+				if (combinator === '+') {
+					// Соседний элемент (сразу следующий)
+					const nextSibling = parent.nextElementSibling;
+					if (nextSibling && nextSibling.matches(cleanNeighborSelector)) {
+						neighborElements = [nextSibling];
+					}
+				} else if (combinator === '~') {
+					// Все последующие соседние элементы
+					let sibling = parent.nextElementSibling;
+					while (sibling) {
+						if (sibling.matches(cleanNeighborSelector)) {
+							neighborElements.push(sibling);
+						}
+						sibling = sibling.nextElementSibling;
+					}
+				}
+				
+				// 4. Проверяем, содержит ли найденный сосед целевой элемент
+				for (const neighbor of neighborElements) {
+					if (this._elementMatchesChildSelector(neighbor, childSelector)) {
+						result.push(parent);
+						break; // Нашли триггер для этого родителя
+					}
+				}
+			}
+			
+			return result;
+		}
 
 	_getSelectorElements(selector, parent=document) {
 		return parent.querySelectorAll(selector);
-	}
-
-	_getSelectorTriggerNeighborElements(parentSelector, neighbor) {
-		console.log(document.querySelectorAll(`${parentSelector}:has(${neighbor.combinator}${neighbor.clean})`));
-		// for (const parent of parents) {
-		// 	console.log({parent}, neighbor);
-		// }
 	}
 
 	_elementMatchesChildSelector(parent, selector) {

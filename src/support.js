@@ -7,21 +7,27 @@
  * 
  * @description
  * Вспомогательные утилиты и инструменты отладки.
- * - `jsse_element_has_class` – проверка наличия класса у элемента.
  * - `jsse_debug` – объект для условного вывода отладочных сообщений в консоль.
  */
 
 
-/**
- * Проверяет, содержит ли элемент указанный CSS-класс.
- * @function jsse_element_has_class
- * @param {Element} element - DOM-элемент.
- * @param {string} classname - Имя класса.
- * @returns {boolean}
- */
-export function jsse_element_has_class(element, classname) {
-	return element.classList.contains(classname);
-}
+export const jsse_css_selector = {
+	list : {},
+	isSupport(selector) {
+		if (this.list[selector] === undefined) {
+			try {
+				const value = `selector(${selector})`;
+				this.list[selector] = CSS.supports(value);
+			} catch (e) {
+				this.list[selector] = false;
+			}
+		}
+		// if (!this.list[selector]) {
+		// 	jsse_console.warn({'label':'SUPPORT'}, '[SELECTOR]', selector, this.list[selector]);
+		// }
+		return this.list[selector];
+	}
+};
 
 
 /**
