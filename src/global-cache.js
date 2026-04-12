@@ -1,7 +1,7 @@
 /**
  * @file src/global-cache.js
  * 
- * @module sj-superellipse/global-cache
+ * @module js-superellipse/global-cache
  * @since 1.0.0
  * @author f4n70m
  * 

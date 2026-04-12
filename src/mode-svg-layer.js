@@ -1,7 +1,7 @@
 /**
  * @file src/mode-svg-layer.js
  * 
- * @module sj-superellipse/mode-svg-layer
+ * @module js-superellipse/mode-svg-layer
  * @since 1.0.0
  * @author f4n70m
  * 

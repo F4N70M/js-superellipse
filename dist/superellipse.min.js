@@ -1,6 +1,6 @@
 /**
  * 
- * @module sj-superellipse
+ * @module js-superellipse
  * @version 1.0.0
  * @author f4n70m
  * @license MIT

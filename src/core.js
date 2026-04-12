@@ -1,7 +1,7 @@
 /**
  * @file src/core.js
  * 
- * @module sj-superellipse/core
+ * @module js-superellipse/core
  * @since 1.0.0
  * @author f4n70m
  * 
@@ -15,7 +15,7 @@
  * - `jsse_getBorderRadiusFactor` – возвращает константу (4/3)*(√2-1) для аппроксимации окружности.
  * 
  * @see {@link https://en.wikipedia.org/wiki/Superellipse|Суперэллипс}
- * @see {@link https://github.com/f4n70m/js-superellipse|f4n70m/sj-superellipse}
+ * @see {@link https://github.com/f4n70m/js-superellipse|f4n70m/js-superellipse}
  * 
  * @example
  * import { jsse_generateSuperellipsePath } from 'js-superellipse/core';

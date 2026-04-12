@@ -1,6 +1,6 @@
 /**
  * 
- * @module sj-superellipse
+ * @module js-superellipse
  * @version 1.0.0
  * @author f4n70m
  * @license MIT
@@ -76,7 +76,7 @@
 	/**
 	 * @file src/support.js
 	 * 
-	 * @module sj-superellipse/support
+	 * @module js-superellipse/support
 	 * @since 1.0.0
 	 * @author f4n70m
 	 * 
@@ -191,7 +191,7 @@
 	/**
 	 * @file src/support.js
 	 * 
-	 * @module sj-superellipse/css-parser
+	 * @module js-superellipse/css-parser
 	 * @since 1.1.0
 	 * @author f4n70m
 	 * 
@@ -1028,7 +1028,7 @@
 	/**
 	 * @file src/global-cache.js
 	 * 
-	 * @module sj-superellipse/global-cache
+	 * @module js-superellipse/global-cache
 	 * @since 1.0.0
 	 * @author f4n70m
 	 * 
@@ -1162,7 +1162,7 @@
 	/**
 	 * @file src/core.js
 	 * 
-	 * @module sj-superellipse/core
+	 * @module js-superellipse/core
 	 * @since 1.0.0
 	 * @author f4n70m
 	 * 
@@ -1176,7 +1176,7 @@
 	 * - `jsse_getBorderRadiusFactor` – возвращает константу (4/3)*(√2-1) для аппроксимации окружности.
 	 * 
 	 * @see {@link https://en.wikipedia.org/wiki/Superellipse|Суперэллипс}
-	 * @see {@link https://github.com/f4n70m/js-superellipse|f4n70m/sj-superellipse}
+	 * @see {@link https://github.com/f4n70m/js-superellipse|f4n70m/js-superellipse}
 	 * 
 	 * @example
 	 * import { jsse_generateSuperellipsePath } from 'js-superellipse/core';
@@ -1415,7 +1415,7 @@
 	/**
 	 * @file src/mode.js
 	 * 
-	 * @module sj-superellipse/mode
+	 * @module js-superellipse/mode
 	 * @since 1.0.0
 	 * @author f4n70m
 	 * 
@@ -2195,7 +2195,7 @@
 	/**
 	 * @file src/mode-svg-layer.js
 	 * 
-	 * @module sj-superellipse/mode-svg-layer
+	 * @module js-superellipse/mode-svg-layer
 	 * @since 1.0.0
 	 * @author f4n70m
 	 * 
@@ -3007,7 +3007,7 @@
 	/**
 	 * @file src/mode-clip-path.js
 	 * 
-	 * @module sj-superellipse/mode-clip-path
+	 * @module js-superellipse/mode-clip-path
 	 * @since 1.0.0
 	 * @author f4n70m
 	 * 
@@ -3062,7 +3062,7 @@
 	/**
 	 * @file src/controller.js
 	 * 
-	 * @module sj-superellipse/controller
+	 * @module js-superellipse/controller
 	 * @since 1.0.0
 	 * @author f4n70m
 	 * 
@@ -4120,7 +4120,7 @@
 	/**
 	 * @file src/api.js
 	 * 
-	 * @module sj-superellipse/api
+	 * @module js-superellipse/api
 	 * @since 1.0.0
 	 * @author f4n70m
 	 * 

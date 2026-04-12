@@ -1,7 +1,7 @@
 /**
  * @file src/api.js
  * 
- * @module sj-superellipse/api
+ * @module js-superellipse/api
  * @since 1.0.0
  * @author f4n70m
  * 

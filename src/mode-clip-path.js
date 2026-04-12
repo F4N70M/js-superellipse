@@ -1,7 +1,7 @@
 /**
  * @file src/mode-clip-path.js
  * 
- * @module sj-superellipse/mode-clip-path
+ * @module js-superellipse/mode-clip-path
  * @since 1.0.0
  * @author f4n70m
  * 

@@ -1,7 +1,7 @@
 /**
  * @file src/support.js
  * 
- * @module sj-superellipse/css-parser
+ * @module js-superellipse/css-parser
  * @since 1.1.0
  * @author f4n70m
  * 

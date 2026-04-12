@@ -1,7 +1,7 @@
 /**
  * @file src/support.js
  * 
- * @module sj-superellipse/support
+ * @module js-superellipse/support
  * @since 1.0.0
  * @author f4n70m
  * 

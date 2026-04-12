@@ -1,7 +1,7 @@
 /**
  * @file src/mode.js
  * 
- * @module sj-superellipse/mode
+ * @module js-superellipse/mode
  * @since 1.0.0
  * @author f4n70m
  * 
