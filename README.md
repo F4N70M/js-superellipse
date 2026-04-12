@@ -89,12 +89,12 @@ superellipseInit('.rounded', { mode: 'clip-path' });
 
 Полная документация находится в папке [`docs/`](./docs/):
 
-- [Введение](./docs/index.md)
-- [API](./docs/api.md)
-- [Сравнение режимов](./docs/modes.md)
-- [Продвинутые возможности (hover, события, отладка)](./docs/advanced.md)
-- [Примеры кода](./docs/examples.md)
-- [FAQ и ограничения](./docs/faq.md)
+- [Введение](./docs/00-index.md) – Основная информация
+- [API Reference](./docs/01-api.md) – все методы, классы и опции
+- [Режимы работы](./docs/02-modes.md) – `clip-path` vs `svg-layer`
+- [Продвинутые возможности](./docs/03-advanced.md) – hover-триггеры, события, отладка
+- [Примеры использования](./docs/04-examples.md) – готовые фрагменты кода
+- [FAQ и ограничения](./docs/05-faq.md) – известные проблемы и решения
 
 ## Поддержка браузеров
 
