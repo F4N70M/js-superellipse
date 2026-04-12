@@ -27,6 +27,8 @@ import { jsse_console } from './support.js';
 
 /**
  * Базовый класс для реализации режимов суперэллипса.
+ * @class SuperellipseMode
+ * @since 1.0.0
  */
 export class SuperellipseMode {
 
@@ -59,6 +61,7 @@ export class SuperellipseMode {
 
 
 	/**
+	 * @since 1.0.0
 	 * @param {Element} element - Целевой элемент.
 	 * @param {boolean} [debug=false] - Флаг отладки.
 	 */
@@ -77,6 +80,8 @@ export class SuperellipseMode {
 
 	/**
 	 * Активирует режим.
+	 * @since 1.0.0
+	 * @returns {void}
 	 */
 	activate() {
 		if (this.isActivated()) return;
@@ -95,6 +100,8 @@ export class SuperellipseMode {
 
 	/**
 	 * Деактивирует режим.
+	 * @since 1.0.0
+	 * @returns {void}
 	 */
 	deactivate() {
 		if (!this.isActivated()) return;
@@ -109,6 +116,8 @@ export class SuperellipseMode {
 
 	/**
 	 * Полное обновление (стили, размер, путь).
+	 * @since 1.0.0
+	 * @returns {void}
 	 */
 	update() {
 		jsse_console.debug({label:'MODE',element:this._element}, 'update()');
@@ -122,6 +131,8 @@ export class SuperellipseMode {
 
 	/**
 	 * Обновление только размеров.
+	 * @since 1.0.0
+	 * @returns {void}
 	 */
 	updateSize() {
 		/** Актуализировать размеры **/
@@ -135,6 +146,8 @@ export class SuperellipseMode {
 
 	/**
 	 * Обновление только стилей.
+	 * @since 1.0.0
+	 * @returns {void}
 	 */
 	updateStyles() {
 		jsse_console.debug({label:'MODE',element:this._element}, 'updateStyles()');
@@ -148,7 +161,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Обновление коэффициента кривизны.
-	 * @param {number} value
+	 * @since 1.0.0
+	 * @param {number} value - Новое значение коэффициента кривизны.
+	 * @returns {void}
 	 */
 	updateCurveFactor(value) {
 		this.setCurveFactor(value);
@@ -160,7 +175,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Обновление точности округления.
-	 * @param {number} value
+	 * @since 1.0.0
+	 * @param {number} value - Количество знаков после запятой.
+	 * @returns {void}
 	 */
 	updatePrecision(value) {
 		this.setPrecision(value);
@@ -172,7 +189,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Устанавливает коэффициент кривизны.
-	 * @param {number} value
+	 * @since 1.0.0
+	 * @param {number} value - Новое значение коэффициента кривизны.
+	 * @returns {void}
 	 */
 	setCurveFactor(value) {
 		this._curveFactor = value;
@@ -180,7 +199,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Устанавливает точность округления.
-	 * @param {number} value
+	 * @since 1.0.0
+	 * @param {number} value - Количество знаков после запятой.
+	 * @returns {void}
 	 */
 	setPrecision(value) {
 		this._precision = value;
@@ -188,6 +209,7 @@ export class SuperellipseMode {
 
 	/**
 	 * Возвращает текущий SVG-путь.
+	 * @since 1.0.0
 	 * @returns {string}
 	 */
 	getPath() {
@@ -196,6 +218,7 @@ export class SuperellipseMode {
 
 	/**
 	 * Проверяет, активирован ли режим.
+	 * @since 1.0.0
 	 * @returns {boolean}
 	 */
 	isActivated() {
@@ -204,6 +227,8 @@ export class SuperellipseMode {
 
 	/**
 	 * Уничтожает режим, удаляет все артефакты.
+	 * @since 1.0.0
+	 * @returns {void}
 	 */
 	destroy() {
 		this.deactivate();
@@ -221,7 +246,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Инициализация режима.
+	 * @since 1.0.0
 	 * @private
+	 * @returns {void}
 	 */
 	_init() {
 		this._id = Math.random().toString(36).slice(2, 10);
@@ -234,8 +261,10 @@ export class SuperellipseMode {
 
 	/**
 	 * Устанавливает статус активации.
-	 * @param {boolean} status
+	 * @since 1.0.0
 	 * @private
+	 * @param {boolean} status - Статус активации.
+	 * @returns {void}
 	 */
 	_setStatus(status) {
 		this._isActivated = status;
@@ -248,7 +277,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Захватывает актуальные стили и размеры.
+	 * @since 1.0.0
 	 * @private
+	 * @returns {void}
 	 */
 	_updateCaptured() {
 		this._updateCapturedStyles();
@@ -257,7 +288,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Подготавливает обновление (пересчёт кривой).
+	 * @since 1.0.0
 	 * @private
+	 * @returns {void}
 	 */
 	_prepareUpdate() {
 		this._recalculateCurve();
@@ -265,7 +298,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Выполняет обновление (применяет кривую).
+	 * @since 1.0.0
 	 * @private
+	 * @returns {void}
 	 */
 	_executeUpdate() {
 		this._applyCurrentCurve();
@@ -273,8 +308,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Возвращает имя режима.
-	 * @returns {string}
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {string}
 	 */
 	_getModeName() {
 		return 'clip-path';
@@ -282,8 +318,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Возвращает карту стилей, которые нужно временно применить для корректного чтения.
-	 * @returns {Object<string, string>}
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {Object<string, string>}
 	 */
 	_getReadingStyles() {
 		return {
@@ -293,8 +330,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Возвращает карту стилей, применяемых при активации режима.
-	 * @returns {Object<string, string>}
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {Object<string, string>}
 	 */
 	_getActivatedStyles() {
 		return {
@@ -312,13 +350,17 @@ export class SuperellipseMode {
 
 	/**
 	 * Создаёт виртуальные элементы (если нужно).
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_appendVirtualElements() {}
 
 	/**
 	 * Удаляет виртуальные элементы.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_removeVirtualElements() {}
 
@@ -332,7 +374,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Устанавливает атрибут `data-jsse-mode`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_setModeAttr() {
 		this._element.setAttribute('data-jsse-mode', this._getModeName());
@@ -340,7 +384,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Удаляет атрибут `data-jsse-mode`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_removeModeAttr() {
 		this._element.removeAttribute('data-jsse-mode');
@@ -348,7 +394,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Устанавливает атрибут `data-jsse-activated`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_setActivatedAttr() {
 		this._element.setAttribute('data-jsse-activated', true);
@@ -356,7 +404,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Удаляет атрибут `data-jsse-activated`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_removeActivatedAttr() {
 		this._element.removeAttribute('data-jsse-activated');
@@ -364,7 +414,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Устанавливает атрибут `data-jsse-reading`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_setReadingAttr() {
 		this._element.setAttribute('data-jsse-reading', true);
@@ -372,7 +424,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Удаляет атрибут `data-jsse-reading`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_removeReadingAttr() {
 		this._element.removeAttribute('data-jsse-reading');
@@ -388,7 +442,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Инициализирует глобальные CSS-правила для режима.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_initResetStyles() {
 		const modeName = this._getModeName();
@@ -403,6 +459,12 @@ export class SuperellipseMode {
 		// jsse_console.debug({label:'MODE'}, '[RESET STYLES]', '[INIT]', modeName, jsse_reset_css.get(modeName).count);
 	}
 
+	/**
+	 * Уничтожает глобальные CSS-правила режима.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
+	 */
 	_destroyResetStyles() {
 		const modeName = this._getModeName();
 		if (!jsse_reset_css.has(modeName)) return;
@@ -419,6 +481,13 @@ export class SuperellipseMode {
 
 	}
 
+	/**
+	 * Возвращает CSS-текст для сброса стилей режима.
+	 * @since 1.0.0
+	 * @protected
+	 * @param {string} modeName - Имя режима.
+	 * @returns {string}
+	 */
 	_getResetCssText(modeName) {
 		let cssString = '';
 
@@ -451,9 +520,10 @@ export class SuperellipseMode {
 
 	/**
 	 * Создаёт элемент `<style>` для режима.
-	 * @param {string} modeName
-	 * @param {string} textContent
+	 * @since 1.0.0
 	 * @protected
+	 * @param {string} modeName - Имя режима.
+	 * @returns {HTMLStyleElement}
 	 */
 	_createModeCssStyleElement(modeName) {
 		const textContent = this._getResetCssText(modeName);
@@ -475,7 +545,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Обновляет захваченные стили.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_updateCapturedStyles() {
 		jsse_console.debug({label:'MODE',element:this._element}, '_updateCapturedStyles()');
@@ -486,9 +558,10 @@ export class SuperellipseMode {
 
 	/**
 	 * Получает вычисленные стили с временным снятием атрибута активации.
+	 * @since 1.0.0
+	 * @protected
 	 * @param {boolean} [clear=true] - Снимать ли атрибут активации перед чтением.
 	 * @returns {Object<string, string>}
-	 * @protected
 	 */
 	_getCapturedStyles(clear = true) {
 		const hasAttribute = this._element.hasAttribute('data-jsse-activated');
@@ -509,8 +582,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Получает вычисленные стили для управляемых свойств.
-	 * @returns {Object<string, string>}
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {Object<string, string>}
 	 */
 	_getManagedComputedStyle() {
 		const result = {};
@@ -523,9 +597,10 @@ export class SuperellipseMode {
 
 	/**
 	 * Возвращает значение захваченного вычисленного свойства.
-	 * @param {string} prop
-	 * @returns {string}
+	 * @since 1.0.0
 	 * @protected
+	 * @param {string} prop - Имя CSS-свойства.
+	 * @returns {string|undefined}
 	 */
 	_getComputedProp(prop) {
 		if ('computed' in this._styles && prop in this._styles.computed)
@@ -534,8 +609,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Возвращает массив свойств CSS, управляемых режимом.
-	 * @returns {string[]}
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {string[]}
 	 */
 	_getManagedProperties() {
 		return Object.keys(this._getActivatedStyles());
@@ -550,7 +626,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Инициализирует хранилище стилей.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_initStyles() {
 		this._styles = jsse_styles.get(this._element);
@@ -566,7 +644,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Инициализирует размеры.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_initSize() {
 		this._updateCapturedSize();
@@ -574,7 +654,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Обновляет захваченные размеры.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_updateCapturedSize() {
 		const rect = this._element.getBoundingClientRect();
@@ -593,7 +675,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Инициализирует кривую.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_initCurve() {
 		this._initInlinePath();
@@ -601,7 +685,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Сохраняет исходный `clip-path`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_initInlinePath() {
 		this._resetPath = this._element.style.getPropertyValue('clip-path');
@@ -609,7 +695,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Пересчитывает путь на основе текущих размеров и радиуса.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_recalculateCurve() {
 		this._recalculatePath();
@@ -617,7 +705,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Генерирует SVG-путь.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_recalculatePath() {
 		if ( !( this._size.width > 0 && this._size.height > 0 ) ) {
@@ -639,7 +729,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Применяет текущий путь (если активирован) или восстанавливает исходный.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_applyCurrentCurve() {
 		if (this.isActivated()) {
@@ -651,7 +743,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Применяет суперэллипс через `clip-path`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_applyCurve() {
 		if (this._path && this._path !== 'none') {
@@ -668,7 +762,9 @@ export class SuperellipseMode {
 
 	/**
 	 * Восстанавливает исходный `clip-path`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_restoreCurve() {
 		if (this._resetPath) {

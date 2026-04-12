@@ -82,12 +82,29 @@
 	 * 
 	 * @description
 	 * Вспомогательные утилиты и инструменты отладки.
-	 * - `jsse_debug` – объект для условного вывода отладочных сообщений в консоль.
 	 */
 
 
+	/**
+	 * Объект для проверки поддержки CSS-селекторов.
+	 * @namespace jsse_css_selector
+	 * @since 1.1.0
+	 */
 	const jsse_css_selector = {
+
+		/**
+		 * Кэш результатов проверки поддержки селекторов.
+		 * @since 1.1.0
+		 * @type {Object<string, boolean>}
+		 */
 		list : {},
+
+		/**
+		 * Проверяет, поддерживает ли браузер указанный CSS-селектор.
+		 * @since 1.1.0
+		 * @param {string} selector - CSS-селектор для проверки (например, ':has(.a)').
+		 * @returns {boolean} true, если селектор поддерживается, иначе false.
+		 */
 		isSupport(selector) {
 			if (this.list[selector] === undefined) {
 				try {
@@ -97,20 +114,31 @@
 					this.list[selector] = false;
 				}
 			}
-			// if (!this.list[selector]) {
-			// 	jsse_console.warn({'label':'SUPPORT'}, '[SELECTOR]', selector, this.list[selector]);
-			// }
 			return this.list[selector];
 		}
 	};
 
 
 	/**
-	 * Объект для управления отладочным выводом.
-	 * @namespace jsse_debug
+	 * Объект для управления отладочным выводом в консоль.
+	 * @namespace jsse_console
+	 * @since 1.0.0
 	 */
 	const jsse_console = {
+
+		/**
+		 * Список DOM-элементов, для которых включена отладка.
+		 * @type {Element[]}
+		 * @private
+		 */
 		_list: [],
+		
+		/**
+		 * Включает отладку для указанного элемента.
+		 * @since 1.0.0
+		 * @param {Element} element - DOM-элемент.
+		 * @returns {void}
+		 */
 		set(element) {
 			this._list.push(element);
 			// this.debug('set', {element});
@@ -118,6 +146,16 @@
 			// console.debug(`[DEBUG]`, {src:'jsse_console::set', element});
 			console.debug('[JSSE]', '[DEBUG]', true, '\n\t', {element:element});
 		},
+
+		/**
+		 * Выводит отладочное сообщение в консоль (если отладка включена для элемента или сообщение глобальное).
+		 * @since 1.0.0
+		 * @param {Object} options - Опции.
+		 * @param {Element} [options.element] - Элемент, для которого проверяется включение отладки.
+		 * @param {string} [options.label='DEBUG'] - Метка для вывода.
+		 * @param {...any} values - Значения для вывода.
+		 * @returns {void}
+		 */
 		debug(options, ...values) {
 			if (options.element) {
 				if(this._list.includes(options.element)) {
@@ -128,6 +166,16 @@
 				console.debug('[JSSE]', `[${options?.label??'DEBUG'}]`, ...values);
 			}
 		},
+
+		/**
+		 * Выводит предупреждение в консоль (если отладка включена для элемента или сообщение глобальное).
+		 * @since 1.0.0
+		 * @param {Object} options - Опции.
+		 * @param {Element} [options.element] - Элемент, для которого проверяется включение отладки.
+		 * @param {string} [options.label='DEBUG'] - Метка для вывода.
+		 * @param {...any} values - Значения для вывода.
+		 * @returns {void}
+		 */
 		warn(options, ...values) {
 			if (options.element) {
 				if(this._list.includes(options.element)) {
@@ -144,40 +192,33 @@
 	 * @file src/support.js
 	 * 
 	 * @module sj-superellipse/css-parser
-	 * @since 1.0.0
+	 * @since 1.1.0
 	 * @author f4n70m
 	 * 
 	 * @description
 	 * Модуль парсинга css стилей страницы.
-	 * - `StylesheetParser`
-	 * - `StylesheetParserSelectorList`
-	 * - `StylesheetParserSelector`
-	 * - `StylesheetParserFragmentList`
-	 * - `StylesheetParserFragment`
 	 */
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/**
+	 * Представляет фрагмент CSS-селектора (часть между комбинаторами).
+	 * @class StylesheetParserFragment
+	 * @since 1.1.0
+	 */
 	class StylesheetParserFragment {
 		_combinator;
 		_full;
 		_clean;
 		_pseudo;
 
+		/**
+		 * @param {Object} options - Параметры фрагмента.
+		 * @param {string} options.combinator - Комбинатор (пробел, '>', '+', '~').
+		 * @param {string} options.full - Полный текст фрагмента.
+		 * @param {string} options.clean - Очищенный текст (без псевдоклассов).
+		 * @param {string[]} options.pseudo - Список псевдоклассов/псевдоэлементов.
+		 */
 		constructor(options) {
 			this._combinator = options.combinator;
 			const isRoot = options.full === ':root';
@@ -186,45 +227,66 @@
 			this._pseudo = [...new Set(options.pseudo)];
 		}
 
+		/**
+		 * Возвращает комбинатор.
+		 * @since 1.1.0
+		 * @returns {string}
+		 */
 		getCombinator() {
 			return this._combinator;
 		};
-		getFull() { return this._full; };
+
+		/**
+		 * Возвращает полный текст фрагмента.
+		 * @since 1.1.0
+		 * @returns {string}
+		 */
+		getFull() {
+			return this._full;
+		}
+
+		/**
+		 * Возвращает очищенный текст фрагмента.
+		 * @since 1.1.0
+		 * @returns {string}
+		 */
 		getClean() { return this._clean; };
+
+		/**
+		 * Возвращает список псевдоклассов/псевдоэлементов.
+		 * @since 1.1.0
+		 * @returns {string[]}
+		 */
 		getPseudoList() { return this.pseudo; };
 
+		/**
+		 * Проверяет наличие конкретного псевдокласса.
+		 * @since 1.1.0
+		 * @param {string} pseudo - Псевдокласс (например, ':hover').
+		 * @returns {boolean}
+		 */
 		hasPseudo(pseudo) {
 			return this._pseudo.includes(pseudo);
 		}
 
+		/**
+		 * Проверяет наличие псевдокласса `:hover`.
+		 * @since 1.1.0
+		 * @returns {boolean}
+		 */
 		hasHover() {
 			return this.hasPseudo(':hover');
-		}
-
-		getFull() {
-			return this._full;
 		}
 	}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/**
+	 * Список фрагментов селектора (массив с валидацией).
+	 * @class StylesheetParserFragmentList
+	 * @extends Array
+	 * @since 1.1.0
+	 */
 	class StylesheetParserFragmentList extends Array {
-
-		// _triggerList = null;
-		// _triggerIndexList = null;
 
 
 		/**
@@ -234,24 +296,48 @@
 		 */
 
 
-		// Проверка валидности
+		/**
+		 * Проверяет, является ли элемент валидным фрагментом.
+		 * @since 1.1.0
+		 * @static
+		 * @private
+		 * @param {any} item - Проверяемый элемент.
+		 * @returns {boolean}
+		 */
 		static #isValid(item) {
 			return item instanceof StylesheetParserFragment;
 		}
 
-		// Переопределяем push - добавляем только валидные
+		/**
+		 * Добавляет валидные фрагменты в конец массива.
+		 * @override
+		 * @param {...StylesheetParserFragment} items - Фрагменты.
+		 * @returns {number}
+		 */
 		push(...items) {
 			const valid = items.filter(item => StylesheetParserFragmentList.#isValid(item));
 			return super.push(...valid);
 		}
 
-		// Переопределяем unshift
+		/**
+		 * Добавляет валидные фрагменты в начало массива.
+		 * @override
+		 * @param {...StylesheetParserFragment} items - Фрагменты.
+		 * @returns {number}
+		 */
 		unshift(...items) {
 			const valid = items.filter(item => StylesheetParserFragmentList.#isValid(item));
 			return super.unshift(...valid);
 		}
 
-		// Переопределяем splice
+		/**
+		 * Изменяет содержимое массива, удаляя или заменяя элементы.
+		 * @override
+		 * @param {number} start - Индекс начала.
+		 * @param {number} deleteCount - Количество удаляемых элементов.
+		 * @param {...StylesheetParserFragment} items - Добавляемые фрагменты.
+		 * @returns {StylesheetParserFragment[]}
+		 */
 		splice(start, deleteCount, ...items) {
 			const valid = items.filter(item => StylesheetParserFragmentList.#isValid(item));
 			return super.splice(start, deleteCount, ...valid);
@@ -267,10 +353,21 @@
 		 * =============================================================
 		 */
 
+
+		/**
+		 * Возвращает последний фрагмент (целевой).
+		 * @since 1.1.0
+		 * @returns {StylesheetParserFragment}
+		 */
 		getTarget() {
 			return this[this.length-1];
 		}
 
+		/**
+		 * Возвращает индексы фрагментов, содержащих `:hover`.
+		 * @since 1.1.0
+		 * @returns {number[]}
+		 */
 		getTriggerIndexList() {
 			return this.reduce((indexes, element, index) => {
 				if (element.hasHover()) {
@@ -280,10 +377,20 @@
 			}, []);
 		}
 
+		/**
+		 * Проверяет, есть ли хотя бы один фрагмент с `:hover`.
+		 * @since 1.1.0
+		 * @returns {boolean}
+		 */
 		hasTrigger() {
 			return this.getTriggerIndexList().length > 0;
 		}
 
+		/**
+		 * Проверяет, содержит ли целевой фрагмент `:hover`.
+		 * @since 1.1.0
+		 * @returns {boolean}
+		 */
 		targetIsTriggered() {
 			return this.getTarget().hasHover();
 		}
@@ -297,41 +404,46 @@
 	}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/**
+	 * Представляет CSS-правило (селектор + стили).
+	 * @class StylesheetParserSelector
+	 * @since 1.1.0
+	 */
 	class StylesheetParserSelector {
 
 		_media;
 		_selector;
-		_fragments = null;
+		_fragments;
 
 		_ruleStyle;
-		_styles = null;
+		_styles;
 
-		_triggerFragments = null;
-		_triggerIndexList = null;
-		_triggerParts = null;
+		_triggerFragments;
+		_triggerIndexList;
+		_triggerParts;
 
+		/**
+		 * @param {string} selector - Текст селектора.
+		 * @param {CSSStyleDeclaration} ruleStyle - Стили правила.
+		 * @param {string|false} media - Медиа-выражение (если правило внутри @media).
+		 */
 		constructor(selector, ruleStyle, media) {
-			this._selector = selector;
-			this._ruleStyle = ruleStyle;
-			// this._styles = styles;
+			/** @type {string|false} */
 			this._media = media;
-
-			// const target = this.getFragments().getTarget();
-			// const targetHasHover = this.getFragments().targetIsTriggered();
+			/** @type {string} */
+			this._selector = selector;
+			/** @type {StylesheetParserFragmentList|null} */
+			this._fragments = null;
+			/** @type {CSSStyleDeclaration} */
+			this._ruleStyle = ruleStyle;
+			/** @type {Object<string, string>|null} */
+			this._styles = null;
+			/** @type {StylesheetParserFragmentList|null} */
+			this._triggerFragments = null;
+			/** @type {number[]|null} */
+			this._triggerIndexList = null;
+			/** @type {Array|null} */
+			this._triggerParts = null;
 		}
 
 		/**
@@ -340,18 +452,33 @@
 		 * =============================================================
 		 */
 
+
+		/**
+		 * Возвращает текст селектора.
+		 * @since 1.1.0
+		 * @returns {string}
+		 */
 		getSelector() {
 			return this._selector;
 		}
 
+		/**
+		 * Возвращает распарсенные стили правила.
+		 * @since 1.1.0
+		 * @returns {Object<string, string>}
+		 */
 		getStyles() {
-			// return this._styles;
-	        if (this._styles === null) {
-	            this._styles = this._parseStyles();
-	        }
-	        return this._styles;
+			if (this._styles === null) {
+				this._styles = this._parseStyles();
+			}
+			return this._styles;
 		}
 
+		/**
+		 * Возвращает список фрагментов селектора.
+		 * @since 1.1.0
+		 * @returns {StylesheetParserFragmentList}
+		 */
 		getFragments() {
 			if (this._fragments === null) {
 				this._fragments = this._getSelectorFragments(this._selector);
@@ -359,10 +486,20 @@
 			return this._fragments;
 		}
 
+		/**
+		 * Проверяет, соответствует ли текущее медиа-правило.
+		 * @since 1.1.0
+		 * @returns {boolean}
+		 */
 		matchMedia() {
 			return !this._media || window.matchMedia(this._media).matches;
 		}
 
+		/**
+		 * Возвращает части селектора, участвующие в hover-триггерах.
+		 * @since 1.1.0
+		 * @returns {Array<{parent: string, neighbor: Object|null, child: string}>}
+		 */
 		getTriggerParts() {
 			if (this._triggerParts === null) {
 				this._triggerParts = [];
@@ -397,6 +534,11 @@
 			return this._triggerParts;
 		}
 
+		/**
+		 * Возвращает фрагменты, содержащие `:hover`.
+		 * @since 1.1.0
+		 * @returns {StylesheetParserFragmentList}
+		 */
 		getTriggerFragments() {
 			if (this._triggerFragments === null) {
 				this._triggerFragments = new StylesheetParserFragmentList();
@@ -417,25 +559,36 @@
 		 * PRIVATE
 		 * =============================================================
 		 */
-	    
-	    _parseStyles() {
-	        const styles = {};
-	        if (this._ruleStyle.cssText) {
-	            const declarations = this._ruleStyle.cssText.split(';');
-	            for (const decl of declarations) {
-	                const colonIndex = decl.indexOf(':');
-	                if (colonIndex > 0) {
-	                    const prop = decl.substring(0, colonIndex).trim();
-	                    const value = decl.substring(colonIndex + 1).trim();
-	                    if (prop && value) {
-	                        styles[prop] = value;
-	                    }
-	                }
-	            }
-	        }
-	        return styles;
-	    }
+		
+		/**
+		 * Парсит CSS-стили из cssText.
+		 * @private
+		 * @returns {Object<string, string>}
+		 */
+		_parseStyles() {
+			const styles = {};
+			if (this._ruleStyle.cssText) {
+				const declarations = this._ruleStyle.cssText.split(';');
+				for (const decl of declarations) {
+					const colonIndex = decl.indexOf(':');
+					if (colonIndex > 0) {
+						const prop = decl.substring(0, colonIndex).trim();
+						const value = decl.substring(colonIndex + 1).trim();
+						if (prop && value) {
+							styles[prop] = value;
+						}
+					}
+				}
+			}
+			return styles;
+		}
 
+		/**
+		 * Разбивает селектор на фрагменты.
+		 * @private
+		 * @param {string} selector - Текст селектора.
+		 * @returns {StylesheetParserFragmentList}
+		 */
 		_getSelectorFragments(selector) {
 			const s = selector;
 			const result = new StylesheetParserFragmentList();
@@ -535,20 +688,12 @@
 	}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/**
+	 * Список CSS-селекторов (массив с валидацией).
+	 * @class StylesheetParserSelectorList
+	 * @extends Array
+	 * @since 1.1.0
+	 */
 	class StylesheetParserSelectorList extends Array {
 
 
@@ -559,24 +704,51 @@
 		 */
 
 
-		// Проверка валидности
+		/**
+		 * Проверяет, является ли элемент валидным селектором.
+		 * @since 1.1.0
+		 * @static
+		 * @private
+		 * @param {any} item - Проверяемый элемент.
+		 * @returns {boolean}
+		 */
 		static #isValid(item) {
 			return item instanceof StylesheetParserSelector;
 		}
 
-		// Переопределяем push - добавляем только валидные
+		/**
+		 * Добавляет валидные селекторы в конец массива.
+		 * @since 1.1.0
+		 * @override
+		 * @param {...StylesheetParserSelector} items - Селекторы.
+		 * @returns {number}
+		 */
 		push(...items) {
 			const valid = items.filter(item => StylesheetParserSelectorList.#isValid(item));
 			return super.push(...valid);
 		}
 
-		// Переопределяем unshift
+		/**
+		 * Добавляет валидные селекторы в начало массива.
+		 * @since 1.1.0
+		 * @override
+		 * @param {...StylesheetParserSelector} items - Селекторы.
+		 * @returns {number}
+		 */
 		unshift(...items) {
 			const valid = items.filter(item => StylesheetParserSelectorList.#isValid(item));
 			return super.unshift(...valid);
 		}
 
-		// Переопределяем splice
+		/**
+		 * Изменяет содержимое массива, удаляя или заменяя элементы.
+		 * @since 1.1.0
+		 * @override
+		 * @param {number} start - Индекс начала.
+		 * @param {number} deleteCount - Количество удаляемых элементов.
+		 * @param {...StylesheetParserSelector} items - Добавляемые селекторы.
+		 * @returns {StylesheetParserSelector[]}
+		 */
 		splice(start, deleteCount, ...items) {
 			const valid = items.filter(item => StylesheetParserSelectorList.#isValid(item));
 			return super.splice(start, deleteCount, ...valid);
@@ -593,6 +765,11 @@
 		 */
 
 
+		/**
+		 * Возвращает селекторы, содержащие `:hover`.
+		 * @since 1.1.0
+		 * @returns {StylesheetParserSelector[]}
+		 */
 		getSelectorsWithHover() {
 			return this.filter(item => item.getFragments().hasTrigger());
 		}
@@ -606,26 +783,20 @@
 	}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	/**
+	 * Парсер таблиц стилей. Извлекает CSS-правила, разбирает селекторы и предоставляет доступ к ним.
+	 * @class StylesheetParser
+	 * @since 1.1.0
+	 */
 	class StylesheetParser {
 		_selectors;
-		_isParsed = false;
+		_isParsed;
 
 		constructor() {
-			// this._init();
+			/** @type {StylesheetParserSelectorList|null} */
+			this._selectors = null;
+			/** @type {boolean} */
+			this._isParsed = false;
 		}
 		
 		/**
@@ -634,16 +805,34 @@
 		 * =============================================================
 		 */
 
+		/**
+		 * Возвращает список всех селекторов.
+		 * @since 1.1.0
+		 * @returns {StylesheetParserSelectorList}
+		 */
 		getSelectors() {
 			this._ensureParsed();
 			return this._selectors;
 		}
 
+		/**
+		 * Возвращает селекторы, содержащие `:hover`.
+		 * @since 1.1.0
+		 * @returns {StylesheetParserSelector[]}
+		 */
 		getSelectorsHasHover() {
 			this._ensureParsed();
 			return this._selectors.getSelectorsWithHover();
 		}
 
+		/**
+		 * Возвращает селекторы, которые соответствуют элементу и (опционально) содержат `:hover`.
+		 * @since 1.1.0
+		 * @param {Element} element - Целевой элемент.
+		 * @param {Object} [options] - Опции.
+		 * @param {boolean} [options.selectorHasHover] - Если true, возвращать только селекторы с `:hover`.
+		 * @returns {StylesheetParserSelector[]}
+		 */
 		getTargetSelectors(element, options={}) {
 			this._ensureParsed();
 			const targetList = this._createList();
@@ -664,6 +853,11 @@
 			return targetList;
 		}
 
+		/**
+		 * Сбрасывает состояние парсера (принудительный перепарсинг при следующем вызове).
+		 * @since 1.1.0
+		 * @returns {void}
+		 */
 		reset() {
 			this._selectors = null;
 			this._isParsed = false;
@@ -674,24 +868,44 @@
 		 * PRIVATE
 		 * =============================================================
 		 */
-		
-		// Гарантируем, что парсинг выполнится при первом обращении
+
+
+		/**
+		 * Гарантирует, что парсинг выполнен.
+		 * @private
+		 * @returns {void}
+		 */
 		_ensureParsed() {
 			if (this._isParsed) return;
 			this._init();
 			this._isParsed = true;
 		}
 
+		/**
+		 * Инициализирует парсер: создаёт список и парсит CSS-правила.
+		 * @private
+		 * @returns {void}
+		 */
 		_init() {
 			this._selectors = this._createList();
 			this._parseCssRules();
 			jsse_console.debug({label:'STYLESHEET'}, '[LOADED]');
 		}
 
+		/**
+		 * Создаёт пустой список селекторов.
+		 * @private
+		 * @returns {StylesheetParserSelectorList}
+		 */
 		_createList() {
 			return new StylesheetParserSelectorList();
 		}
 
+		/**
+		 * Парсит все CSS-правила из document.styleSheets.
+		 * @private
+		 * @returns {void}
+		 */
 		_parseCssRules() {
 			for (const styleSheet of document.styleSheets) {
 				try {
@@ -708,27 +922,36 @@
 									this._selectors.push(...this._getParsedCssRule(subRule, rule.media.mediaText));
 								}
 							} catch (e) {
-								console.warn(`[STYLESHEET] Ошибка при обработке @media правила из ${styleSheet.href || 'inline'}:`, e.message);
+								jsse_console.warn({label:'STYLESHEET'}, `Error processing @media rules from ${styleSheet.href || 'inline'}:`, e.message);
 							}
 						}
 						// Можно добавить другие типы правил (CSSRule.IMPORT_RULE, CSSRule.SUPPORTS_RULE и т.д.)
 					}
 				} catch (e) {
 					if (e.name === 'SecurityError') {
-						console.warn(
-							`[STYLESHEET] Нет доступа к правилам таблицы стилей:\n${styleSheet.href || 'inline / blob'}.\n` +
-							`Причина: CORS или file:// протокол.\nЧтобы это исправить, используйте локальный сервер (http://) или добавьте crossorigin атрибут.`
+						jsse_console.warn(
+							{label:'STYLESHEET'},
+							`Cannot access stylesheet rules:`,
+							`\n${styleSheet.href || 'inline / blob'}.`,
+							`\nCause: CORS or file:// protocol.`,
+							`\nTo fix this, use a local server (http://) or add the crossorigin attribute.`
 						);
 					} else if (e.name === 'InvalidAccessError') {
-						console.warn(`[STYLESHEET] Таблица стилей ${styleSheet.href || 'inline'} ещё не загружена или имеет некорректный доступ.`);
+						jsse_console.warn({label:'STYLESHEET'}, `The stylesheet ${styleSheet.href || 'inline'} has not yet loaded or has invalid access.`);
 					} else {
-						console.warn(`[STYLESHEET] Неизвестная ошибка при чтении ${styleSheet.href || 'inline'}:`, e.message);
+						jsse_console.warn({label:'STYLESHEET'}, `Unknown error reading ${styleSheet.href || 'inline'}:`, e.message);
 					}
-					console.debug(e);
 				}
 			}
 		}
 
+		/**
+		 * Преобразует CSSRule в массив селекторов.
+		 * @private
+		 * @param {CSSRule} rule - CSS-правило.
+		 * @param {string|false} [media=false] - Медиа-выражение (если правило внутри @media).
+		 * @returns {StylesheetParserSelector[]}
+		 */
 		_getParsedCssRule(rule, media=false) {
 			const result = [];
 			const selectorGroup = rule.selectorText;
@@ -742,13 +965,17 @@
 
 
 		/**
-		 * Разбивает группу селекторов по запятым, но не внутри скобок.
-		 * Пример: ":not(.a, .b), .c" → [":not(.a, .b)", ".c"]
+		 * Разбивает группу селекторов по запятым, игнорируя запятые внутри скобок.
+		 * @private
+		 * @param {string} selectorText - Текст группы селекторов.
+		 * @returns {string[]}
+		 * @example
+		 * _splitSelectorGroup(":not(.a, .b), .c") → [":not(.a, .b)", ".c"]
 		 */
 		_splitSelectorGroup(selectorText) {
 			const result = [];
 			let current = '';
-			let depth = 0;          // глубина вложенности в круглые скобки
+			let depth = 0;		  // глубина вложенности в круглые скобки
 			let inString = false;   // для простоты не поддерживаем строки (в CSS их почти нет в селекторах)
 			let escape = false;
 
@@ -807,28 +1034,29 @@
 	 * 
 	 * @description
 	 * Глобальные хранилища для кэширования данных между экземплярами контроллеров и режимов.
-	 * - `jsse_styles` (WeakMap) – кэш захваченных стилей для каждого элемента.
-	 * - `jsse_reset_css` – хранилище глобально добавленных элементов `<style>` для режимов.
-	 * - `jsse_counter` – счётчик для генерации уникальных идентификаторов контроллеров.
 	 */
 
 
 
 	/**
 	 * Карта для хранения контроллеров суперэллипса, связанных с DOM-элементами.
-	 * @type {WeakMap<Element, SuperellipseController>}
+	 * @since 1.0.0
+	 * @type {WeakMap<Element, import('./controller.js').SuperellipseController>}
 	 */
-	const jsse_controllers = new WeakMap(); // экспортируем
+	const jsse_controllers = new WeakMap();
 
 
 	/**
-	 * 
+	 * Экземпляр парсера таблиц стилей для анализа CSS-правил.
+	 * @since 1.1.0
+	 * @type {import('./stylesheet-parser.js').StylesheetParser}
 	 */
 	const jsse_stylesheet = new StylesheetParser();
 
 
 	/**
 	 * WeakMap для кэширования стилей элементов.
+	 * @since 1.0.0
 	 * @type {WeakMap<Element, Object>}
 	 */
 	const jsse_styles = new WeakMap();
@@ -836,13 +1064,34 @@
 
 	/**
 	 * Объект для хранения глобальных CSS-правил режимов.
+	 * @since 1.0.0
 	 * @namespace jsse_reset_css
 	 */
 	const jsse_reset_css = {
+
+		/**
+		 * Внутреннее хранилище элементов `<style>` для каждого режима.
+		 * @type {Object<string, {element: HTMLStyleElement, count: number}>}
+		 */
 		_list: {},
+
+		/**
+		 * Возвращает запись для заданного ключа.
+		 * @since 1.0.0
+		 * @param {string} key - Идентификатор режима (например, 'svg-layer').
+		 * @returns {{element: HTMLStyleElement, count: number} | undefined}
+		 */
 		get(key) {
 			return this._list[key];
 		},
+
+		/**
+		 * Сохраняет элемент `<style>` для режима, удаляя предыдущий при необходимости.
+		 * @since 1.0.0
+		 * @param {string} key - Идентификатор режима.
+		 * @param {HTMLStyleElement} el - Элемент стилей для добавления в `<head>`.
+		 * @returns {void}
+		 */
 		set(key, el) {
 			if (this.has(key)) {
 				this.unset(key);
@@ -854,11 +1103,25 @@
 			/** Добавить элемент в конец <head> **/
 			document.head.appendChild(el);
 		},
+
+		/**
+		 * Удаляет запись и соответствующий элемент `<style>` из DOM.
+		 * @since 1.0.0
+		 * @param {string} key - Идентификатор режима.
+		 * @returns {void}
+		 */
 		unset(key) {
 			/** Удалить элемент **/
 			this._list[key].element.remove();
 			delete this._list[key];
 		},
+
+		/**
+		 * Проверяет существование записи для указанного ключа.
+		 * @since 1.0.0
+		 * @param {string} key - Идентификатор режима.
+		 * @returns {boolean}
+		 */
 		has(key) {
 			return this._list[key] !== undefined;
 		}
@@ -866,12 +1129,33 @@
 
 	/**
 	 * Счётчик для генерации уникальных идентификаторов контроллеров.
+	 * @since 1.0.0
 	 * @namespace jsse_counter
 	 */
 	const jsse_counter = {
+		
+		/**
+		 * Текущее значение счётчика.
+		 * @type {number}
+		 */
 		_value: 0,
+
+		/**
+		 * Увеличивает счётчик на 1.
+		 * @returns {void}
+		 */
 		increment() { this._value++; },
+
+		/**
+		 * Уменьшает счётчик на 1.
+		 * @returns {void}
+		 */
 		decrement() { this._value--; },
+
+		/**
+		 * Геттер, возвращающий текущее значение счётчика.
+		 * @type {number}
+		 */
 		get value() { return this._value; }
 	};
 
@@ -903,6 +1187,7 @@
 	/**
 	 * Округляет число до заданного количества знаков после запятой.
 	 *
+	 * @since 1.0.0
 	 * @param {number} value - Исходное число.
 	 * @param {number} [precision=2] - Количество знаков после запятой (по умолчанию 2).
 	 * @returns {number} Округлённое число.
@@ -922,6 +1207,7 @@
 	 * при котором центральная точка второй кривой будет лежать на касательной,
 	 * проведённой из центра первой кривой (обеспечивается гладкое соединение).
 	 *
+	 * @since 1.0.0
 	 * @param {number} L1 - Размах эталонной кривой Безье.
 	 * @param {number} D1 - Отклонение контрольных точек эталонной кривой.
 	 * @param {number} L2 - Размах целевой кривой Безье.
@@ -937,7 +1223,7 @@
 	}
 
 	/**
-	 * 
+	 * @since 1.0.0
 	 */
 	function jsse_getBorderRadiusFactor() {
 		return (4 / 3) * (Math.sqrt(2) - 1);
@@ -958,6 +1244,7 @@
 	 * где G = (4/3)*(√2-1) ≈ 0.5522847498 — константа, при которой кривые Безье аппроксимируют четверть окружности.
 	 * Благодаря использованию кубических кривых Безье и тщательно подобранной интерполяции достигается плавное изменение геометрии при любом curveFactor в заданном диапазоне.
 	 * 
+	 * @since 1.0.0
 	 * @param {number} width  - Ширина фигуры.
 	 * @param {number} height - Высота фигуры.
 	 * @param {number} radius - Радиус скругления углов (будет автоматически ограничен).
@@ -1150,6 +1437,8 @@
 
 	/**
 	 * Базовый класс для реализации режимов суперэллипса.
+	 * @class SuperellipseMode
+	 * @since 1.0.0
 	 */
 	class SuperellipseMode {
 
@@ -1182,6 +1471,7 @@
 
 
 		/**
+		 * @since 1.0.0
 		 * @param {Element} element - Целевой элемент.
 		 * @param {boolean} [debug=false] - Флаг отладки.
 		 */
@@ -1200,6 +1490,8 @@
 
 		/**
 		 * Активирует режим.
+		 * @since 1.0.0
+		 * @returns {void}
 		 */
 		activate() {
 			if (this.isActivated()) return;
@@ -1218,6 +1510,8 @@
 
 		/**
 		 * Деактивирует режим.
+		 * @since 1.0.0
+		 * @returns {void}
 		 */
 		deactivate() {
 			if (!this.isActivated()) return;
@@ -1232,6 +1526,8 @@
 
 		/**
 		 * Полное обновление (стили, размер, путь).
+		 * @since 1.0.0
+		 * @returns {void}
 		 */
 		update() {
 			jsse_console.debug({label:'MODE',element:this._element}, 'update()');
@@ -1245,6 +1541,8 @@
 
 		/**
 		 * Обновление только размеров.
+		 * @since 1.0.0
+		 * @returns {void}
 		 */
 		updateSize() {
 			/** Актуализировать размеры **/
@@ -1258,6 +1556,8 @@
 
 		/**
 		 * Обновление только стилей.
+		 * @since 1.0.0
+		 * @returns {void}
 		 */
 		updateStyles() {
 			jsse_console.debug({label:'MODE',element:this._element}, 'updateStyles()');
@@ -1271,7 +1571,9 @@
 
 		/**
 		 * Обновление коэффициента кривизны.
-		 * @param {number} value
+		 * @since 1.0.0
+		 * @param {number} value - Новое значение коэффициента кривизны.
+		 * @returns {void}
 		 */
 		updateCurveFactor(value) {
 			this.setCurveFactor(value);
@@ -1283,7 +1585,9 @@
 
 		/**
 		 * Обновление точности округления.
-		 * @param {number} value
+		 * @since 1.0.0
+		 * @param {number} value - Количество знаков после запятой.
+		 * @returns {void}
 		 */
 		updatePrecision(value) {
 			this.setPrecision(value);
@@ -1295,7 +1599,9 @@
 
 		/**
 		 * Устанавливает коэффициент кривизны.
-		 * @param {number} value
+		 * @since 1.0.0
+		 * @param {number} value - Новое значение коэффициента кривизны.
+		 * @returns {void}
 		 */
 		setCurveFactor(value) {
 			this._curveFactor = value;
@@ -1303,7 +1609,9 @@
 
 		/**
 		 * Устанавливает точность округления.
-		 * @param {number} value
+		 * @since 1.0.0
+		 * @param {number} value - Количество знаков после запятой.
+		 * @returns {void}
 		 */
 		setPrecision(value) {
 			this._precision = value;
@@ -1311,6 +1619,7 @@
 
 		/**
 		 * Возвращает текущий SVG-путь.
+		 * @since 1.0.0
 		 * @returns {string}
 		 */
 		getPath() {
@@ -1319,6 +1628,7 @@
 
 		/**
 		 * Проверяет, активирован ли режим.
+		 * @since 1.0.0
 		 * @returns {boolean}
 		 */
 		isActivated() {
@@ -1327,6 +1637,8 @@
 
 		/**
 		 * Уничтожает режим, удаляет все артефакты.
+		 * @since 1.0.0
+		 * @returns {void}
 		 */
 		destroy() {
 			this.deactivate();
@@ -1344,7 +1656,9 @@
 
 		/**
 		 * Инициализация режима.
+		 * @since 1.0.0
 		 * @private
+		 * @returns {void}
 		 */
 		_init() {
 			this._id = Math.random().toString(36).slice(2, 10);
@@ -1357,8 +1671,10 @@
 
 		/**
 		 * Устанавливает статус активации.
-		 * @param {boolean} status
+		 * @since 1.0.0
 		 * @private
+		 * @param {boolean} status - Статус активации.
+		 * @returns {void}
 		 */
 		_setStatus(status) {
 			this._isActivated = status;
@@ -1371,7 +1687,9 @@
 
 		/**
 		 * Захватывает актуальные стили и размеры.
+		 * @since 1.0.0
 		 * @private
+		 * @returns {void}
 		 */
 		_updateCaptured() {
 			this._updateCapturedStyles();
@@ -1380,7 +1698,9 @@
 
 		/**
 		 * Подготавливает обновление (пересчёт кривой).
+		 * @since 1.0.0
 		 * @private
+		 * @returns {void}
 		 */
 		_prepareUpdate() {
 			this._recalculateCurve();
@@ -1388,7 +1708,9 @@
 
 		/**
 		 * Выполняет обновление (применяет кривую).
+		 * @since 1.0.0
 		 * @private
+		 * @returns {void}
 		 */
 		_executeUpdate() {
 			this._applyCurrentCurve();
@@ -1396,8 +1718,9 @@
 
 		/**
 		 * Возвращает имя режима.
-		 * @returns {string}
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {string}
 		 */
 		_getModeName() {
 			return 'clip-path';
@@ -1405,8 +1728,9 @@
 
 		/**
 		 * Возвращает карту стилей, которые нужно временно применить для корректного чтения.
-		 * @returns {Object<string, string>}
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {Object<string, string>}
 		 */
 		_getReadingStyles() {
 			return {
@@ -1416,8 +1740,9 @@
 
 		/**
 		 * Возвращает карту стилей, применяемых при активации режима.
-		 * @returns {Object<string, string>}
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {Object<string, string>}
 		 */
 		_getActivatedStyles() {
 			return {
@@ -1435,13 +1760,17 @@
 
 		/**
 		 * Создаёт виртуальные элементы (если нужно).
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_appendVirtualElements() {}
 
 		/**
 		 * Удаляет виртуальные элементы.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_removeVirtualElements() {}
 
@@ -1455,7 +1784,9 @@
 
 		/**
 		 * Устанавливает атрибут `data-jsse-mode`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_setModeAttr() {
 			this._element.setAttribute('data-jsse-mode', this._getModeName());
@@ -1463,7 +1794,9 @@
 
 		/**
 		 * Удаляет атрибут `data-jsse-mode`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_removeModeAttr() {
 			this._element.removeAttribute('data-jsse-mode');
@@ -1471,7 +1804,9 @@
 
 		/**
 		 * Устанавливает атрибут `data-jsse-activated`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_setActivatedAttr() {
 			this._element.setAttribute('data-jsse-activated', true);
@@ -1479,7 +1814,9 @@
 
 		/**
 		 * Удаляет атрибут `data-jsse-activated`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_removeActivatedAttr() {
 			this._element.removeAttribute('data-jsse-activated');
@@ -1487,7 +1824,9 @@
 
 		/**
 		 * Устанавливает атрибут `data-jsse-reading`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_setReadingAttr() {
 			this._element.setAttribute('data-jsse-reading', true);
@@ -1495,7 +1834,9 @@
 
 		/**
 		 * Удаляет атрибут `data-jsse-reading`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_removeReadingAttr() {
 			this._element.removeAttribute('data-jsse-reading');
@@ -1511,7 +1852,9 @@
 
 		/**
 		 * Инициализирует глобальные CSS-правила для режима.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_initResetStyles() {
 			const modeName = this._getModeName();
@@ -1526,6 +1869,12 @@
 			// jsse_console.debug({label:'MODE'}, '[RESET STYLES]', '[INIT]', modeName, jsse_reset_css.get(modeName).count);
 		}
 
+		/**
+		 * Уничтожает глобальные CSS-правила режима.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
+		 */
 		_destroyResetStyles() {
 			const modeName = this._getModeName();
 			if (!jsse_reset_css.has(modeName)) return;
@@ -1542,6 +1891,13 @@
 
 		}
 
+		/**
+		 * Возвращает CSS-текст для сброса стилей режима.
+		 * @since 1.0.0
+		 * @protected
+		 * @param {string} modeName - Имя режима.
+		 * @returns {string}
+		 */
 		_getResetCssText(modeName) {
 			let cssString = '';
 
@@ -1574,9 +1930,10 @@
 
 		/**
 		 * Создаёт элемент `<style>` для режима.
-		 * @param {string} modeName
-		 * @param {string} textContent
+		 * @since 1.0.0
 		 * @protected
+		 * @param {string} modeName - Имя режима.
+		 * @returns {HTMLStyleElement}
 		 */
 		_createModeCssStyleElement(modeName) {
 			const textContent = this._getResetCssText(modeName);
@@ -1598,7 +1955,9 @@
 
 		/**
 		 * Обновляет захваченные стили.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_updateCapturedStyles() {
 			jsse_console.debug({label:'MODE',element:this._element}, '_updateCapturedStyles()');
@@ -1609,9 +1968,10 @@
 
 		/**
 		 * Получает вычисленные стили с временным снятием атрибута активации.
+		 * @since 1.0.0
+		 * @protected
 		 * @param {boolean} [clear=true] - Снимать ли атрибут активации перед чтением.
 		 * @returns {Object<string, string>}
-		 * @protected
 		 */
 		_getCapturedStyles(clear = true) {
 			const hasAttribute = this._element.hasAttribute('data-jsse-activated');
@@ -1632,8 +1992,9 @@
 
 		/**
 		 * Получает вычисленные стили для управляемых свойств.
-		 * @returns {Object<string, string>}
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {Object<string, string>}
 		 */
 		_getManagedComputedStyle() {
 			const result = {};
@@ -1646,9 +2007,10 @@
 
 		/**
 		 * Возвращает значение захваченного вычисленного свойства.
-		 * @param {string} prop
-		 * @returns {string}
+		 * @since 1.0.0
 		 * @protected
+		 * @param {string} prop - Имя CSS-свойства.
+		 * @returns {string|undefined}
 		 */
 		_getComputedProp(prop) {
 			if ('computed' in this._styles && prop in this._styles.computed)
@@ -1657,8 +2019,9 @@
 
 		/**
 		 * Возвращает массив свойств CSS, управляемых режимом.
-		 * @returns {string[]}
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {string[]}
 		 */
 		_getManagedProperties() {
 			return Object.keys(this._getActivatedStyles());
@@ -1673,7 +2036,9 @@
 
 		/**
 		 * Инициализирует хранилище стилей.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_initStyles() {
 			this._styles = jsse_styles.get(this._element);
@@ -1689,7 +2054,9 @@
 
 		/**
 		 * Инициализирует размеры.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_initSize() {
 			this._updateCapturedSize();
@@ -1697,7 +2064,9 @@
 
 		/**
 		 * Обновляет захваченные размеры.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_updateCapturedSize() {
 			const rect = this._element.getBoundingClientRect();
@@ -1716,7 +2085,9 @@
 
 		/**
 		 * Инициализирует кривую.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_initCurve() {
 			this._initInlinePath();
@@ -1724,7 +2095,9 @@
 
 		/**
 		 * Сохраняет исходный `clip-path`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_initInlinePath() {
 			this._resetPath = this._element.style.getPropertyValue('clip-path');
@@ -1732,7 +2105,9 @@
 
 		/**
 		 * Пересчитывает путь на основе текущих размеров и радиуса.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_recalculateCurve() {
 			this._recalculatePath();
@@ -1740,7 +2115,9 @@
 
 		/**
 		 * Генерирует SVG-путь.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_recalculatePath() {
 			if ( !( this._size.width > 0 && this._size.height > 0 ) ) {
@@ -1762,7 +2139,9 @@
 
 		/**
 		 * Применяет текущий путь (если активирован) или восстанавливает исходный.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_applyCurrentCurve() {
 			if (this.isActivated()) {
@@ -1774,7 +2153,9 @@
 
 		/**
 		 * Применяет суперэллипс через `clip-path`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_applyCurve() {
 			if (this._path && this._path !== 'none') {
@@ -1791,7 +2172,9 @@
 
 		/**
 		 * Восстанавливает исходный `clip-path`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_restoreCurve() {
 			if (this._resetPath) {
@@ -1833,12 +2216,25 @@
 
 	/**
 	 * Режим, создающий наложенный SVG-слой для отрисовки фона, границ и теней.
+	 * @class SuperellipseModeSvgLayer
 	 * @extends SuperellipseMode
 	 */
 	class SuperellipseModeSvgLayer extends SuperellipseMode {
 
+		/**
+		 * Хранилище ссылок на созданные виртуальные DOM-элементы (svg, div, path и т.д.).
+		 * @since 1.0.0
+		 * @type {Object<string, Element>}
+		 * @protected
+		 */
 		_virtualElementList = {};
 
+		/**
+		 * Текущая строка viewBox для SVG.
+		 * @since 1.0.0
+		 * @type {string}
+		 * @protected
+		 */
 		_viewbox;
 
 
@@ -1850,7 +2246,9 @@
 
 
 		/**
-		 * @param {Element} element - Целевой элемент.
+		 * Создаёт экземпляр режима svg-layer.
+		 * @since 1.0.0
+		 * @param {Element} element - Целевой DOM-элемент.
 		 * @param {boolean} [debug=false] - Флаг отладки.
 		 */
 		constructor(element, debug = false) {
@@ -1870,8 +2268,10 @@
 
 		/**
 		 * Выполняет обновление: применяет стили к слою div и обновляет путь.
+		 * @since 1.0.0
 		 * @override
 		 * @protected
+		 * @returns {void}
 		 */
 		_executeUpdate() {
 			this._applyCurrentInlineVirtualSvgLayerStyles();
@@ -1880,6 +2280,7 @@
 
 		/**
 		 * Возвращает имя режима ('svg-layer').
+		 * @since 1.0.0
 		 * @override
 		 * @protected
 		 * @returns {string}
@@ -1890,6 +2291,7 @@
 
 		/**
 		 * Возвращает стили, применяемые к основному элементу при активации.
+		 * @since 1.0.0
 		 * @override
 		 * @protected
 		 * @returns {Object<string, string>}
@@ -1910,6 +2312,7 @@
 
 		/**
 		 * Возвращает стили для SVG-контейнера.
+		 * @since 1.0.0
 		 * @protected
 		 * @returns {Object<string, string>}
 		 */
@@ -1926,6 +2329,7 @@
 
 		/**
 		 * Возвращает список CSS-свойств, которые переносятся во внутренний div.
+		 * @since 1.0.0
 		 * @protected
 		 * @returns {string[]}
 		 */
@@ -1949,9 +2353,11 @@
 
 		/**
 		 * Применяет инлайновые стили к указанному элементу.
+		 * @since 1.0.0
+		 * @protected
 		 * @param {Object<string, string>} props - Объект стилей.
 		 * @param {HTMLElement|SVGElement} element - Целевой элемент.
-		 * @protected
+		 * @returns {void}
 		 */
 		_applyInlineStyles(props, element) {
 			const managedProperties = this._getManagedProperties();
@@ -1971,7 +2377,10 @@
 		}
 
 		/**
-		 * 
+		 * Применяет все стили (div, border, shadows) к виртуальным слоям, если режим активен.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_applyCurrentInlineVirtualSvgLayerStyles() {
 			if ( this.isActivated() ) {
@@ -1984,7 +2393,9 @@
 
 		/**
 		 * Применяет стили к виртуальному div-слою.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_applyCurrentInlineVirtualSvgLayerDivStyles() {
 			const inlineSvgLayerDivStyles = this._getCurrentInlineVirtualSvgLayerDivStyles();
@@ -1994,6 +2405,7 @@
 
 		/**
 		 * Возвращает стили для внутреннего div-слоя, извлечённые из вычисленных стилей элемента.
+		 * @since 1.0.0
 		 * @protected
 		 * @returns {Object<string, string>}
 		 */
@@ -2012,7 +2424,9 @@
 
 		/**
 		 * Применяет стили границы (цвет, толщину, стиль) к SVG-элементу `border`.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_applyCurrentInlineVirtualSvgLayerBorderStyles() {
 			const svgLayerBorder = this._virtualElementList.svgLayerBorder;
@@ -2025,23 +2439,49 @@
 			this._applyBorderStyleToStroke(borderStyle, svgLayerBorder);
 		}
 
-
+		/**
+		 * Устанавливает атрибут `stroke-dasharray` для элемента пути.
+		 * @since 1.0.0
+		 * @protected
+		 * @param {SVGElement} pathElement - SVG-элемент (обычно path или use).
+		 * @param {string} value - Значение dasharray.
+		 * @returns {void}
+		 */
 		_setStrokeDasharray(pathElement, value) {
 			pathElement.setAttribute('stroke-dasharray', value);
 		}
+
+		/**
+		 * Устанавливает атрибут `stroke-linecap` для элемента пути.
+		 * @since 1.0.0
+		 * @protected
+		 * @param {SVGElement} pathElement - SVG-элемент.
+		 * @param {string} value - Значение linecap (butt, round, square).
+		 * @returns {void}
+		 */
 		_setStrokeLinecap(pathElement, value) {
 			pathElement.setAttribute('stroke-linecap', value);
 		}
+
+		/**
+		 * Устанавливает атрибут `stroke-opacity` для элемента пути.
+		 * @since 1.0.0
+		 * @protected
+		 * @param {SVGElement} pathElement - SVG-элемент.
+		 * @param {string|number} value - Прозрачность (0..1).
+		 * @returns {void}
+		 */
 		_setStrokeOpacity(pathElement, value) {
 			pathElement.setAttribute('stroke-opacity', value);
 		}
 
-
 		/**
 		 * Преобразует CSS-стиль границы в атрибуты SVG-элемента.
+		 * @since 1.0.0
+		 * @protected
 		 * @param {string} borderStyle - Стиль границы (solid, dotted, dashed и т.д.).
 		 * @param {SVGElement} pathElement - Элемент, к которому применяется обводка.
-		 * @protected
+		 * @returns {void}
 		 */
 		_applyBorderStyleToStroke(borderStyle, pathElement) {
 			/** Сброс атрибутов **/
@@ -2100,7 +2540,9 @@
 
 		/**
 		 * Применяет тени (`box-shadow`) к SVG-слою, создавая фильтры.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_applyCurrentInlineVirtualSvgLayerShadowsStyles() {
 			const boxShadowValue = this._getComputedProp('box-shadow');
@@ -2125,8 +2567,6 @@
 				shadowValues.spreadRadius;
 
 				const filter = this._createVirtualSvgElement('filter');
-						// const feMorphology = this._createVirtualSvgElement('feMorphology');
-						// const feGaussianBlurSpread = this._createVirtualSvgElement('feGaussianBlur');
 					const feGaussianBlur = this._createVirtualSvgElement('feGaussianBlur');
 					const feOffset = this._createVirtualSvgElement('feOffset');
 					const feFlood = this._createVirtualSvgElement('feFlood');
@@ -2146,54 +2586,11 @@
 					filter.setAttribute('y', '-100%');
 					filter.setAttribute('width', '300%');
 					filter.setAttribute('height', '300%');
-								// filter.appendChild(feMorphology);
-								// filter.appendChild(feGaussianBlurSpread);
 					filter.appendChild(feGaussianBlur);
 					filter.appendChild(feOffset);
 					filter.appendChild(feFlood);
 					filter.appendChild(feComposite);
-
-							// feMorphology.setAttribute('in', 'SourceAlpha');
-							// feMorphology.setAttribute('operator', shadowValues.spreadRadius >= 0 ? 'dilate' : 'erode');
-							// feMorphology.setAttribute('radius', Math.abs(shadowValues.spreadRadius));
-							// feMorphology.setAttribute('result', 'expanded');
-
-									// spreadRadius через feMorphology + размытие + контраст
-									// if (spreadValue !== 0) {
-									//     const feMorphology = this._createVirtualSvgElement('feMorphology');
-									// 	const filterExpandedId = `${filterId}__expanded`;
-									//     feMorphology.setAttribute('in', 'SourceAlpha');
-									//     feMorphology.setAttribute('operator', 'dilate');
-									//     feMorphology.setAttribute('radius', Math.abs(spreadValue));
-									//     feMorphology.setAttribute('result', filterExpandedId);
-									//     filter.appendChild(feMorphology);
-									    
-									//     const feBlur = this._createVirtualSvgElement('feGaussianBlur');
-									// 	const filterSmoothedId = `${filterId}__smoothed`;
-									//     feBlur.setAttribute('in', filterExpandedId);
-									//     feBlur.setAttribute('stdDeviation', Math.abs(spreadValue) / 6);
-									//     feBlur.setAttribute('result', filterSmoothedId);
-									//     filter.appendChild(feBlur);
-									    
-									//     const feContrast = this._createVirtualSvgElement('feComponentTransfer');
-									// 	const filterSharpId = `${filterId}__sharp`;
-									//     const feFuncA = this._createVirtualSvgElement('feFuncA');
-									//     feFuncA.setAttribute('type', 'linear');
-									//     feFuncA.setAttribute('slope', '10');
-									//     feFuncA.setAttribute('intercept', '-4.5');
-									//     feContrast.appendChild(feFuncA);
-									//     feContrast.setAttribute('in', filterSmoothedId);
-									//     feContrast.setAttribute('result', filterSharpId);
-									//     filter.appendChild(feContrast);
-									    
-									//     // Основное размытие тени использует sharp
-									//     feGaussianBlur.setAttribute('in', filterSharpId);
-									// } else {
-									//     feGaussianBlur.setAttribute('in', 'SourceAlpha');
-									// }
-
 						feGaussianBlur.setAttribute('in', 'SourceAlpha');
-							// feGaussianBlur.setAttribute('in', 'expanded');
 						feGaussianBlur.setAttribute('stdDeviation', shadowValues.blurRadius / 2);
 						feGaussianBlur.setAttribute('result', filterBlurId);
 						feOffset.setAttribute('dx', shadowValues.offsetX);
@@ -2211,23 +2608,15 @@
 					shadow.setAttribute('href', `#${pathId}`);
 					shadow.setAttribute('id', shadowId);
 					shadow.setAttribute('filter', `url(#${filterId})`);
-
-					// const spreadValue = shadowValues.spreadRadius;
-					// if (spreadValue !== 0) {
-					//     // const scale = 1 + (spreadValue * 2 / Math.min(this._size.width, this._size.height));
-		            //     const scaleX = 1 + (spreadValue * 2 / this._size.width);
-		            //     const scaleY = 1 + (spreadValue * 2 / this._size.height);
-					//     shadow.setAttribute('transform', `scale(${scaleX}, ${scaleY})`);
-					//     shadow.setAttribute('transform-origin', `${this._size.width/2}px ${this._size.height/2}px`);
-					// }
 			}
 		}
 
 		/**
 		 * Разбирает значение `box-shadow` на массив объектов теней.
-		 * @param {string} boxShadowValue - Строка свойства `box-shadow`.
-		 * @returns {Array<Object>} Массив теней с полями: inset, color, offsetX, offsetY, blurRadius, spreadRadius.
+		 * @since 1.0.0
 		 * @protected
+		 * @param {string} boxShadowValue - Строка свойства `box-shadow`.
+		 * @returns {Array<Object>} Массив теней с полями: inset, color, offsetX, offsetY, blurRadius, spreadRadius, originalColorFormat.
 		 */
 		_parseBoxShadow(boxShadowValue) {
 			if (!boxShadowValue || boxShadowValue === 'none') return [];
@@ -2303,26 +2692,42 @@
 
 		/**
 		 * Инициализирует список виртуальных элементов (div, svg и пр.).
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_initVirtualElementList() {
 			this._initVirtualInnerWrapper();
 			this._initVirtualSvgLayer();
 		}
 
-
+		/**
+		 * Создаёт SVG-элемент с указанным тегом в пространстве имён SVG.
+		 * @since 1.0.0
+		 * @protected
+		 * @param {string} tag - Имя тега (например, 'svg', 'path', 'filter').
+		 * @returns {SVGElement}
+		 */
 		_createVirtualSvgElement(tag) {
 			return document.createElementNS('http://www.w3.org/2000/svg', tag);
 		}
 
-
+		/**
+		 * Создаёт HTML-элемент с указанным тегом.
+		 * @since 1.0.0
+		 * @protected
+		 * @param {string} tag - Имя тега (например, 'div').
+		 * @returns {HTMLElement}
+		 */
 		_createVirtualHtmlElement(tag) {
 			return document.createElement(tag);
 		}
 
 		/**
 		 * Создаёт SVG-элементы для слоя.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_initVirtualSvgLayer() {
 			if (this._virtualElementList.svgLayer) return;
@@ -2402,7 +2807,9 @@
 
 		/**
 		 * Создаёт внутренний div-обёртку для контента.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_initVirtualInnerWrapper() {
 			if (this._virtualElementList.innerWrapper) return;
@@ -2417,7 +2824,9 @@
 		/**
 		 * Добавляет виртуальные элементы в DOM.
 		 * @override
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_appendVirtualElements() {
 			this._appendInnerWrapper();
@@ -2427,7 +2836,9 @@
 		/**
 		 * Удаляет виртуальные элементы из DOM.
 		 * @override
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_removeVirtualElements() {
 			this._removeSvgLayer();
@@ -2436,7 +2847,9 @@
 
 		/**
 		 * Добавляет SVG-слой в начало элемента.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_appendSvgLayer() {
 			const svgLayer = this._virtualElementList.svgLayer;
@@ -2446,7 +2859,9 @@
 
 		/**
 		 * Удаляет SVG-слой.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_removeSvgLayer() {
 			const svgLayer = this._virtualElementList.svgLayer;
@@ -2457,7 +2872,9 @@
 
 		/**
 		 * Перемещает дочерние элементы элемента во внутреннюю обёртку.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_appendInnerWrapper() {
 			const innerWrapper = this._virtualElementList.innerWrapper;
@@ -2473,7 +2890,9 @@
 
 		/**
 		 * Возвращает дочерние элементы из обёртки обратно в элемент.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_removeInnerWrapper() {
 			const innerWrapper = this._virtualElementList.innerWrapper;
@@ -2498,7 +2917,9 @@
 
 		/**
 		 * Инициализирует viewBox.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_initViewbox() {
 			this._recalculateViewbox();
@@ -2507,7 +2928,9 @@
 		/**
 		 * Пересчитывает viewBox при изменении размеров.
 		 * @override
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_recalculateCurve() {
 			super._recalculateCurve();
@@ -2517,7 +2940,9 @@
 
 		/**
 		 * Обновляет viewBox на основе текущих размеров.
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_recalculateViewbox() {
 			if ( this._size.width > 0 && this._size.height > 0 ) {
@@ -2529,6 +2954,7 @@
 
 		/**
 		 * Возвращает строку viewBox.
+		 * @since 1.0.0
 		 * @protected
 		 * @returns {string}
 		 */
@@ -2539,7 +2965,9 @@
 		/**
 		 * Применяет кривую, обновляя viewBox и d-атрибут пути.
 		 * @override
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_applyCurve() {
 			const svgLayer = this._virtualElementList.svgLayer;
@@ -2556,7 +2984,9 @@
 		/**
 		 * Восстанавливает исходный путь и очищает d-атрибут.
 		 * @override
+		 * @since 1.0.0
 		 * @protected
+		 * @returns {void}
 		 */
 		_restoreCurve() {
 			const svgLayerPath = this._virtualElementList.svgLayerPath;
@@ -2595,8 +3025,11 @@
 
 
 	/**
-	 * Режим, использующий CSS-свойство `clip-path`.
+	 * Режим, использующий CSS-свойство `clip-path` для обрезки элемента.
+	 * Не требует создания дополнительных DOM-узлов, но не поддерживает тени, границы и сложные фоны.
+	 * @class SuperellipseModeClipPath
 	 * @extends SuperellipseMode
+	 * @since 1.0.0
 	 */
 	class SuperellipseModeClipPath extends SuperellipseMode {
 
@@ -2608,8 +3041,11 @@
 		 */
 
 		/**
-		 * @param {Element} element - Целевой элемент.
-		 * @param {boolean} [debug=false] - Флаг отладки.
+		 * Создаёт экземпляр режима clip-path.
+		 * @since 1.0.0
+		 * @param {Element} element - Целевой DOM-элемент.
+		 * @param {boolean} [debug=false] - Флаг отладки (передаётся в родительский класс).
+		 * @returns {SuperellipseModeClipPath} Экземпляр режима.
 		 */
 		constructor(element, debug = false) {
 			super(element, debug);
@@ -2691,12 +3127,15 @@
 
 		/**
 		 * Создаёт экземпляр контроллера.
+		 * @since 1.0.0
 		 * @param {Element} element - Целевой DOM-элемент.
 		 * @param {Object} [options] - Опции инициализации.
-		 * @param {boolean} [options.force] - Принудительное пересоздание.
-		 * @param {string} [options.mode='svg-layer'] - Режим работы.
-		 * @param {number} [options.curveFactor] - Коэффициент кривизны.
-		 * @param {number} [options.precision=2] - Точность округления.
+		 * @param {boolean} [options.force] - Принудительное пересоздание, если контроллер уже существует.
+		 * @param {string} [options.mode='svg-layer'] - Режим работы: 'svg-layer' или 'clip-path'.
+		 * @param {number} [options.curveFactor] - Коэффициент кривизны (диапазон -2..2).
+		 * @param {number} [options.precision=2] - Количество знаков после запятой в координатах пути.
+		 * @param {boolean} [options.debug=false] - Включить отладочный вывод.
+		 * @returns {SuperellipseController} Экземпляр контроллера.
 		 */
 		constructor(element, options = {}) {
 
@@ -2704,7 +3143,7 @@
 			
 			/** Проверка существующего контроллера **/
 			if (this._inControllers() && !options.force) {
-				console.warn('[Superellipse] The element is already initialized. Use {force:true} to recreate it.');
+				jsse_console.warn({label:'CONTROLLER', element: element}, 'The element is already initialized. Use {force:true} to recreate it.');
 				return this._getController();
 			}
 			
@@ -2748,8 +3187,9 @@
 
 		/**
 		 * Переключает режим работы.
+		 * @since 1.0.0
 		 * @param {string} modeName - Имя режима ('svg-layer' или 'clip-path').
-		 * @returns {SuperellipseController} this (для цепочек).
+		 * @returns {SuperellipseController} this (для цепочек вызовов).
 		 */
 		switchMode(modeName) {
 			this._deactivateMode();
@@ -2761,7 +3201,8 @@
 
 		/**
 		 * Проверяет, активирован ли суперэллипс.
-		 * @returns {boolean} true, если активирован.
+		 * @since 1.0.0
+		 * @returns {boolean} true, если эффект активен.
 		 */
 		isEnabled() {
 			return this._mode.isActivated();
@@ -2769,6 +3210,7 @@
 
 		/**
 		 * Активирует суперэллипс.
+		 * @since 1.0.0
 		 * @returns {SuperellipseController} this.
 		 */
 		enable() {
@@ -2778,6 +3220,7 @@
 
 		/**
 		 * Деактивирует суперэллипс, восстанавливая исходные стили.
+		 * @since 1.0.0
 		 * @returns {Element} Целевой элемент.
 		 */
 		disable() {
@@ -2787,6 +3230,7 @@
 
 		/**
 		 * Устанавливает коэффициент кривизны углов.
+		 * @since 1.0.0
 		 * @param {number} value - Новое значение (диапазон -2..2).
 		 * @returns {SuperellipseController} this.
 		 */
@@ -2799,6 +3243,7 @@
 
 		/**
 		 * Устанавливает точность округления координат пути.
+		 * @since 1.0.0
 		 * @param {number} value - Количество знаков после запятой.
 		 * @returns {SuperellipseController} this.
 		 */
@@ -2810,6 +3255,7 @@
 
 		/**
 		 * Возвращает текущий SVG-путь суперэллипса.
+		 * @since 1.0.0
 		 * @returns {string} Строка с командами path.
 		 */
 		getPath() {
@@ -2818,6 +3264,7 @@
 
 		/**
 		 * Полностью уничтожает контроллер и удаляет все связанные эффекты.
+		 * @since 1.0.0
 		 * @returns {Element} Целевой элемент.
 		 */
 		destroy() {
@@ -2834,7 +3281,9 @@
 
 		/**
 		 * Инициализирует уникальный идентификатор контроллера.
-		 * @private
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_initId() {
 			this._id = jsse_counter.value;
@@ -2843,7 +3292,10 @@
 
 		/**
 		 * Инициализирует флаг отладки.
-		 * @private
+		 * @since 1.0.0
+		 * @protected
+		 * @param {boolean} debug - Включить отладку.
+		 * @returns {void}
 		 */
 		_initDebug(debug) {
 			this._debug = !!debug;
@@ -2854,8 +3306,9 @@
 
 		/**
 		 * Проверяет, включён ли режим отладки для данного контроллера.
+		 * @since 1.0.0
+		 * @protected
 		 * @returns {boolean}
-		 * @private
 		 */
 		_isDebug() {
 			return this._debug;
@@ -2863,18 +3316,20 @@
 
 		/**
 		 * Проверяет, не скрыт ли элемент (`display: none`).
+		 * @since 1.0.0
+		 * @protected
 		 * @returns {boolean}
-		 * @private
 		 */
 		_isDisplay() {
 			const capturedStyles = getComputedStyle(this._element);
 			return capturedStyles.getPropertyValue('display') !== 'none';
 		}
 
-
 		/**
-		 * Метод полного уничтожения контроллера (внутренняя логика).
-		 * @private
+		 * Полное уничтожение контроллера (внутренняя логика).
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_destroyController() {
 			this._disconnectObservers();
@@ -2895,7 +3350,12 @@
 		 * =============================================================
 		 */
 
-
+		/**
+		 * Инициализирует систему событий.
+		 * @since 1.2.0
+		 * @protected
+		 * @returns {void}
+		 */
 		_initEvents() {
 			this._eventHandlers = {
 				update: [],
@@ -2904,14 +3364,28 @@
 				error: []
 			};
 		};
-		
+
+		/**
+		 * Подписывается на событие контроллера.
+		 * @since 1.2.0
+		 * @param {string} event - Имя события ('update', 'activate', 'deactivate', 'error').
+		 * @param {Function} callback - Функция-обработчик. Принимает объект события.
+		 * @returns {SuperellipseController} this.
+		 */
 		on(event, callback) {
 			if (this._eventHandlers[event]) {
 				this._eventHandlers[event].push(callback);
 			}
 			return this;
 		}
-		
+
+		/**
+		 * Отписывается от события контроллера.
+		 * @since 1.2.0
+		 * @param {string} event - Имя события.
+		 * @param {Function} callback - Ранее добавленный обработчик.
+		 * @returns {SuperellipseController} this.
+		 */
 		off(event, callback) {
 			if (this._eventHandlers[event]) {
 				const index = this._eventHandlers[event].indexOf(callback);
@@ -2919,7 +3393,15 @@
 			}
 			return this;
 		}
-		
+
+		/**
+		 * Вызывает событие с заданными данными.
+		 * @since 1.2.0
+		 * @protected
+		 * @param {string} event - Имя события.
+		 * @param {*} data - Данные события.
+		 * @returns {void}
+		 */
 		_emit(event, data) {
 			if (this._eventHandlers[event]) {
 				this._eventHandlers[event].forEach(cb => {
@@ -2942,8 +3424,10 @@
 
 		/**
 		 * Устанавливает активный режим.
-		 * @param {string} modeName - Имя режима.
-		 * @private
+		 * @since 1.0.0
+		 * @protected
+		 * @param {string} modeName - Имя режима ('svg-layer' или 'clip-path').
+		 * @returns {void}
 		 */
 		_setMode(modeName) {
 			switch (modeName) {
@@ -2958,13 +3442,14 @@
 			}
 			this._mode.setCurveFactor(this._curveFactor);
 			this._mode.setPrecision(this._precision);
-			
-			// this._mode.activate();
+
 		}
 
 		/**
 		 * Удаляет текущий режим, вызывая его деструктор.
-		 * @private
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_unsetMode() {
 
@@ -2972,6 +3457,12 @@
 			this._mode = null;
 		}
 
+		/**
+		 * Активирует текущий режим и инициализирует обработчики hover.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
+		 */
 		_activateMode() {
 			this._mode.activate();
 			this._initStylesheet();
@@ -2980,10 +3471,16 @@
 			this._emit('activate', { mode: this._mode._getModeName() });
 		}
 
+		/**
+		 * Деактивирует текущий режим и удаляет обработчики hover.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
+		 */
 		_deactivateMode() {
 			this._mode.deactivate();
 			this._unregisterTargetListeners();
-			
+
 			this._emit('deactivate', { mode: this._mode._getModeName() });
 		}
 
@@ -2997,7 +3494,9 @@
 
 		/**
 		 * Присваивает элементу атрибут `data-jsse-initiated`.
-		 * @private
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_setInitiatedAttr() {
 			this._element.setAttribute('data-jsse-initiated', true);
@@ -3005,7 +3504,9 @@
 
 		/**
 		 * Удаляет атрибут `data-jsse-initiated`.
-		 * @private
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_removeInitiatedAttr() {
 			this._element.removeAttribute('data-jsse-initiated');
@@ -3021,7 +3522,9 @@
 
 		/**
 		 * Инициализирует кэш стилей для элемента.
-		 * @private
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_initCacheStyles() {
 			if (!jsse_styles.get(this._element)) {
@@ -3031,23 +3534,29 @@
 
 		/**
 		 * Удаляет кэш стилей элемента.
-		 * @private
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_deleteCacheStyles() {
 			jsse_styles.delete(this._element);
 		}
 
 		/**
-		 * Получает контроллер (если есть)
-		 * @private
+		 * Получает контроллер, связанный с элементом (из глобальной WeakMap).
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {SuperellipseController|undefined}
 		 */
 		_getController() {
 			return jsse_controllers.get(this._element);
 		}
 
 		/**
-		 * Проверяет существует ли контроллер
-		 * @private
+		 * Проверяет, существует ли контроллер для элемента.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {boolean}
 		 */
 		_inControllers() {
 			return !!this._getController();
@@ -3055,7 +3564,9 @@
 
 		/**
 		 * Удаляет ссылку на контроллер из глобальной WeakMap.
-		 * @private
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_deleteFromControllers() {
 			jsse_controllers.delete(this._element);
@@ -3068,26 +3579,47 @@
 		 * =============================================================
 		 */
 
-
+		/**
+		 * Инициализирует парсинг стилей и находит триггеры для hover.
+		 * @since 1.1.0
+		 * @protected
+		 * @returns {void}
+		 */
 		_initStylesheet() {
 			this._targetTriggers = this._getTargetTriggers();
 			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[INIT]');
 		}
 
+		/**
+		 * Уничтожает данные стилей и обработчики hover.
+		 * @since 1.1.0
+		 * @protected
+		 * @returns {void}
+		 */
 		_destroyStylesheet() {
 			this._targetTriggers = null;
 			this._hoverHandlers = null;
+			this._unregisterGlobalTouchEndListener();
 			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[DESTROY]');
 		}
 
+		/**
+		 * Регистрирует обработчики событий на элементах-триггерах.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {Object} triggers - Объект, где ключ – селектор, значение – массив элементов.
+		 * @returns {void}
+		 */
 		_registerTargetListeners(triggers) {
 			this._hoverHandlers = {};
 			for (const selector in triggers) {
 				this._hoverHandlers[selector] = {
 					in : (event) => { this._triggerHandlerIn(selector, event); },
 					out : (event) => { this._triggerHandlerOut(selector, event); },
+					touchStart : (event) => { this._triggerHandlerTouchIn(selector, event); },
 					on : [],
-					hovered : false
+					hovered : false,
+					touchCount : 0
 				};
 				triggers[selector].forEach((trigger) => {
 					this._hoverHandlers[selector].on.push(trigger);
@@ -3097,6 +3629,12 @@
 			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', true);
 		}
 
+		/**
+		 * Удаляет все зарегистрированные обработчики с триггеров.
+		 * @since 1.1.0
+		 * @protected
+		 * @returns {void}
+		 */
 		_unregisterTargetListeners() {
 			for (const selector in this._hoverHandlers) {
 				for (const trigger of this._hoverHandlers[selector].on) {
@@ -3106,35 +3644,156 @@
 				}
 			}
 			this._hoverHandlers = {};
+
+			// Удаляем глобальный обработчик touchend
+			if (this._globalTouchEndHandler) {
+				document.body.removeEventListener('touchend', this._globalTouchEndHandler);
+				this._globalTouchEndHandler = null;
+			}
+			
 			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', false);
 		}
 
+		/**
+		 * Добавляет обработчики на конкретный элемент-триггер.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {Element} trigger - DOM-элемент-триггер.
+		 * @param {string} selector - Селектор, связанный с триггером.
+		 * @returns {void}
+		 */
 		_registerTriggerListener(trigger, selector) {
-			trigger.addEventListener('pointerenter', this._hoverHandlers[selector].in);
-			trigger.addEventListener('pointerleave', this._hoverHandlers[selector].out);
+			// Мышь / перо
+			trigger.addEventListener('mouseenter', this._hoverHandlers[selector].in);
+			trigger.addEventListener('mouseleave', this._hoverHandlers[selector].out);
+			
+			// Касание
+			trigger.addEventListener('touchstart', this._hoverHandlers[selector].touchStart);
+			this._registerGlobalTouchEndListener();
+
 			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', true, selector);
 		}
 
+		/**
+		 * Регистрирует глобальный обработчик `touchend` для корректной работы hover на сенсорных экранах.
+		 * @since 1.1.0
+		 * @protected
+		 * @returns {void}
+		 */
+		_registerGlobalTouchEndListener() {
+			// Глобальный обработчик touchend (добавляем один раз)
+			if (!this._globalTouchEndHandler) {
+				this._globalTouchEndHandler = (event) => {
+					for (const selector in this._hoverHandlers) {
+						const handler = this._hoverHandlers[selector];
+						if (handler.touchCount > 0) {
+							this._triggerHandlerTouchOut(selector, event);
+						}
+					}
+				};
+				document.body.addEventListener('touchend', this._globalTouchEndHandler);
+			}
+		}
+
+		/**
+		 * Удаляет глобальный обработчик `touchend`.
+		 * @since 1.1.0
+		 * @protected
+		 * @returns {void}
+		 */
+		_unregisterGlobalTouchEndListener() {
+			if (this._globalTouchEndHandler) {
+				document.body.removeEventListener('touchend', this._globalTouchEndHandler);
+				this._globalTouchEndHandler = null;
+			}
+		}
+
+		/**
+		 * Удаляет обработчики с элемента-триггера.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {Element} trigger - DOM-элемент-триггер.
+		 * @param {string} selector - Селектор, связанный с триггером.
+		 * @returns {void}
+		 */
 		_unregisterTriggerListener(trigger, selector) {
-			trigger.removeEventListener('pointerenter', this._hoverHandlers[selector].in);
-			trigger.removeEventListener('pointerleave', this._hoverHandlers[selector].out);
+			trigger.removeEventListener('mouseenter', this._hoverHandlers[selector].in);
+			trigger.removeEventListener('mouseleave', this._hoverHandlers[selector].out);
+			trigger.removeEventListener('touchstart', this._hoverHandlers[selector].touchStart);
+
 			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', false, selector);
 		}
 
-			_triggerHandlerIn(selector, event) {
-				if ( !this._element.matches(selector) || !this._hoverHandlers[selector] ) return;
-				this._hoverHandlers[selector].hovered = true;
-				jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector);
-				this._mutationHandler();
-			}
+		/**
+		 * Обработчик события `mouseenter` / `pointerenter` на триггере.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {string} selector - Селектор триггера.
+		 * @param {Event} event - Событие.
+		 * @returns {void}
+		 */
+		_triggerHandlerIn(selector, event) {
+			if ( !this._element.matches(selector) || !this._hoverHandlers[selector] ) return;
+			this._hoverHandlers[selector].hovered = true;
+			jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector, event);
+			this._mutationHandler();
+		}
 
-			_triggerHandlerOut(selector, event) {
-				if ( !this._hoverHandlers[selector]?.hovered ) return;
-				this._hoverHandlers[selector].hovered = false;
-				jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector);
-				this._mutationHandler();
-			}
+		/**
+		 * Обработчик события `mouseleave` / `pointerleave` на триггере.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {string} selector - Селектор триггера.
+		 * @param {Event} event - Событие.
+		 * @returns {void}
+		 */
+		_triggerHandlerOut(selector, event) {
+			if ( this._element.matches(selector) || !this._hoverHandlers[selector] || !this._hoverHandlers[selector]?.hovered ) return;
+			this._hoverHandlers[selector].hovered = false;
+			jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector, event);
+			this._mutationHandler();
+		}
 
+		/**
+		 * Обработчик `touchstart` на триггере (увеличивает счётчик касаний).
+		 * @since 1.1.0
+		 * @protected
+		 * @param {string} selector - Селектор триггера.
+		 * @param {TouchEvent} event - Событие касания.
+		 * @returns {void}
+		 */
+		_triggerHandlerTouchIn(selector, event) {
+			if ( !this._hoverHandlers[selector] || this._hoverHandlers[selector]?.touchCount !== undefined ) {
+				this._hoverHandlers[selector].touchCount++;
+				if (this._hoverHandlers[selector].touchCount === 1) {
+					this._triggerHandlerIn(selector, event);
+				}
+			}
+		}
+
+		/**
+		 * Обработчик `touchend` (уменьшает счётчик касаний и вызывает выход при обнулении).
+		 * @since 1.1.0
+		 * @protected
+		 * @param {string} selector - Селектор триггера.
+		 * @param {TouchEvent} event - Событие касания.
+		 * @returns {void}
+		 */
+		_triggerHandlerTouchOut(selector, event) {
+			if ( !this._hoverHandlers[selector] || this._hoverHandlers[selector]?.touchCount !== undefined ) {
+				this._hoverHandlers[selector].touchCount--;
+				if (this._hoverHandlers[selector].touchCount === 0) {
+					this._triggerHandlerOut(selector, event);
+				}
+			}
+		}
+
+		/**
+		 * Находит все элементы-триггеры, которые могут вызвать изменение стилей при наведении на целевой элемент.
+		 * @since 1.1.0
+		 * @protected
+		 * @returns {Object<string, Element[]>} Объект, где ключ – селектор, значение – массив элементов.
+		 */
 		_getTargetTriggers() {
 			const triggerList = {};
 			const targetSelectors = jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
@@ -3148,6 +3807,13 @@
 			return triggerList;
 		}
 
+		/**
+		 * Для заданного CSS-правила (селектора) возвращает массив элементов-триггеров.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {StylesheetParserSelector} selector - Объект селектора.
+		 * @returns {Element[]}
+		 */
 		_getSelectorTriggerElements(selector) {
 			const selectorTargetElements = [];
 			const selectorParts = selector.getTriggerParts();
@@ -3157,86 +3823,129 @@
 			}
 			return selectorTargetElements;
 		}
-			_getSelectorPartTriggerElements(selectorPart) {
-				if (selectorPart.neighbor) {
-					const neighborSelector = `${selectorPart.neighbor.combinator}${selectorPart.neighbor.clean}`;
-					const cssSelectorHasCombinator = `:has(${selectorPart.neighbor.combinator}*)`;
-					const hasCombinatorIsSupport = jsse_css_selector.isSupport(cssSelectorHasCombinator);
-					if (hasCombinatorIsSupport) {
-						return this._getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector);
-					} else {
-						// Браузер НЕ поддерживает :has() — используем fallback
-						jsse_console.warn({label:'HOVER', element: this._element}, '[FALLBACK] Using manual DOM traversal for:', neighborSelector);
-						return  this._getSelectorPartTriggerElementsWithoutHasSupport(selectorPart.parent, neighborSelector, selectorPart.child);
-					}
-				} else {
-					// Нет соседа — обычный селектор
-					const triggers = Array.from(document.querySelectorAll(selectorPart.parent));
-					return triggers.filter(trigger => 
-						this._elementMatchesChildSelector(trigger, selectorPart.child)
-					);
-				}
-			}
-			_getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector) {
-				// Браузер поддерживает :has() — используем быстрый селектор
-				const triggersSelector = `${selectorPart.parent}:has(${neighborSelector})`;
-				const siblingSelector = `${selectorPart.parent}${neighborSelector}`;
-				
-				const triggers = Array.from(document.querySelectorAll(triggersSelector));
-				const siblings = Array.from(document.querySelectorAll(siblingSelector));
-				
-				return triggers.filter((trigger, index) => {
-					const current = siblings[index];
-					return this._elementMatchesChildSelector(current, selectorPart.child);
-				});
-			}
-			_getSelectorPartTriggerElementsWithoutHasSupport(parentSelector, neighborSelector, childSelector) {
-				const result = [];
-				
-				// 1. Находим всех потенциальных родителей
-				const allParents = Array.from(document.querySelectorAll(parentSelector));
-				
-				// 2. Парсим комбинатор и чистый селектор соседа
-				const combinator = neighborSelector.trim()[0]; // '+' или '~'
-				const cleanNeighborSelector = neighborSelector.trim().substring(1).trim();
-				
-				for (const parent of allParents) {
-					// 3. Ищем соседние элементы относительно родителя или внутри него
-					let neighborElements = [];
-					
-					if (combinator === '+') {
-						// Соседний элемент (сразу следующий)
-						const nextSibling = parent.nextElementSibling;
-						if (nextSibling && nextSibling.matches(cleanNeighborSelector)) {
-							neighborElements = [nextSibling];
-						}
-					} else if (combinator === '~') {
-						// Все последующие соседние элементы
-						let sibling = parent.nextElementSibling;
-						while (sibling) {
-							if (sibling.matches(cleanNeighborSelector)) {
-								neighborElements.push(sibling);
-							}
-							sibling = sibling.nextElementSibling;
-						}
-					}
-					
-					// 4. Проверяем, содержит ли найденный сосед целевой элемент
-					for (const neighbor of neighborElements) {
-						if (this._elementMatchesChildSelector(neighbor, childSelector)) {
-							result.push(parent);
-							break; // Нашли триггер для этого родителя
-						}
-					}
-				}
-				
-				return result;
-			}
 
+		/**
+		 * Для одной части составного селектора возвращает элементы-триггеры.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {Object} selectorPart - Часть селектора с полями parent, neighbor, child.
+		 * @returns {Element[]}
+		 */
+		_getSelectorPartTriggerElements(selectorPart) {
+			if (selectorPart.neighbor) {
+				const neighborSelector = `${selectorPart.neighbor.combinator}${selectorPart.neighbor.clean}`;
+				const cssSelectorHasCombinator = `:has(${selectorPart.neighbor.combinator}*)`;
+				const hasCombinatorIsSupport = jsse_css_selector.isSupport(cssSelectorHasCombinator);
+				if (hasCombinatorIsSupport) {
+					return this._getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector);
+				} else {
+					// Браузер НЕ поддерживает :has() — используем fallback
+					jsse_console.warn({label:'HOVER', element: this._element}, '[FALLBACK] Using manual DOM traversal for:', neighborSelector);
+					return  this._getSelectorPartTriggerElementsWithoutHasSupport(selectorPart.parent, neighborSelector, selectorPart.child);
+				}
+			} else {
+				// Нет соседа — обычный селектор
+				const triggers = Array.from(document.querySelectorAll(selectorPart.parent));
+				return triggers.filter(trigger => 
+					this._elementMatchesChildSelector(trigger, selectorPart.child)
+				);
+			}
+		}
+
+		/**
+		 * Реализация поиска триггеров с использованием современного CSS-селектора `:has()`.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {Object} selectorPart - Часть селектора.
+		 * @param {string} neighborSelector - Селектор соседнего элемента.
+		 * @returns {Element[]}
+		 */
+		_getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector) {
+			// Браузер поддерживает :has() — используем быстрый селектор
+			const triggersSelector = `${selectorPart.parent}:has(${neighborSelector})`;
+			const siblingSelector = `${selectorPart.parent}${neighborSelector}`;
+			
+			const triggers = Array.from(document.querySelectorAll(triggersSelector));
+			const siblings = Array.from(document.querySelectorAll(siblingSelector));
+			
+			return triggers.filter((trigger, index) => {
+				const current = siblings[index];
+				return this._elementMatchesChildSelector(current, selectorPart.child);
+			});
+		}
+
+		/**
+		 * Fallback-реализация поиска триггеров для браузеров без поддержки `:has()`.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {string} parentSelector - Селектор родителя.
+		 * @param {string} neighborSelector - Селектор соседа (с комбинатором).
+		 * @param {string} childSelector - Селектор дочернего элемента (целевой элемент).
+		 * @returns {Element[]}
+		 */
+		_getSelectorPartTriggerElementsWithoutHasSupport(parentSelector, neighborSelector, childSelector) {
+			const result = [];
+			
+			// 1. Находим всех потенциальных родителей
+			const allParents = Array.from(document.querySelectorAll(parentSelector));
+			
+			// 2. Парсим комбинатор и чистый селектор соседа
+			const combinator = neighborSelector.trim()[0]; // '+' или '~'
+			const cleanNeighborSelector = neighborSelector.trim().substring(1).trim();
+			
+			for (const parent of allParents) {
+				// 3. Ищем соседние элементы относительно родителя или внутри него
+				let neighborElements = [];
+				
+				if (combinator === '+') {
+					// Соседний элемент (сразу следующий)
+					const nextSibling = parent.nextElementSibling;
+					if (nextSibling && nextSibling.matches(cleanNeighborSelector)) {
+						neighborElements = [nextSibling];
+					}
+				} else if (combinator === '~') {
+					// Все последующие соседние элементы
+					let sibling = parent.nextElementSibling;
+					while (sibling) {
+						if (sibling.matches(cleanNeighborSelector)) {
+							neighborElements.push(sibling);
+						}
+						sibling = sibling.nextElementSibling;
+					}
+				}
+				
+				// 4. Проверяем, содержит ли найденный сосед целевой элемент
+				for (const neighbor of neighborElements) {
+					if (this._elementMatchesChildSelector(neighbor, childSelector)) {
+						result.push(parent);
+						break; // Нашли триггер для этого родителя
+					}
+				}
+			}
+			
+			return result;
+		}
+
+		/**
+		 * Возвращает список элементов, соответствующих селектору, в заданном контексте.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {string} selector - CSS-селектор.
+		 * @param {Element|Document} [parent=document] - Корневой элемент для поиска.
+		 * @returns {NodeListOf<Element>}
+		 */
 		_getSelectorElements(selector, parent=document) {
 			return parent.querySelectorAll(selector);
 		}
 
+		/**
+		 * Проверяет, содержится ли целевой элемент внутри родителя с учётом дочернего селектора.
+		 * @since 1.1.0
+		 * @protected
+		 * @param {Element} parent - Потенциальный родитель.
+		 * @param {string} selector - Селектор дочернего элемента.
+		 * @returns {boolean}
+		 */
 		_elementMatchesChildSelector(parent, selector) {
 			if (!(parent.contains(this._element) || parent === this._element)) {
 				return false;
@@ -3247,6 +3956,12 @@
 			return Array.from(children).includes(this._element);
 		}
 
+		/**
+		 * Заглушка для получения элементов-триггеров (не используется).
+		 * @since 1.1.0
+		 * @protected
+		 * @returns {void}
+		 */
 		_getTriggerElements() {
 			jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
 		}
@@ -3259,8 +3974,10 @@
 		 */
 
 		/**
-		 * Подключает наблюдатели (MutationObserver, ResizeObserver, IntersectionObserver и пр.).
-		 * @private
+		 * Подключает наблюдатели: MutationObserver, ResizeObserver, IntersectionObserver и отслеживание удаления.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_connectObservers() {
 			this._mutationObserver = new MutationObserver(() => {
@@ -3295,8 +4012,10 @@
 		}
 
 		/**
-		 * Отключает всех наблюдателей.
-		 * @private
+		 * Отключает всех наблюдателей и очищает таймеры.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_disconnectObservers() {
 			if (this._prepareTimer) clearTimeout(this._prepareTimer);
@@ -3309,8 +4028,10 @@
 		}
 
 		/**
-		 * Обработчик мутаций атрибутов/классов.
-		 * @private
+		 * Обработчик мутаций (изменение атрибутов style/class). Запускает отложенное обновление.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_mutationHandler() {
 			jsse_console.debug({label:'MUTATION', element:this._element}, '[DETECT]', this._isSelfMutation ? 'self' : 'flow');
@@ -3348,8 +4069,10 @@
 		}
 
 		/**
-		 * Обработчик изменения размеров.
-		 * @private
+		 * Обработчик изменения размеров элемента. При скрытом элементе устанавливает флаг `_needsUpdate`.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_resizeHandler() {
 			if (this._isDisplay()) {
@@ -3364,9 +4087,11 @@
 		}
 
 		/**
-		 * Обработчик видимости элемента (IntersectionObserver).
+		 * Обработчик видимости элемента (IntersectionObserver). При появлении элемента выполняет отложенное обновление.
+		 * @since 1.0.0
+		 * @protected
 		 * @param {IntersectionObserverEntry[]} entries - Записи пересечений.
-		 * @private
+		 * @returns {void}
 		 */
 		_intersectionHandler(entries) {
 			if (entries[0].isIntersecting && this._needsUpdate) {
@@ -3380,8 +4105,10 @@
 		}
 
 		/**
-		 * Обработчик удаления элемента из DOM.
-		 * @private
+		 * Обработчик удаления элемента из DOM. При отсутствии элемента в документе уничтожает контроллер.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {void}
 		 */
 		_destroyHandler() {
 			if (!document.body.contains(this._element)) {
@@ -3442,7 +4169,7 @@
 		let controller = jsse_controllers.get(this);
 
 		if (controller && !options?.force) {
-			console.warn('[Superellipse] The element already has a controller. Use {force:true} to recreate it.');
+			jsse_console.warn({label:'API', element: this}, 'The element already has a controller. Use {force:true} to recreate it.');
 			return controller;
 		}
 		

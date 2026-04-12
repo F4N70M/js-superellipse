@@ -2,41 +2,34 @@
  * @file src/support.js
  * 
  * @module sj-superellipse/css-parser
- * @since 1.0.0
+ * @since 1.1.0
  * @author f4n70m
  * 
  * @description
  * Модуль парсинга css стилей страницы.
- * - `StylesheetParser`
- * - `StylesheetParserSelectorList`
- * - `StylesheetParserSelector`
- * - `StylesheetParserFragmentList`
- * - `StylesheetParserFragment`
  */
 
 import { jsse_console, jsse_css_selector } from './support.js';
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Представляет фрагмент CSS-селектора (часть между комбинаторами).
+ * @class StylesheetParserFragment
+ * @since 1.1.0
+ */
 class StylesheetParserFragment {
 	_combinator;
 	_full;
 	_clean;
 	_pseudo;
 
+	/**
+	 * @param {Object} options - Параметры фрагмента.
+	 * @param {string} options.combinator - Комбинатор (пробел, '>', '+', '~').
+	 * @param {string} options.full - Полный текст фрагмента.
+	 * @param {string} options.clean - Очищенный текст (без псевдоклассов).
+	 * @param {string[]} options.pseudo - Список псевдоклассов/псевдоэлементов.
+	 */
 	constructor(options) {
 		this._combinator = options.combinator;
 		const isRoot = options.full === ':root';
@@ -45,45 +38,66 @@ class StylesheetParserFragment {
 		this._pseudo = [...new Set(options.pseudo)];
 	}
 
+	/**
+	 * Возвращает комбинатор.
+	 * @since 1.1.0
+	 * @returns {string}
+	 */
 	getCombinator() {
 		return this._combinator;
 	};
-	getFull() { return this._full; };
+
+	/**
+	 * Возвращает полный текст фрагмента.
+	 * @since 1.1.0
+	 * @returns {string}
+	 */
+	getFull() {
+		return this._full;
+	}
+
+	/**
+	 * Возвращает очищенный текст фрагмента.
+	 * @since 1.1.0
+	 * @returns {string}
+	 */
 	getClean() { return this._clean; };
+
+	/**
+	 * Возвращает список псевдоклассов/псевдоэлементов.
+	 * @since 1.1.0
+	 * @returns {string[]}
+	 */
 	getPseudoList() { return this.pseudo; };
 
+	/**
+	 * Проверяет наличие конкретного псевдокласса.
+	 * @since 1.1.0
+	 * @param {string} pseudo - Псевдокласс (например, ':hover').
+	 * @returns {boolean}
+	 */
 	hasPseudo(pseudo) {
 		return this._pseudo.includes(pseudo);
 	}
 
+	/**
+	 * Проверяет наличие псевдокласса `:hover`.
+	 * @since 1.1.0
+	 * @returns {boolean}
+	 */
 	hasHover() {
 		return this.hasPseudo(':hover');
-	}
-
-	getFull() {
-		return this._full;
 	}
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Список фрагментов селектора (массив с валидацией).
+ * @class StylesheetParserFragmentList
+ * @extends Array
+ * @since 1.1.0
+ */
 class StylesheetParserFragmentList extends Array {
-
-	// _triggerList = null;
-	// _triggerIndexList = null;
 
 
 	/**
@@ -93,24 +107,48 @@ class StylesheetParserFragmentList extends Array {
 	 */
 
 
-	// Проверка валидности
+	/**
+	 * Проверяет, является ли элемент валидным фрагментом.
+	 * @since 1.1.0
+	 * @static
+	 * @private
+	 * @param {any} item - Проверяемый элемент.
+	 * @returns {boolean}
+	 */
 	static #isValid(item) {
 		return item instanceof StylesheetParserFragment;
 	}
 
-	// Переопределяем push - добавляем только валидные
+	/**
+	 * Добавляет валидные фрагменты в конец массива.
+	 * @override
+	 * @param {...StylesheetParserFragment} items - Фрагменты.
+	 * @returns {number}
+	 */
 	push(...items) {
 		const valid = items.filter(item => StylesheetParserFragmentList.#isValid(item));
 		return super.push(...valid);
 	}
 
-	// Переопределяем unshift
+	/**
+	 * Добавляет валидные фрагменты в начало массива.
+	 * @override
+	 * @param {...StylesheetParserFragment} items - Фрагменты.
+	 * @returns {number}
+	 */
 	unshift(...items) {
 		const valid = items.filter(item => StylesheetParserFragmentList.#isValid(item));
 		return super.unshift(...valid);
 	}
 
-	// Переопределяем splice
+	/**
+	 * Изменяет содержимое массива, удаляя или заменяя элементы.
+	 * @override
+	 * @param {number} start - Индекс начала.
+	 * @param {number} deleteCount - Количество удаляемых элементов.
+	 * @param {...StylesheetParserFragment} items - Добавляемые фрагменты.
+	 * @returns {StylesheetParserFragment[]}
+	 */
 	splice(start, deleteCount, ...items) {
 		const valid = items.filter(item => StylesheetParserFragmentList.#isValid(item));
 		return super.splice(start, deleteCount, ...valid);
@@ -126,10 +164,21 @@ class StylesheetParserFragmentList extends Array {
 	 * =============================================================
 	 */
 
+
+	/**
+	 * Возвращает последний фрагмент (целевой).
+	 * @since 1.1.0
+	 * @returns {StylesheetParserFragment}
+	 */
 	getTarget() {
 		return this[this.length-1];
 	}
 
+	/**
+	 * Возвращает индексы фрагментов, содержащих `:hover`.
+	 * @since 1.1.0
+	 * @returns {number[]}
+	 */
 	getTriggerIndexList() {
 		return this.reduce((indexes, element, index) => {
 			if (element.hasHover()) {
@@ -139,10 +188,20 @@ class StylesheetParserFragmentList extends Array {
 		}, []);
 	}
 
+	/**
+	 * Проверяет, есть ли хотя бы один фрагмент с `:hover`.
+	 * @since 1.1.0
+	 * @returns {boolean}
+	 */
 	hasTrigger() {
 		return this.getTriggerIndexList().length > 0;
 	}
 
+	/**
+	 * Проверяет, содержит ли целевой фрагмент `:hover`.
+	 * @since 1.1.0
+	 * @returns {boolean}
+	 */
 	targetIsTriggered() {
 		return this.getTarget().hasHover();
 	}
@@ -156,41 +215,46 @@ class StylesheetParserFragmentList extends Array {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Представляет CSS-правило (селектор + стили).
+ * @class StylesheetParserSelector
+ * @since 1.1.0
+ */
 class StylesheetParserSelector {
 
 	_media;
 	_selector;
-	_fragments = null;
+	_fragments;
 
 	_ruleStyle;
-	_styles = null;
+	_styles;
 
-	_triggerFragments = null;
-	_triggerIndexList = null;
-	_triggerParts = null;
+	_triggerFragments;
+	_triggerIndexList;
+	_triggerParts;
 
+	/**
+	 * @param {string} selector - Текст селектора.
+	 * @param {CSSStyleDeclaration} ruleStyle - Стили правила.
+	 * @param {string|false} media - Медиа-выражение (если правило внутри @media).
+	 */
 	constructor(selector, ruleStyle, media) {
-		this._selector = selector;
-		this._ruleStyle = ruleStyle;
-		// this._styles = styles;
+		/** @type {string|false} */
 		this._media = media;
-
-		// const target = this.getFragments().getTarget();
-		// const targetHasHover = this.getFragments().targetIsTriggered();
+		/** @type {string} */
+		this._selector = selector;
+		/** @type {StylesheetParserFragmentList|null} */
+		this._fragments = null;
+		/** @type {CSSStyleDeclaration} */
+		this._ruleStyle = ruleStyle;
+		/** @type {Object<string, string>|null} */
+		this._styles = null;
+		/** @type {StylesheetParserFragmentList|null} */
+		this._triggerFragments = null;
+		/** @type {number[]|null} */
+		this._triggerIndexList = null;
+		/** @type {Array|null} */
+		this._triggerParts = null;
 	}
 
 	/**
@@ -199,18 +263,33 @@ class StylesheetParserSelector {
 	 * =============================================================
 	 */
 
+
+	/**
+	 * Возвращает текст селектора.
+	 * @since 1.1.0
+	 * @returns {string}
+	 */
 	getSelector() {
 		return this._selector;
 	}
 
+	/**
+	 * Возвращает распарсенные стили правила.
+	 * @since 1.1.0
+	 * @returns {Object<string, string>}
+	 */
 	getStyles() {
-		// return this._styles;
-        if (this._styles === null) {
-            this._styles = this._parseStyles();
-        }
-        return this._styles;
+		if (this._styles === null) {
+			this._styles = this._parseStyles();
+		}
+		return this._styles;
 	}
 
+	/**
+	 * Возвращает список фрагментов селектора.
+	 * @since 1.1.0
+	 * @returns {StylesheetParserFragmentList}
+	 */
 	getFragments() {
 		if (this._fragments === null) {
 			this._fragments = this._getSelectorFragments(this._selector);
@@ -218,10 +297,20 @@ class StylesheetParserSelector {
 		return this._fragments;
 	}
 
+	/**
+	 * Проверяет, соответствует ли текущее медиа-правило.
+	 * @since 1.1.0
+	 * @returns {boolean}
+	 */
 	matchMedia() {
 		return !this._media || window.matchMedia(this._media).matches;
 	}
 
+	/**
+	 * Возвращает части селектора, участвующие в hover-триггерах.
+	 * @since 1.1.0
+	 * @returns {Array<{parent: string, neighbor: Object|null, child: string}>}
+	 */
 	getTriggerParts() {
 		if (this._triggerParts === null) {
 			this._triggerParts = [];
@@ -256,6 +345,11 @@ class StylesheetParserSelector {
 		return this._triggerParts;
 	}
 
+	/**
+	 * Возвращает фрагменты, содержащие `:hover`.
+	 * @since 1.1.0
+	 * @returns {StylesheetParserFragmentList}
+	 */
 	getTriggerFragments() {
 		if (this._triggerFragments === null) {
 			this._triggerFragments = new StylesheetParserFragmentList();
@@ -276,25 +370,36 @@ class StylesheetParserSelector {
 	 * PRIVATE
 	 * =============================================================
 	 */
-    
-    _parseStyles() {
-        const styles = {};
-        if (this._ruleStyle.cssText) {
-            const declarations = this._ruleStyle.cssText.split(';');
-            for (const decl of declarations) {
-                const colonIndex = decl.indexOf(':');
-                if (colonIndex > 0) {
-                    const prop = decl.substring(0, colonIndex).trim();
-                    const value = decl.substring(colonIndex + 1).trim();
-                    if (prop && value) {
-                        styles[prop] = value;
-                    }
-                }
-            }
-        }
-        return styles;
-    }
+	
+	/**
+	 * Парсит CSS-стили из cssText.
+	 * @private
+	 * @returns {Object<string, string>}
+	 */
+	_parseStyles() {
+		const styles = {};
+		if (this._ruleStyle.cssText) {
+			const declarations = this._ruleStyle.cssText.split(';');
+			for (const decl of declarations) {
+				const colonIndex = decl.indexOf(':');
+				if (colonIndex > 0) {
+					const prop = decl.substring(0, colonIndex).trim();
+					const value = decl.substring(colonIndex + 1).trim();
+					if (prop && value) {
+						styles[prop] = value;
+					}
+				}
+			}
+		}
+		return styles;
+	}
 
+	/**
+	 * Разбивает селектор на фрагменты.
+	 * @private
+	 * @param {string} selector - Текст селектора.
+	 * @returns {StylesheetParserFragmentList}
+	 */
 	_getSelectorFragments(selector) {
 		const s = selector;
 		const result = new StylesheetParserFragmentList();
@@ -394,20 +499,12 @@ class StylesheetParserSelector {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Список CSS-селекторов (массив с валидацией).
+ * @class StylesheetParserSelectorList
+ * @extends Array
+ * @since 1.1.0
+ */
 class StylesheetParserSelectorList extends Array {
 
 
@@ -418,24 +515,51 @@ class StylesheetParserSelectorList extends Array {
 	 */
 
 
-	// Проверка валидности
+	/**
+	 * Проверяет, является ли элемент валидным селектором.
+	 * @since 1.1.0
+	 * @static
+	 * @private
+	 * @param {any} item - Проверяемый элемент.
+	 * @returns {boolean}
+	 */
 	static #isValid(item) {
 		return item instanceof StylesheetParserSelector;
 	}
 
-	// Переопределяем push - добавляем только валидные
+	/**
+	 * Добавляет валидные селекторы в конец массива.
+	 * @since 1.1.0
+	 * @override
+	 * @param {...StylesheetParserSelector} items - Селекторы.
+	 * @returns {number}
+	 */
 	push(...items) {
 		const valid = items.filter(item => StylesheetParserSelectorList.#isValid(item));
 		return super.push(...valid);
 	}
 
-	// Переопределяем unshift
+	/**
+	 * Добавляет валидные селекторы в начало массива.
+	 * @since 1.1.0
+	 * @override
+	 * @param {...StylesheetParserSelector} items - Селекторы.
+	 * @returns {number}
+	 */
 	unshift(...items) {
 		const valid = items.filter(item => StylesheetParserSelectorList.#isValid(item));
 		return super.unshift(...valid);
 	}
 
-	// Переопределяем splice
+	/**
+	 * Изменяет содержимое массива, удаляя или заменяя элементы.
+	 * @since 1.1.0
+	 * @override
+	 * @param {number} start - Индекс начала.
+	 * @param {number} deleteCount - Количество удаляемых элементов.
+	 * @param {...StylesheetParserSelector} items - Добавляемые селекторы.
+	 * @returns {StylesheetParserSelector[]}
+	 */
 	splice(start, deleteCount, ...items) {
 		const valid = items.filter(item => StylesheetParserSelectorList.#isValid(item));
 		return super.splice(start, deleteCount, ...valid);
@@ -452,6 +576,11 @@ class StylesheetParserSelectorList extends Array {
 	 */
 
 
+	/**
+	 * Возвращает селекторы, содержащие `:hover`.
+	 * @since 1.1.0
+	 * @returns {StylesheetParserSelector[]}
+	 */
 	getSelectorsWithHover() {
 		return this.filter(item => item.getFragments().hasTrigger());
 	}
@@ -465,26 +594,20 @@ class StylesheetParserSelectorList extends Array {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Парсер таблиц стилей. Извлекает CSS-правила, разбирает селекторы и предоставляет доступ к ним.
+ * @class StylesheetParser
+ * @since 1.1.0
+ */
 export class StylesheetParser {
 	_selectors;
-	_isParsed = false;
+	_isParsed;
 
 	constructor() {
-		// this._init();
+		/** @type {StylesheetParserSelectorList|null} */
+		this._selectors = null;
+		/** @type {boolean} */
+		this._isParsed = false;
 	}
 	
 	/**
@@ -493,16 +616,34 @@ export class StylesheetParser {
 	 * =============================================================
 	 */
 
+	/**
+	 * Возвращает список всех селекторов.
+	 * @since 1.1.0
+	 * @returns {StylesheetParserSelectorList}
+	 */
 	getSelectors() {
 		this._ensureParsed();
 		return this._selectors;
 	}
 
+	/**
+	 * Возвращает селекторы, содержащие `:hover`.
+	 * @since 1.1.0
+	 * @returns {StylesheetParserSelector[]}
+	 */
 	getSelectorsHasHover() {
 		this._ensureParsed();
 		return this._selectors.getSelectorsWithHover();
 	}
 
+	/**
+	 * Возвращает селекторы, которые соответствуют элементу и (опционально) содержат `:hover`.
+	 * @since 1.1.0
+	 * @param {Element} element - Целевой элемент.
+	 * @param {Object} [options] - Опции.
+	 * @param {boolean} [options.selectorHasHover] - Если true, возвращать только селекторы с `:hover`.
+	 * @returns {StylesheetParserSelector[]}
+	 */
 	getTargetSelectors(element, options={}) {
 		this._ensureParsed();
 		const targetList = this._createList();
@@ -523,6 +664,11 @@ export class StylesheetParser {
 		return targetList;
 	}
 
+	/**
+	 * Сбрасывает состояние парсера (принудительный перепарсинг при следующем вызове).
+	 * @since 1.1.0
+	 * @returns {void}
+	 */
 	reset() {
 		this._selectors = null;
 		this._isParsed = false;
@@ -533,24 +679,44 @@ export class StylesheetParser {
 	 * PRIVATE
 	 * =============================================================
 	 */
-	
-	// Гарантируем, что парсинг выполнится при первом обращении
+
+
+	/**
+	 * Гарантирует, что парсинг выполнен.
+	 * @private
+	 * @returns {void}
+	 */
 	_ensureParsed() {
 		if (this._isParsed) return;
 		this._init();
 		this._isParsed = true;
 	}
 
+	/**
+	 * Инициализирует парсер: создаёт список и парсит CSS-правила.
+	 * @private
+	 * @returns {void}
+	 */
 	_init() {
 		this._selectors = this._createList();
 		this._parseCssRules();
 		jsse_console.debug({label:'STYLESHEET'}, '[LOADED]');
 	}
 
+	/**
+	 * Создаёт пустой список селекторов.
+	 * @private
+	 * @returns {StylesheetParserSelectorList}
+	 */
 	_createList() {
 		return new StylesheetParserSelectorList();
 	}
 
+	/**
+	 * Парсит все CSS-правила из document.styleSheets.
+	 * @private
+	 * @returns {void}
+	 */
 	_parseCssRules() {
 		for (const styleSheet of document.styleSheets) {
 			try {
@@ -567,27 +733,36 @@ export class StylesheetParser {
 								this._selectors.push(...this._getParsedCssRule(subRule, rule.media.mediaText));
 							}
 						} catch (e) {
-							console.warn(`[STYLESHEET] Ошибка при обработке @media правила из ${styleSheet.href || 'inline'}:`, e.message);
+							jsse_console.warn({label:'STYLESHEET'}, `Error processing @media rules from ${styleSheet.href || 'inline'}:`, e.message);
 						}
 					}
 					// Можно добавить другие типы правил (CSSRule.IMPORT_RULE, CSSRule.SUPPORTS_RULE и т.д.)
 				}
 			} catch (e) {
 				if (e.name === 'SecurityError') {
-					console.warn(
-						`[STYLESHEET] Нет доступа к правилам таблицы стилей:\n${styleSheet.href || 'inline / blob'}.\n` +
-						`Причина: CORS или file:// протокол.\nЧтобы это исправить, используйте локальный сервер (http://) или добавьте crossorigin атрибут.`
+					jsse_console.warn(
+						{label:'STYLESHEET'},
+						`Cannot access stylesheet rules:`,
+						`\n${styleSheet.href || 'inline / blob'}.`,
+						`\nCause: CORS or file:// protocol.`,
+						`\nTo fix this, use a local server (http://) or add the crossorigin attribute.`
 					);
 				} else if (e.name === 'InvalidAccessError') {
-					console.warn(`[STYLESHEET] Таблица стилей ${styleSheet.href || 'inline'} ещё не загружена или имеет некорректный доступ.`);
+					jsse_console.warn({label:'STYLESHEET'}, `The stylesheet ${styleSheet.href || 'inline'} has not yet loaded or has invalid access.`);
 				} else {
-					console.warn(`[STYLESHEET] Неизвестная ошибка при чтении ${styleSheet.href || 'inline'}:`, e.message);
+					jsse_console.warn({label:'STYLESHEET'}, `Unknown error reading ${styleSheet.href || 'inline'}:`, e.message);
 				}
-				console.debug(e);
 			}
 		}
 	}
 
+	/**
+	 * Преобразует CSSRule в массив селекторов.
+	 * @private
+	 * @param {CSSRule} rule - CSS-правило.
+	 * @param {string|false} [media=false] - Медиа-выражение (если правило внутри @media).
+	 * @returns {StylesheetParserSelector[]}
+	 */
 	_getParsedCssRule(rule, media=false) {
 		const result = [];
 		const selectorGroup = rule.selectorText;
@@ -601,13 +776,17 @@ export class StylesheetParser {
 
 
 	/**
-	 * Разбивает группу селекторов по запятым, но не внутри скобок.
-	 * Пример: ":not(.a, .b), .c" → [":not(.a, .b)", ".c"]
+	 * Разбивает группу селекторов по запятым, игнорируя запятые внутри скобок.
+	 * @private
+	 * @param {string} selectorText - Текст группы селекторов.
+	 * @returns {string[]}
+	 * @example
+	 * _splitSelectorGroup(":not(.a, .b), .c") → [":not(.a, .b)", ".c"]
 	 */
 	_splitSelectorGroup(selectorText) {
 		const result = [];
 		let current = '';
-		let depth = 0;          // глубина вложенности в круглые скобки
+		let depth = 0;		  // глубина вложенности в круглые скобки
 		let inString = false;   // для простоты не поддерживаем строки (в CSS их почти нет в селекторах)
 		let escape = false;
 

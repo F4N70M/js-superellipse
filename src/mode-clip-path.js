@@ -20,8 +20,11 @@ import { SuperellipseMode } from './mode.js';
 
 
 /**
- * Режим, использующий CSS-свойство `clip-path`.
+ * Режим, использующий CSS-свойство `clip-path` для обрезки элемента.
+ * Не требует создания дополнительных DOM-узлов, но не поддерживает тени, границы и сложные фоны.
+ * @class SuperellipseModeClipPath
  * @extends SuperellipseMode
+ * @since 1.0.0
  */
 export class SuperellipseModeClipPath extends SuperellipseMode {
 
@@ -33,8 +36,11 @@ export class SuperellipseModeClipPath extends SuperellipseMode {
 	 */
 
 	/**
-	 * @param {Element} element - Целевой элемент.
-	 * @param {boolean} [debug=false] - Флаг отладки.
+	 * Создаёт экземпляр режима clip-path.
+	 * @since 1.0.0
+	 * @param {Element} element - Целевой DOM-элемент.
+	 * @param {boolean} [debug=false] - Флаг отладки (передаётся в родительский класс).
+	 * @returns {SuperellipseModeClipPath} Экземпляр режима.
 	 */
 	constructor(element, debug = false) {
 		super(element, debug);

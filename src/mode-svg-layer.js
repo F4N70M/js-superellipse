@@ -25,12 +25,25 @@ import { jsse_console } from './support.js';
 
 /**
  * Режим, создающий наложенный SVG-слой для отрисовки фона, границ и теней.
+ * @class SuperellipseModeSvgLayer
  * @extends SuperellipseMode
  */
 export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
+	/**
+	 * Хранилище ссылок на созданные виртуальные DOM-элементы (svg, div, path и т.д.).
+	 * @since 1.0.0
+	 * @type {Object<string, Element>}
+	 * @protected
+	 */
 	_virtualElementList = {};
 
+	/**
+	 * Текущая строка viewBox для SVG.
+	 * @since 1.0.0
+	 * @type {string}
+	 * @protected
+	 */
 	_viewbox;
 
 
@@ -42,7 +55,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 
 	/**
-	 * @param {Element} element - Целевой элемент.
+	 * Создаёт экземпляр режима svg-layer.
+	 * @since 1.0.0
+	 * @param {Element} element - Целевой DOM-элемент.
 	 * @param {boolean} [debug=false] - Флаг отладки.
 	 */
 	constructor(element, debug = false) {
@@ -62,8 +77,10 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Выполняет обновление: применяет стили к слою div и обновляет путь.
+	 * @since 1.0.0
 	 * @override
 	 * @protected
+	 * @returns {void}
 	 */
 	_executeUpdate() {
 		this._applyCurrentInlineVirtualSvgLayerStyles();
@@ -72,6 +89,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Возвращает имя режима ('svg-layer').
+	 * @since 1.0.0
 	 * @override
 	 * @protected
 	 * @returns {string}
@@ -82,6 +100,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Возвращает стили, применяемые к основному элементу при активации.
+	 * @since 1.0.0
 	 * @override
 	 * @protected
 	 * @returns {Object<string, string>}
@@ -102,6 +121,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Возвращает стили для SVG-контейнера.
+	 * @since 1.0.0
 	 * @protected
 	 * @returns {Object<string, string>}
 	 */
@@ -118,6 +138,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Возвращает список CSS-свойств, которые переносятся во внутренний div.
+	 * @since 1.0.0
 	 * @protected
 	 * @returns {string[]}
 	 */
@@ -141,9 +162,11 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Применяет инлайновые стили к указанному элементу.
+	 * @since 1.0.0
+	 * @protected
 	 * @param {Object<string, string>} props - Объект стилей.
 	 * @param {HTMLElement|SVGElement} element - Целевой элемент.
-	 * @protected
+	 * @returns {void}
 	 */
 	_applyInlineStyles(props, element) {
 		const managedProperties = this._getManagedProperties();
@@ -164,7 +187,10 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	}
 
 	/**
-	 * 
+	 * Применяет все стили (div, border, shadows) к виртуальным слоям, если режим активен.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_applyCurrentInlineVirtualSvgLayerStyles() {
 		if ( this.isActivated() ) {
@@ -177,7 +203,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Применяет стили к виртуальному div-слою.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_applyCurrentInlineVirtualSvgLayerDivStyles() {
 		const inlineSvgLayerDivStyles = this._getCurrentInlineVirtualSvgLayerDivStyles();
@@ -187,6 +215,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Возвращает стили для внутреннего div-слоя, извлечённые из вычисленных стилей элемента.
+	 * @since 1.0.0
 	 * @protected
 	 * @returns {Object<string, string>}
 	 */
@@ -205,7 +234,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Применяет стили границы (цвет, толщину, стиль) к SVG-элементу `border`.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_applyCurrentInlineVirtualSvgLayerBorderStyles() {
 		const svgLayerBorder = this._virtualElementList.svgLayerBorder;
@@ -218,23 +249,49 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 		this._applyBorderStyleToStroke(borderStyle, svgLayerBorder);
 	}
 
-
+	/**
+	 * Устанавливает атрибут `stroke-dasharray` для элемента пути.
+	 * @since 1.0.0
+	 * @protected
+	 * @param {SVGElement} pathElement - SVG-элемент (обычно path или use).
+	 * @param {string} value - Значение dasharray.
+	 * @returns {void}
+	 */
 	_setStrokeDasharray(pathElement, value) {
 		pathElement.setAttribute('stroke-dasharray', value);
 	}
+
+	/**
+	 * Устанавливает атрибут `stroke-linecap` для элемента пути.
+	 * @since 1.0.0
+	 * @protected
+	 * @param {SVGElement} pathElement - SVG-элемент.
+	 * @param {string} value - Значение linecap (butt, round, square).
+	 * @returns {void}
+	 */
 	_setStrokeLinecap(pathElement, value) {
 		pathElement.setAttribute('stroke-linecap', value);
 	}
+
+	/**
+	 * Устанавливает атрибут `stroke-opacity` для элемента пути.
+	 * @since 1.0.0
+	 * @protected
+	 * @param {SVGElement} pathElement - SVG-элемент.
+	 * @param {string|number} value - Прозрачность (0..1).
+	 * @returns {void}
+	 */
 	_setStrokeOpacity(pathElement, value) {
 		pathElement.setAttribute('stroke-opacity', value);
 	}
 
-
 	/**
 	 * Преобразует CSS-стиль границы в атрибуты SVG-элемента.
+	 * @since 1.0.0
+	 * @protected
 	 * @param {string} borderStyle - Стиль границы (solid, dotted, dashed и т.д.).
 	 * @param {SVGElement} pathElement - Элемент, к которому применяется обводка.
-	 * @protected
+	 * @returns {void}
 	 */
 	_applyBorderStyleToStroke(borderStyle, pathElement) {
 		/** Сброс атрибутов **/
@@ -301,7 +358,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Применяет тени (`box-shadow`) к SVG-слою, создавая фильтры.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_applyCurrentInlineVirtualSvgLayerShadowsStyles() {
 		const boxShadowValue = this._getComputedProp('box-shadow');
@@ -326,8 +385,6 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 			const spreadValue = shadowValues.spreadRadius;
 
 			const filter = this._createVirtualSvgElement('filter');
-					// const feMorphology = this._createVirtualSvgElement('feMorphology');
-					// const feGaussianBlurSpread = this._createVirtualSvgElement('feGaussianBlur');
 				const feGaussianBlur = this._createVirtualSvgElement('feGaussianBlur');
 				const feOffset = this._createVirtualSvgElement('feOffset');
 				const feFlood = this._createVirtualSvgElement('feFlood');
@@ -347,54 +404,11 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 				filter.setAttribute('y', '-100%');
 				filter.setAttribute('width', '300%');
 				filter.setAttribute('height', '300%');
-							// filter.appendChild(feMorphology);
-							// filter.appendChild(feGaussianBlurSpread);
 				filter.appendChild(feGaussianBlur);
 				filter.appendChild(feOffset);
 				filter.appendChild(feFlood);
 				filter.appendChild(feComposite);
-
-						// feMorphology.setAttribute('in', 'SourceAlpha');
-						// feMorphology.setAttribute('operator', shadowValues.spreadRadius >= 0 ? 'dilate' : 'erode');
-						// feMorphology.setAttribute('radius', Math.abs(shadowValues.spreadRadius));
-						// feMorphology.setAttribute('result', 'expanded');
-
-								// spreadRadius через feMorphology + размытие + контраст
-								// if (spreadValue !== 0) {
-								//     const feMorphology = this._createVirtualSvgElement('feMorphology');
-								// 	const filterExpandedId = `${filterId}__expanded`;
-								//     feMorphology.setAttribute('in', 'SourceAlpha');
-								//     feMorphology.setAttribute('operator', 'dilate');
-								//     feMorphology.setAttribute('radius', Math.abs(spreadValue));
-								//     feMorphology.setAttribute('result', filterExpandedId);
-								//     filter.appendChild(feMorphology);
-								    
-								//     const feBlur = this._createVirtualSvgElement('feGaussianBlur');
-								// 	const filterSmoothedId = `${filterId}__smoothed`;
-								//     feBlur.setAttribute('in', filterExpandedId);
-								//     feBlur.setAttribute('stdDeviation', Math.abs(spreadValue) / 6);
-								//     feBlur.setAttribute('result', filterSmoothedId);
-								//     filter.appendChild(feBlur);
-								    
-								//     const feContrast = this._createVirtualSvgElement('feComponentTransfer');
-								// 	const filterSharpId = `${filterId}__sharp`;
-								//     const feFuncA = this._createVirtualSvgElement('feFuncA');
-								//     feFuncA.setAttribute('type', 'linear');
-								//     feFuncA.setAttribute('slope', '10');
-								//     feFuncA.setAttribute('intercept', '-4.5');
-								//     feContrast.appendChild(feFuncA);
-								//     feContrast.setAttribute('in', filterSmoothedId);
-								//     feContrast.setAttribute('result', filterSharpId);
-								//     filter.appendChild(feContrast);
-								    
-								//     // Основное размытие тени использует sharp
-								//     feGaussianBlur.setAttribute('in', filterSharpId);
-								// } else {
-								//     feGaussianBlur.setAttribute('in', 'SourceAlpha');
-								// }
-
 					feGaussianBlur.setAttribute('in', 'SourceAlpha');
-						// feGaussianBlur.setAttribute('in', 'expanded');
 					feGaussianBlur.setAttribute('stdDeviation', shadowValues.blurRadius / 2);
 					feGaussianBlur.setAttribute('result', filterBlurId);
 					feOffset.setAttribute('dx', shadowValues.offsetX);
@@ -412,23 +426,15 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 				shadow.setAttribute('href', `#${pathId}`);
 				shadow.setAttribute('id', shadowId);
 				shadow.setAttribute('filter', `url(#${filterId})`);
-
-				// const spreadValue = shadowValues.spreadRadius;
-				// if (spreadValue !== 0) {
-				//     // const scale = 1 + (spreadValue * 2 / Math.min(this._size.width, this._size.height));
-	            //     const scaleX = 1 + (spreadValue * 2 / this._size.width);
-	            //     const scaleY = 1 + (spreadValue * 2 / this._size.height);
-				//     shadow.setAttribute('transform', `scale(${scaleX}, ${scaleY})`);
-				//     shadow.setAttribute('transform-origin', `${this._size.width/2}px ${this._size.height/2}px`);
-				// }
 		}
 	}
 
 	/**
 	 * Разбирает значение `box-shadow` на массив объектов теней.
-	 * @param {string} boxShadowValue - Строка свойства `box-shadow`.
-	 * @returns {Array<Object>} Массив теней с полями: inset, color, offsetX, offsetY, blurRadius, spreadRadius.
+	 * @since 1.0.0
 	 * @protected
+	 * @param {string} boxShadowValue - Строка свойства `box-shadow`.
+	 * @returns {Array<Object>} Массив теней с полями: inset, color, offsetX, offsetY, blurRadius, spreadRadius, originalColorFormat.
 	 */
 	_parseBoxShadow(boxShadowValue) {
 		if (!boxShadowValue || boxShadowValue === 'none') return [];
@@ -504,26 +510,42 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Инициализирует список виртуальных элементов (div, svg и пр.).
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_initVirtualElementList() {
 		this._initVirtualInnerWrapper();
 		this._initVirtualSvgLayer();
 	}
 
-
+	/**
+	 * Создаёт SVG-элемент с указанным тегом в пространстве имён SVG.
+	 * @since 1.0.0
+	 * @protected
+	 * @param {string} tag - Имя тега (например, 'svg', 'path', 'filter').
+	 * @returns {SVGElement}
+	 */
 	_createVirtualSvgElement(tag) {
 		return document.createElementNS('http://www.w3.org/2000/svg', tag);
 	}
 
-
+	/**
+	 * Создаёт HTML-элемент с указанным тегом.
+	 * @since 1.0.0
+	 * @protected
+	 * @param {string} tag - Имя тега (например, 'div').
+	 * @returns {HTMLElement}
+	 */
 	_createVirtualHtmlElement(tag) {
 		return document.createElement(tag);
 	}
 
 	/**
 	 * Создаёт SVG-элементы для слоя.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_initVirtualSvgLayer() {
 		if (this._virtualElementList.svgLayer) return;
@@ -603,7 +625,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Создаёт внутренний div-обёртку для контента.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_initVirtualInnerWrapper() {
 		if (this._virtualElementList.innerWrapper) return;
@@ -618,7 +642,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	/**
 	 * Добавляет виртуальные элементы в DOM.
 	 * @override
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_appendVirtualElements() {
 		this._appendInnerWrapper();
@@ -628,7 +654,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	/**
 	 * Удаляет виртуальные элементы из DOM.
 	 * @override
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_removeVirtualElements() {
 		this._removeSvgLayer();
@@ -637,7 +665,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Добавляет SVG-слой в начало элемента.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_appendSvgLayer() {
 		const svgLayer = this._virtualElementList.svgLayer;
@@ -647,7 +677,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Удаляет SVG-слой.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_removeSvgLayer() {
 		const svgLayer = this._virtualElementList.svgLayer;
@@ -658,7 +690,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Перемещает дочерние элементы элемента во внутреннюю обёртку.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_appendInnerWrapper() {
 		const innerWrapper = this._virtualElementList.innerWrapper;
@@ -674,7 +708,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Возвращает дочерние элементы из обёртки обратно в элемент.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_removeInnerWrapper() {
 		const innerWrapper = this._virtualElementList.innerWrapper;
@@ -699,7 +735,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Инициализирует viewBox.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_initViewbox() {
 		this._recalculateViewbox();
@@ -708,7 +746,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	/**
 	 * Пересчитывает viewBox при изменении размеров.
 	 * @override
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_recalculateCurve() {
 		super._recalculateCurve();
@@ -718,7 +758,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Обновляет viewBox на основе текущих размеров.
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_recalculateViewbox() {
 		if ( this._size.width > 0 && this._size.height > 0 ) {
@@ -730,6 +772,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Возвращает строку viewBox.
+	 * @since 1.0.0
 	 * @protected
 	 * @returns {string}
 	 */
@@ -740,7 +783,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	/**
 	 * Применяет кривую, обновляя viewBox и d-атрибут пути.
 	 * @override
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_applyCurve() {
 		const svgLayer = this._virtualElementList.svgLayer;
@@ -757,7 +802,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	/**
 	 * Восстанавливает исходный путь и очищает d-атрибут.
 	 * @override
+	 * @since 1.0.0
 	 * @protected
+	 * @returns {void}
 	 */
 	_restoreCurve() {
 		const svgLayerPath = this._virtualElementList.svgLayerPath;

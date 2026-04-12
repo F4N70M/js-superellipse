@@ -22,6 +22,7 @@
  */
 import { SuperellipseController } from './controller.js';
 import { jsse_controllers } from './global-cache.js';
+import { jsse_console } from './support.js';
 
 
 /**
@@ -52,7 +53,7 @@ Element.prototype.superellipseInit = function(options) {
 	let controller = jsse_controllers.get(this);
 
 	if (controller && !options?.force) {
-		console.warn('[Superellipse] The element already has a controller. Use {force:true} to recreate it.');
+		jsse_console.warn({label:'API', element: this}, 'The element already has a controller. Use {force:true} to recreate it.');
 		return controller;
 	}
 	

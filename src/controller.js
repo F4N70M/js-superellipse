@@ -72,12 +72,15 @@ export class SuperellipseController
 
 	/**
 	 * Создаёт экземпляр контроллера.
+	 * @since 1.0.0
 	 * @param {Element} element - Целевой DOM-элемент.
 	 * @param {Object} [options] - Опции инициализации.
-	 * @param {boolean} [options.force] - Принудительное пересоздание.
-	 * @param {string} [options.mode='svg-layer'] - Режим работы.
-	 * @param {number} [options.curveFactor] - Коэффициент кривизны.
-	 * @param {number} [options.precision=2] - Точность округления.
+	 * @param {boolean} [options.force] - Принудительное пересоздание, если контроллер уже существует.
+	 * @param {string} [options.mode='svg-layer'] - Режим работы: 'svg-layer' или 'clip-path'.
+	 * @param {number} [options.curveFactor] - Коэффициент кривизны (диапазон -2..2).
+	 * @param {number} [options.precision=2] - Количество знаков после запятой в координатах пути.
+	 * @param {boolean} [options.debug=false] - Включить отладочный вывод.
+	 * @returns {SuperellipseController} Экземпляр контроллера.
 	 */
 	constructor(element, options = {}) {
 
@@ -85,7 +88,7 @@ export class SuperellipseController
 		
 		/** Проверка существующего контроллера **/
 		if (this._inControllers() && !options.force) {
-			console.warn('[Superellipse] The element is already initialized. Use {force:true} to recreate it.');
+			jsse_console.warn({label:'CONTROLLER', element: element}, 'The element is already initialized. Use {force:true} to recreate it.');
 			return this._getController();
 		}
 		
@@ -129,8 +132,9 @@ export class SuperellipseController
 
 	/**
 	 * Переключает режим работы.
+	 * @since 1.0.0
 	 * @param {string} modeName - Имя режима ('svg-layer' или 'clip-path').
-	 * @returns {SuperellipseController} this (для цепочек).
+	 * @returns {SuperellipseController} this (для цепочек вызовов).
 	 */
 	switchMode(modeName) {
 		this._deactivateMode();
@@ -142,7 +146,8 @@ export class SuperellipseController
 
 	/**
 	 * Проверяет, активирован ли суперэллипс.
-	 * @returns {boolean} true, если активирован.
+	 * @since 1.0.0
+	 * @returns {boolean} true, если эффект активен.
 	 */
 	isEnabled() {
 		return this._mode.isActivated();
@@ -150,6 +155,7 @@ export class SuperellipseController
 
 	/**
 	 * Активирует суперэллипс.
+	 * @since 1.0.0
 	 * @returns {SuperellipseController} this.
 	 */
 	enable() {
@@ -159,6 +165,7 @@ export class SuperellipseController
 
 	/**
 	 * Деактивирует суперэллипс, восстанавливая исходные стили.
+	 * @since 1.0.0
 	 * @returns {Element} Целевой элемент.
 	 */
 	disable() {
@@ -168,6 +175,7 @@ export class SuperellipseController
 
 	/**
 	 * Устанавливает коэффициент кривизны углов.
+	 * @since 1.0.0
 	 * @param {number} value - Новое значение (диапазон -2..2).
 	 * @returns {SuperellipseController} this.
 	 */
@@ -180,6 +188,7 @@ export class SuperellipseController
 
 	/**
 	 * Устанавливает точность округления координат пути.
+	 * @since 1.0.0
 	 * @param {number} value - Количество знаков после запятой.
 	 * @returns {SuperellipseController} this.
 	 */
@@ -191,6 +200,7 @@ export class SuperellipseController
 
 	/**
 	 * Возвращает текущий SVG-путь суперэллипса.
+	 * @since 1.0.0
 	 * @returns {string} Строка с командами path.
 	 */
 	getPath() {
@@ -199,6 +209,7 @@ export class SuperellipseController
 
 	/**
 	 * Полностью уничтожает контроллер и удаляет все связанные эффекты.
+	 * @since 1.0.0
 	 * @returns {Element} Целевой элемент.
 	 */
 	destroy() {
@@ -215,7 +226,9 @@ export class SuperellipseController
 
 	/**
 	 * Инициализирует уникальный идентификатор контроллера.
-	 * @private
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_initId() {
 		this._id = jsse_counter.value;
@@ -224,7 +237,10 @@ export class SuperellipseController
 
 	/**
 	 * Инициализирует флаг отладки.
-	 * @private
+	 * @since 1.0.0
+	 * @protected
+	 * @param {boolean} debug - Включить отладку.
+	 * @returns {void}
 	 */
 	_initDebug(debug) {
 		this._debug = !!debug;
@@ -235,8 +251,9 @@ export class SuperellipseController
 
 	/**
 	 * Проверяет, включён ли режим отладки для данного контроллера.
+	 * @since 1.0.0
+	 * @protected
 	 * @returns {boolean}
-	 * @private
 	 */
 	_isDebug() {
 		return this._debug;
@@ -244,18 +261,20 @@ export class SuperellipseController
 
 	/**
 	 * Проверяет, не скрыт ли элемент (`display: none`).
+	 * @since 1.0.0
+	 * @protected
 	 * @returns {boolean}
-	 * @private
 	 */
 	_isDisplay() {
 		const capturedStyles = getComputedStyle(this._element);
 		return capturedStyles.getPropertyValue('display') !== 'none';
 	}
 
-
 	/**
-	 * Метод полного уничтожения контроллера (внутренняя логика).
-	 * @private
+	 * Полное уничтожение контроллера (внутренняя логика).
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_destroyController() {
 		this._disconnectObservers();
@@ -276,7 +295,12 @@ export class SuperellipseController
 	 * =============================================================
 	 */
 
-
+	/**
+	 * Инициализирует систему событий.
+	 * @since 1.2.0
+	 * @protected
+	 * @returns {void}
+	 */
 	_initEvents() {
 		this._eventHandlers = {
 			update: [],
@@ -285,14 +309,28 @@ export class SuperellipseController
 			error: []
 		}
 	};
-	
+
+	/**
+	 * Подписывается на событие контроллера.
+	 * @since 1.2.0
+	 * @param {string} event - Имя события ('update', 'activate', 'deactivate', 'error').
+	 * @param {Function} callback - Функция-обработчик. Принимает объект события.
+	 * @returns {SuperellipseController} this.
+	 */
 	on(event, callback) {
 		if (this._eventHandlers[event]) {
 			this._eventHandlers[event].push(callback);
 		}
 		return this;
 	}
-	
+
+	/**
+	 * Отписывается от события контроллера.
+	 * @since 1.2.0
+	 * @param {string} event - Имя события.
+	 * @param {Function} callback - Ранее добавленный обработчик.
+	 * @returns {SuperellipseController} this.
+	 */
 	off(event, callback) {
 		if (this._eventHandlers[event]) {
 			const index = this._eventHandlers[event].indexOf(callback);
@@ -300,7 +338,15 @@ export class SuperellipseController
 		}
 		return this;
 	}
-	
+
+	/**
+	 * Вызывает событие с заданными данными.
+	 * @since 1.2.0
+	 * @protected
+	 * @param {string} event - Имя события.
+	 * @param {*} data - Данные события.
+	 * @returns {void}
+	 */
 	_emit(event, data) {
 		if (this._eventHandlers[event]) {
 			this._eventHandlers[event].forEach(cb => {
@@ -323,8 +369,10 @@ export class SuperellipseController
 
 	/**
 	 * Устанавливает активный режим.
-	 * @param {string} modeName - Имя режима.
-	 * @private
+	 * @since 1.0.0
+	 * @protected
+	 * @param {string} modeName - Имя режима ('svg-layer' или 'clip-path').
+	 * @returns {void}
 	 */
 	_setMode(modeName) {
 		switch (modeName) {
@@ -339,13 +387,14 @@ export class SuperellipseController
 		}
 		this._mode.setCurveFactor(this._curveFactor);
 		this._mode.setPrecision(this._precision);
-		
-		// this._mode.activate();
+
 	}
 
 	/**
 	 * Удаляет текущий режим, вызывая его деструктор.
-	 * @private
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_unsetMode() {
 
@@ -353,6 +402,12 @@ export class SuperellipseController
 		this._mode = null;
 	}
 
+	/**
+	 * Активирует текущий режим и инициализирует обработчики hover.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
+	 */
 	_activateMode() {
 		this._mode.activate();
 		this._initStylesheet();
@@ -361,10 +416,16 @@ export class SuperellipseController
 		this._emit('activate', { mode: this._mode._getModeName() });
 	}
 
+	/**
+	 * Деактивирует текущий режим и удаляет обработчики hover.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
+	 */
 	_deactivateMode() {
 		this._mode.deactivate();
 		this._unregisterTargetListeners();
-		
+
 		this._emit('deactivate', { mode: this._mode._getModeName() });
 	}
 
@@ -378,7 +439,9 @@ export class SuperellipseController
 
 	/**
 	 * Присваивает элементу атрибут `data-jsse-initiated`.
-	 * @private
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_setInitiatedAttr() {
 		this._element.setAttribute('data-jsse-initiated', true);
@@ -386,7 +449,9 @@ export class SuperellipseController
 
 	/**
 	 * Удаляет атрибут `data-jsse-initiated`.
-	 * @private
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_removeInitiatedAttr() {
 		this._element.removeAttribute('data-jsse-initiated');
@@ -402,7 +467,9 @@ export class SuperellipseController
 
 	/**
 	 * Инициализирует кэш стилей для элемента.
-	 * @private
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_initCacheStyles() {
 		if (!jsse_styles.get(this._element)) {
@@ -412,23 +479,29 @@ export class SuperellipseController
 
 	/**
 	 * Удаляет кэш стилей элемента.
-	 * @private
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_deleteCacheStyles() {
 		jsse_styles.delete(this._element);
 	}
 
 	/**
-	 * Получает контроллер (если есть)
-	 * @private
+	 * Получает контроллер, связанный с элементом (из глобальной WeakMap).
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {SuperellipseController|undefined}
 	 */
 	_getController() {
 		return jsse_controllers.get(this._element);
 	}
 
 	/**
-	 * Проверяет существует ли контроллер
-	 * @private
+	 * Проверяет, существует ли контроллер для элемента.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {boolean}
 	 */
 	_inControllers() {
 		return !!this._getController();
@@ -436,7 +509,9 @@ export class SuperellipseController
 
 	/**
 	 * Удаляет ссылку на контроллер из глобальной WeakMap.
-	 * @private
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_deleteFromControllers() {
 		jsse_controllers.delete(this._element);
@@ -449,26 +524,47 @@ export class SuperellipseController
 	 * =============================================================
 	 */
 
-
+	/**
+	 * Инициализирует парсинг стилей и находит триггеры для hover.
+	 * @since 1.1.0
+	 * @protected
+	 * @returns {void}
+	 */
 	_initStylesheet() {
 		this._targetTriggers = this._getTargetTriggers();
 		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[INIT]');
 	}
 
+	/**
+	 * Уничтожает данные стилей и обработчики hover.
+	 * @since 1.1.0
+	 * @protected
+	 * @returns {void}
+	 */
 	_destroyStylesheet() {
 		this._targetTriggers = null;
 		this._hoverHandlers = null
+		this._unregisterGlobalTouchEndListener();
 		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[DESTROY]');
 	}
 
+	/**
+	 * Регистрирует обработчики событий на элементах-триггерах.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {Object} triggers - Объект, где ключ – селектор, значение – массив элементов.
+	 * @returns {void}
+	 */
 	_registerTargetListeners(triggers) {
 		this._hoverHandlers = {};
 		for (const selector in triggers) {
 			this._hoverHandlers[selector] = {
 				in : (event) => { this._triggerHandlerIn(selector, event); },
 				out : (event) => { this._triggerHandlerOut(selector, event); },
+				touchStart : (event) => { this._triggerHandlerTouchIn(selector, event) },
 				on : [],
-				hovered : false
+				hovered : false,
+				touchCount : 0
 			};
 			triggers[selector].forEach((trigger) => {
 				this._hoverHandlers[selector].on.push(trigger);
@@ -478,6 +574,12 @@ export class SuperellipseController
 		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', true);
 	}
 
+	/**
+	 * Удаляет все зарегистрированные обработчики с триггеров.
+	 * @since 1.1.0
+	 * @protected
+	 * @returns {void}
+	 */
 	_unregisterTargetListeners() {
 		for (const selector in this._hoverHandlers) {
 			for (const trigger of this._hoverHandlers[selector].on) {
@@ -487,35 +589,156 @@ export class SuperellipseController
 			}
 		}
 		this._hoverHandlers = {};
+
+		// Удаляем глобальный обработчик touchend
+		if (this._globalTouchEndHandler) {
+			document.body.removeEventListener('touchend', this._globalTouchEndHandler);
+			this._globalTouchEndHandler = null;
+		}
+		
 		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', false);
 	}
 
+	/**
+	 * Добавляет обработчики на конкретный элемент-триггер.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {Element} trigger - DOM-элемент-триггер.
+	 * @param {string} selector - Селектор, связанный с триггером.
+	 * @returns {void}
+	 */
 	_registerTriggerListener(trigger, selector) {
-		trigger.addEventListener('pointerenter', this._hoverHandlers[selector].in);
-		trigger.addEventListener('pointerleave', this._hoverHandlers[selector].out);
+		// Мышь / перо
+		trigger.addEventListener('mouseenter', this._hoverHandlers[selector].in);
+		trigger.addEventListener('mouseleave', this._hoverHandlers[selector].out);
+		
+		// Касание
+		trigger.addEventListener('touchstart', this._hoverHandlers[selector].touchStart);
+		this._registerGlobalTouchEndListener();
+
 		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', true, selector);
 	}
 
+	/**
+	 * Регистрирует глобальный обработчик `touchend` для корректной работы hover на сенсорных экранах.
+	 * @since 1.1.0
+	 * @protected
+	 * @returns {void}
+	 */
+	_registerGlobalTouchEndListener() {
+		// Глобальный обработчик touchend (добавляем один раз)
+		if (!this._globalTouchEndHandler) {
+			this._globalTouchEndHandler = (event) => {
+				for (const selector in this._hoverHandlers) {
+					const handler = this._hoverHandlers[selector];
+					if (handler.touchCount > 0) {
+						this._triggerHandlerTouchOut(selector, event);
+					}
+				}
+			};
+			document.body.addEventListener('touchend', this._globalTouchEndHandler);
+		}
+	}
+
+	/**
+	 * Удаляет глобальный обработчик `touchend`.
+	 * @since 1.1.0
+	 * @protected
+	 * @returns {void}
+	 */
+	_unregisterGlobalTouchEndListener() {
+		if (this._globalTouchEndHandler) {
+			document.body.removeEventListener('touchend', this._globalTouchEndHandler);
+			this._globalTouchEndHandler = null;
+		}
+	}
+
+	/**
+	 * Удаляет обработчики с элемента-триггера.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {Element} trigger - DOM-элемент-триггер.
+	 * @param {string} selector - Селектор, связанный с триггером.
+	 * @returns {void}
+	 */
 	_unregisterTriggerListener(trigger, selector) {
-		trigger.removeEventListener('pointerenter', this._hoverHandlers[selector].in);
-		trigger.removeEventListener('pointerleave', this._hoverHandlers[selector].out);
+		trigger.removeEventListener('mouseenter', this._hoverHandlers[selector].in);
+		trigger.removeEventListener('mouseleave', this._hoverHandlers[selector].out);
+		trigger.removeEventListener('touchstart', this._hoverHandlers[selector].touchStart);
+
 		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', false, selector);
 	}
 
-		_triggerHandlerIn(selector, event) {
-			if ( !this._element.matches(selector) || !this._hoverHandlers[selector] ) return;
-			this._hoverHandlers[selector].hovered = true;
-			jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector);
-			this._mutationHandler();
-		}
+	/**
+	 * Обработчик события `mouseenter` / `pointerenter` на триггере.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {string} selector - Селектор триггера.
+	 * @param {Event} event - Событие.
+	 * @returns {void}
+	 */
+	_triggerHandlerIn(selector, event) {
+		if ( !this._element.matches(selector) || !this._hoverHandlers[selector] ) return;
+		this._hoverHandlers[selector].hovered = true;
+		jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector, event);
+		this._mutationHandler();
+	}
 
-		_triggerHandlerOut(selector, event) {
-			if ( !this._hoverHandlers[selector]?.hovered ) return;
-			this._hoverHandlers[selector].hovered = false;
-			jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector);
-			this._mutationHandler();
-		}
+	/**
+	 * Обработчик события `mouseleave` / `pointerleave` на триггере.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {string} selector - Селектор триггера.
+	 * @param {Event} event - Событие.
+	 * @returns {void}
+	 */
+	_triggerHandlerOut(selector, event) {
+		if ( this._element.matches(selector) || !this._hoverHandlers[selector] || !this._hoverHandlers[selector]?.hovered ) return;
+		this._hoverHandlers[selector].hovered = false;
+		jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector, event);
+		this._mutationHandler();
+	}
 
+	/**
+	 * Обработчик `touchstart` на триггере (увеличивает счётчик касаний).
+	 * @since 1.1.0
+	 * @protected
+	 * @param {string} selector - Селектор триггера.
+	 * @param {TouchEvent} event - Событие касания.
+	 * @returns {void}
+	 */
+	_triggerHandlerTouchIn(selector, event) {
+		if ( !this._hoverHandlers[selector] || this._hoverHandlers[selector]?.touchCount !== undefined ) {
+			this._hoverHandlers[selector].touchCount++;
+			if (this._hoverHandlers[selector].touchCount === 1) {
+				this._triggerHandlerIn(selector, event);
+			}
+		}
+	}
+
+	/**
+	 * Обработчик `touchend` (уменьшает счётчик касаний и вызывает выход при обнулении).
+	 * @since 1.1.0
+	 * @protected
+	 * @param {string} selector - Селектор триггера.
+	 * @param {TouchEvent} event - Событие касания.
+	 * @returns {void}
+	 */
+	_triggerHandlerTouchOut(selector, event) {
+		if ( !this._hoverHandlers[selector] || this._hoverHandlers[selector]?.touchCount !== undefined ) {
+			this._hoverHandlers[selector].touchCount--;
+			if (this._hoverHandlers[selector].touchCount === 0) {
+				this._triggerHandlerOut(selector, event);
+			}
+		}
+	}
+
+	/**
+	 * Находит все элементы-триггеры, которые могут вызвать изменение стилей при наведении на целевой элемент.
+	 * @since 1.1.0
+	 * @protected
+	 * @returns {Object<string, Element[]>} Объект, где ключ – селектор, значение – массив элементов.
+	 */
 	_getTargetTriggers() {
 		const triggerList = {};
 		const targetSelectors = jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
@@ -529,6 +752,13 @@ export class SuperellipseController
 		return triggerList;
 	}
 
+	/**
+	 * Для заданного CSS-правила (селектора) возвращает массив элементов-триггеров.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {StylesheetParserSelector} selector - Объект селектора.
+	 * @returns {Element[]}
+	 */
 	_getSelectorTriggerElements(selector) {
 		const selectorTargetElements = [];
 		const selectorParts = selector.getTriggerParts();
@@ -538,86 +768,129 @@ export class SuperellipseController
 		}
 		return selectorTargetElements;
 	}
-		_getSelectorPartTriggerElements(selectorPart) {
-			if (selectorPart.neighbor) {
-				const neighborSelector = `${selectorPart.neighbor.combinator}${selectorPart.neighbor.clean}`;
-				const cssSelectorHasCombinator = `:has(${selectorPart.neighbor.combinator}*)`;
-				const hasCombinatorIsSupport = jsse_css_selector.isSupport(cssSelectorHasCombinator);
-				if (hasCombinatorIsSupport) {
-					return this._getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector);
-				} else {
-					// Браузер НЕ поддерживает :has() — используем fallback
-					jsse_console.warn({label:'HOVER', element: this._element}, '[FALLBACK] Using manual DOM traversal for:', neighborSelector);
-					return  this._getSelectorPartTriggerElementsWithoutHasSupport(selectorPart.parent, neighborSelector, selectorPart.child);
-				}
-			} else {
-				// Нет соседа — обычный селектор
-				const triggers = Array.from(document.querySelectorAll(selectorPart.parent));
-				return triggers.filter(trigger => 
-					this._elementMatchesChildSelector(trigger, selectorPart.child)
-				);
-			}
-		}
-		_getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector) {
-			// Браузер поддерживает :has() — используем быстрый селектор
-			const triggersSelector = `${selectorPart.parent}:has(${neighborSelector})`;
-			const siblingSelector = `${selectorPart.parent}${neighborSelector}`;
-			
-			const triggers = Array.from(document.querySelectorAll(triggersSelector));
-			const siblings = Array.from(document.querySelectorAll(siblingSelector));
-			
-			return triggers.filter((trigger, index) => {
-				const current = siblings[index];
-				return this._elementMatchesChildSelector(current, selectorPart.child);
-			});
-		}
-		_getSelectorPartTriggerElementsWithoutHasSupport(parentSelector, neighborSelector, childSelector) {
-			const result = [];
-			
-			// 1. Находим всех потенциальных родителей
-			const allParents = Array.from(document.querySelectorAll(parentSelector));
-			
-			// 2. Парсим комбинатор и чистый селектор соседа
-			const combinator = neighborSelector.trim()[0]; // '+' или '~'
-			const cleanNeighborSelector = neighborSelector.trim().substring(1).trim();
-			
-			for (const parent of allParents) {
-				// 3. Ищем соседние элементы относительно родителя или внутри него
-				let neighborElements = [];
-				
-				if (combinator === '+') {
-					// Соседний элемент (сразу следующий)
-					const nextSibling = parent.nextElementSibling;
-					if (nextSibling && nextSibling.matches(cleanNeighborSelector)) {
-						neighborElements = [nextSibling];
-					}
-				} else if (combinator === '~') {
-					// Все последующие соседние элементы
-					let sibling = parent.nextElementSibling;
-					while (sibling) {
-						if (sibling.matches(cleanNeighborSelector)) {
-							neighborElements.push(sibling);
-						}
-						sibling = sibling.nextElementSibling;
-					}
-				}
-				
-				// 4. Проверяем, содержит ли найденный сосед целевой элемент
-				for (const neighbor of neighborElements) {
-					if (this._elementMatchesChildSelector(neighbor, childSelector)) {
-						result.push(parent);
-						break; // Нашли триггер для этого родителя
-					}
-				}
-			}
-			
-			return result;
-		}
 
+	/**
+	 * Для одной части составного селектора возвращает элементы-триггеры.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {Object} selectorPart - Часть селектора с полями parent, neighbor, child.
+	 * @returns {Element[]}
+	 */
+	_getSelectorPartTriggerElements(selectorPart) {
+		if (selectorPart.neighbor) {
+			const neighborSelector = `${selectorPart.neighbor.combinator}${selectorPart.neighbor.clean}`;
+			const cssSelectorHasCombinator = `:has(${selectorPart.neighbor.combinator}*)`;
+			const hasCombinatorIsSupport = jsse_css_selector.isSupport(cssSelectorHasCombinator);
+			if (hasCombinatorIsSupport) {
+				return this._getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector);
+			} else {
+				// Браузер НЕ поддерживает :has() — используем fallback
+				jsse_console.warn({label:'HOVER', element: this._element}, '[FALLBACK] Using manual DOM traversal for:', neighborSelector);
+				return  this._getSelectorPartTriggerElementsWithoutHasSupport(selectorPart.parent, neighborSelector, selectorPart.child);
+			}
+		} else {
+			// Нет соседа — обычный селектор
+			const triggers = Array.from(document.querySelectorAll(selectorPart.parent));
+			return triggers.filter(trigger => 
+				this._elementMatchesChildSelector(trigger, selectorPart.child)
+			);
+		}
+	}
+
+	/**
+	 * Реализация поиска триггеров с использованием современного CSS-селектора `:has()`.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {Object} selectorPart - Часть селектора.
+	 * @param {string} neighborSelector - Селектор соседнего элемента.
+	 * @returns {Element[]}
+	 */
+	_getSelectorPartTriggerElementsWithHasSupport(selectorPart, neighborSelector) {
+		// Браузер поддерживает :has() — используем быстрый селектор
+		const triggersSelector = `${selectorPart.parent}:has(${neighborSelector})`;
+		const siblingSelector = `${selectorPart.parent}${neighborSelector}`;
+		
+		const triggers = Array.from(document.querySelectorAll(triggersSelector));
+		const siblings = Array.from(document.querySelectorAll(siblingSelector));
+		
+		return triggers.filter((trigger, index) => {
+			const current = siblings[index];
+			return this._elementMatchesChildSelector(current, selectorPart.child);
+		});
+	}
+
+	/**
+	 * Fallback-реализация поиска триггеров для браузеров без поддержки `:has()`.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {string} parentSelector - Селектор родителя.
+	 * @param {string} neighborSelector - Селектор соседа (с комбинатором).
+	 * @param {string} childSelector - Селектор дочернего элемента (целевой элемент).
+	 * @returns {Element[]}
+	 */
+	_getSelectorPartTriggerElementsWithoutHasSupport(parentSelector, neighborSelector, childSelector) {
+		const result = [];
+		
+		// 1. Находим всех потенциальных родителей
+		const allParents = Array.from(document.querySelectorAll(parentSelector));
+		
+		// 2. Парсим комбинатор и чистый селектор соседа
+		const combinator = neighborSelector.trim()[0]; // '+' или '~'
+		const cleanNeighborSelector = neighborSelector.trim().substring(1).trim();
+		
+		for (const parent of allParents) {
+			// 3. Ищем соседние элементы относительно родителя или внутри него
+			let neighborElements = [];
+			
+			if (combinator === '+') {
+				// Соседний элемент (сразу следующий)
+				const nextSibling = parent.nextElementSibling;
+				if (nextSibling && nextSibling.matches(cleanNeighborSelector)) {
+					neighborElements = [nextSibling];
+				}
+			} else if (combinator === '~') {
+				// Все последующие соседние элементы
+				let sibling = parent.nextElementSibling;
+				while (sibling) {
+					if (sibling.matches(cleanNeighborSelector)) {
+						neighborElements.push(sibling);
+					}
+					sibling = sibling.nextElementSibling;
+				}
+			}
+			
+			// 4. Проверяем, содержит ли найденный сосед целевой элемент
+			for (const neighbor of neighborElements) {
+				if (this._elementMatchesChildSelector(neighbor, childSelector)) {
+					result.push(parent);
+					break; // Нашли триггер для этого родителя
+				}
+			}
+		}
+		
+		return result;
+	}
+
+	/**
+	 * Возвращает список элементов, соответствующих селектору, в заданном контексте.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {string} selector - CSS-селектор.
+	 * @param {Element|Document} [parent=document] - Корневой элемент для поиска.
+	 * @returns {NodeListOf<Element>}
+	 */
 	_getSelectorElements(selector, parent=document) {
 		return parent.querySelectorAll(selector);
 	}
 
+	/**
+	 * Проверяет, содержится ли целевой элемент внутри родителя с учётом дочернего селектора.
+	 * @since 1.1.0
+	 * @protected
+	 * @param {Element} parent - Потенциальный родитель.
+	 * @param {string} selector - Селектор дочернего элемента.
+	 * @returns {boolean}
+	 */
 	_elementMatchesChildSelector(parent, selector) {
 		if (!(parent.contains(this._element) || parent === this._element)) {
 			return false;
@@ -628,6 +901,12 @@ export class SuperellipseController
 		return Array.from(children).includes(this._element);
 	}
 
+	/**
+	 * Заглушка для получения элементов-триггеров (не используется).
+	 * @since 1.1.0
+	 * @protected
+	 * @returns {void}
+	 */
 	_getTriggerElements() {
 		const targetSelectors = jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
 	}
@@ -640,8 +919,10 @@ export class SuperellipseController
 	 */
 
 	/**
-	 * Подключает наблюдатели (MutationObserver, ResizeObserver, IntersectionObserver и пр.).
-	 * @private
+	 * Подключает наблюдатели: MutationObserver, ResizeObserver, IntersectionObserver и отслеживание удаления.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_connectObservers() {
 		this._mutationObserver = new MutationObserver(() => {
@@ -676,8 +957,10 @@ export class SuperellipseController
 	}
 
 	/**
-	 * Отключает всех наблюдателей.
-	 * @private
+	 * Отключает всех наблюдателей и очищает таймеры.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_disconnectObservers() {
 		if (this._prepareTimer) clearTimeout(this._prepareTimer);
@@ -690,8 +973,10 @@ export class SuperellipseController
 	}
 
 	/**
-	 * Обработчик мутаций атрибутов/классов.
-	 * @private
+	 * Обработчик мутаций (изменение атрибутов style/class). Запускает отложенное обновление.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_mutationHandler() {
 		jsse_console.debug({label:'MUTATION', element:this._element}, '[DETECT]', this._isSelfMutation ? 'self' : 'flow');
@@ -729,8 +1014,10 @@ export class SuperellipseController
 	}
 
 	/**
-	 * Обработчик изменения размеров.
-	 * @private
+	 * Обработчик изменения размеров элемента. При скрытом элементе устанавливает флаг `_needsUpdate`.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_resizeHandler() {
 		if (this._isDisplay()) {
@@ -745,9 +1032,11 @@ export class SuperellipseController
 	}
 
 	/**
-	 * Обработчик видимости элемента (IntersectionObserver).
+	 * Обработчик видимости элемента (IntersectionObserver). При появлении элемента выполняет отложенное обновление.
+	 * @since 1.0.0
+	 * @protected
 	 * @param {IntersectionObserverEntry[]} entries - Записи пересечений.
-	 * @private
+	 * @returns {void}
 	 */
 	_intersectionHandler(entries) {
 		if (entries[0].isIntersecting && this._needsUpdate) {
@@ -761,8 +1050,10 @@ export class SuperellipseController
 	}
 
 	/**
-	 * Обработчик удаления элемента из DOM.
-	 * @private
+	 * Обработчик удаления элемента из DOM. При отсутствии элемента в документе уничтожает контроллер.
+	 * @since 1.0.0
+	 * @protected
+	 * @returns {void}
 	 */
 	_destroyHandler() {
 		if (!document.body.contains(this._element)) {
