@@ -60,6 +60,9 @@ export class SuperellipseController
 	_isSelfApply;
 
 
+	_eventHandlers;
+
+
 	/**
 	 * =============================================================
 	 * PUBLIC
@@ -90,10 +93,10 @@ export class SuperellipseController
 
 		/** Default options **/
 		const settings = { 
-		    mode: options.mode ?? 'svg-layer',
-		    debug: options.debug ?? false,
-		    curveFactor: options.curveFactor ?? jsse_getBorderRadiusFactor(),
-		    precision: options.precision ?? 2
+			mode: options.mode ?? 'svg-layer',
+			debug: options.debug ?? false,
+			curveFactor: options.curveFactor ?? jsse_getBorderRadiusFactor(),
+			precision: options.precision ?? 2
 		};
 
 		this._initDebug(settings.debug);
@@ -115,6 +118,7 @@ export class SuperellipseController
 		this._intersectionObserver = null;
 
 		/** init **/
+		this._initEvents();
 		this._initCacheStyles();
 		this._setInitiatedAttr();
 		
@@ -170,6 +174,7 @@ export class SuperellipseController
 	setCurveFactor(value) {
 		this._curveFactor = value;
 		this._mode.updateCurveFactor(value);
+		this._emit('update', { type: 'curveFactor' });
 		return this;
 	}
 
@@ -267,6 +272,50 @@ export class SuperellipseController
 
 	/**
 	 * =============================================================
+	 * EVENTS API
+	 * =============================================================
+	 */
+
+
+	_initEvents() {
+		this._eventHandlers = {
+			update: [],
+			activate: [],
+			deactivate: [],
+			error: []
+		}
+	};
+	
+	on(event, callback) {
+		if (this._eventHandlers[event]) {
+			this._eventHandlers[event].push(callback);
+		}
+		return this;
+	}
+	
+	off(event, callback) {
+		if (this._eventHandlers[event]) {
+			const index = this._eventHandlers[event].indexOf(callback);
+			if (index !== -1) this._eventHandlers[event].splice(index, 1);
+		}
+		return this;
+	}
+	
+	_emit(event, data) {
+		if (this._eventHandlers[event]) {
+			this._eventHandlers[event].forEach(cb => {
+				try {
+					cb({ type: event, data, timestamp: Date.now(), target: this._element });
+				} catch (e) {
+					console.error('[JSSE] Event handler error:', e);
+				}
+			});
+		}
+	}
+
+
+	/**
+	 * =============================================================
 	 * MODE
 	 * =============================================================
 	 */
@@ -308,11 +357,15 @@ export class SuperellipseController
 		this._mode.activate();
 		this._initStylesheet();
 		this._registerTargetListeners(this._targetTriggers);
+
+		this._emit('activate', { mode: this._mode._getModeName() });
 	}
 
 	_deactivateMode() {
 		this._mode.deactivate();
 		this._unregisterTargetListeners();
+		
+		this._emit('deactivate', { mode: this._mode._getModeName() });
 	}
 
 
@@ -428,7 +481,7 @@ export class SuperellipseController
 	_unregisterTargetListeners() {
 		for (const selector in this._hoverHandlers) {
 			for (const trigger of this._hoverHandlers[selector].on) {
-            	if (trigger && trigger.removeEventListener) {
+				if (trigger && trigger.removeEventListener) {
 					this._unregisterTriggerListener(trigger, selector);
 				}
 			}
@@ -655,9 +708,11 @@ export class SuperellipseController
 				jsse_console.debug({label:'MUTATION', element:this._element}, '[UPDATE]');
 				if (this._isDisplay() && this._needsUpdate) {
 					this._mode.update();
+					this._emit('update', { type: 'full' });
 					this._needsUpdate = false;
 				} else {
 					this._mode.updateStyles();
+					this._emit('update', { type: 'styles' });
 				}
 			} finally {
 				if (this._executeTimer !== null) {
@@ -681,6 +736,7 @@ export class SuperellipseController
 		if (this._isDisplay()) {
 			try {
 				this._mode.updateSize();
+				this._emit('update', { type: 'size' });
 			} finally {
 			}
 		} else {
@@ -697,6 +753,7 @@ export class SuperellipseController
 		if (entries[0].isIntersecting && this._needsUpdate) {
 			try {
 				this._mode.update();
+				this._emit('update', { type: 'full' });
 				this._needsUpdate = false;
 			} finally {
 			}
