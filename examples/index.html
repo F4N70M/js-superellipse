@@ -2,93 +2,97 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>✨ Superellipse Shape Engine</title>
     <link rel="stylesheet" href="demo.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <main class="container">
+    <main class="shape-engine">
         <header class="hero">
-            <h1>✨ Superellipse <span class="accent">Shape Engine</span></h1>
-            <p class="subtitle">Создавайте плавные, органичные границы с математической точностью</p>
+            <h1 class="hero__title">✨ Superellipse <span class="hero__accent">Shape Engine</span></h1>
+            <p class="hero__subtitle">Создавайте плавные, органичные границы с математической точностью</p>
         </header>
 
-        <!-- Панель управления (только слайдеры и сброс) -->
-        <div class="card controls-card">
-            <div class="controls-grid">
-                <div class="control-group">
-                    <label>
-                        <span class="label-text">↔️ Ширина</span>
-                        <div class="slider-wrapper">
+        <!-- Панель управления -->
+        <div class="card controls">
+            <div class="controls__grid">
+                <div class="controls__group">
+                    <label class="controls__label">
+                        <span class="controls__label-text">↔️ Ширина</span>
+                        <div class="controls__slider-wrapper">
                             <input type="range" id="width" min="64" max="320" step="8" value="320">
-                            <span id="widthVal" class="value-badge">320</span>
+                            <span id="widthVal" class="controls__value">320</span>
                         </div>
                     </label>
                 </div>
-                <div class="control-group">
-                    <label>
-                        <span class="label-text">↕️ Высота</span>
-                        <div class="slider-wrapper">
+                <div class="controls__group">
+                    <label class="controls__label">
+                        <span class="controls__label-text">↕️ Высота</span>
+                        <div class="controls__slider-wrapper">
                             <input type="range" id="height" min="64" max="320" step="8" value="120">
-                            <span id="heightVal" class="value-badge">120</span>
+                            <span id="heightVal" class="controls__value">120</span>
                         </div>
                     </label>
                 </div>
-                <div class="control-group">
-                    <label>
-                        <span class="label-text">📐 Радиус скругления</span>
-                        <div class="slider-wrapper">
+                <div class="controls__group">
+                    <label class="controls__label">
+                        <span class="controls__label-text">📐 Радиус скругления</span>
+                        <div class="controls__slider-wrapper">
                             <input type="range" id="radius" min="0" max="100" value="24" step="1">
-                            <span id="radiusVal" class="value-badge">24</span>
+                            <span id="radiusVal" class="controls__value">24</span>
                         </div>
                     </label>
                 </div>
-                <div class="control-group">
-                    <label>
-                        <span class="label-text">🌀 Кривизна (n)</span>
-                        <div class="slider-wrapper">
+                <div class="controls__group">
+                    <label class="controls__label">
+                        <span class="controls__label-text">🌀 Кривизна (n)</span>
+                        <div class="controls__slider-wrapper">
                             <input type="range" id="curveFactor" min="-2" max="2" step="0.01" value="0.75">
-                            <span id="curveVal" class="value-badge">0.75</span>
+                            <span id="curveVal" class="controls__value">0.75</span>
                         </div>
                     </label>
                 </div>
-                <div class="action-buttons">
-                    <button id="resetBtn" class="btn btn-secondary">⟳ Сбросить</button>
+                <div class="controls__actions">
+                    <button id="resetBtn" class="button button_secondary">⟳ Сбросить</button>
                 </div>
             </div>
         </div>
 
         <!-- Демонстрационная зона -->
-        <div class="card demo-area">
-            <div class="demo-card">
-                <div class="card-header">
-                    <span class="chip">Интерактив</span>
-                    <span class="chip">Прямая манипуляция</span>
+        <div class="card demo">
+            <div class="demo__card">
+                <div class="demo__header">
+                    <div class="demo__chip">Интерактив</div>
+                    <div class="demo__chip">Прямая манипуляция</div>
                 </div>
-                <button id="demoBtn" class="super-button"><span>✨ Суперэллипс ✨</span></button>
-                <div class="mode-buttons">
-                    <button data-mode="svg-layer" class="mode-btn active">🎯 SVG-слой</button>
-                    <button data-mode="clip-path" class="mode-btn">✂️ Clip-path</button>
+                <button id="demoBtn" class="demo__button"><span>✨ Суперэллипс ✨</span></button>
+                <div class="demo__mode-buttons">
+                    <button data-mode="svg-layer" class="demo__mode-btn demo__mode-btn_active">🎯 SVG-слой</button>
+                    <button data-mode="clip-path" class="demo__mode-btn">✂️ Clip-path</button>
                 </div>
-                <div class="toggle-wrapper">
+                <div class="demo__toggle-wrapper">
                     <label class="toggle">
                         <input type="checkbox" id="enableToggle" checked>
-                        <span class="toggle-slider"></span>
-                        <span class="toggle-label">Включить суперэллипс</span>
+                        <span class="toggle__slider"></span>
+                        <span class="toggle__label">Включить суперэллипс</span>
                     </label>
                 </div>
-                <p class="hint">Нажмите на кнопку — форма меняется динамически</p>
+                <p class="demo__hint">Нажмите на кнопку — форма меняется динамически</p>
             </div>
         </div>
 
         <!-- Техническая информация -->
-        <div class="card path-section">
-            <div class="section-header">
-                <h3>📐 SVG path (d‑атрибут)</h3>
-                <button id="copyPathBtn" class="btn-icon" title="Скопировать путь">📋</button>
+        <div class="card path">
+            <div class="path__header">
+                <h3 class="path__title">📐 SVG path (d‑атрибут)</h3>
+                <button id="copyPathBtn" class="button button_icon" title="Скопировать путь">📋</button>
             </div>
-            <div class="path-monospace"><span id="pathDisplay"></span></div>
+            <div class="path__content">
+                <div class="path__content-container">
+                    <div id="pathDisplay" class="path__content-container__content"></div>
+                </div>
+            </div>
         </div>
     </main>
 

@@ -3217,11 +3217,6 @@
 		 * @returns {string}
 		 */
 		_getViewbox() {
-			// if ( this._size.width > 0 && this._size.height > 0 ) {
-			// 	this._viewbox = `0 0 ${this._size.width} ${this._size.height}`;
-			// } else {
-			// 	this._viewbox = '0 0 0 0'; // Сбрасываем путь
-			// }
 			return this._viewbox;
 		}
 
