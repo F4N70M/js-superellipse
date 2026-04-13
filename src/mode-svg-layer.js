@@ -598,8 +598,10 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 		gShadows.setAttribute('id', shadowsId);
 		/** svg > foreignObject **/
 		html.setAttribute('id', shadowsId);
-		html.setAttribute('width', '100%');
-		html.setAttribute('height', '100%');
+		// html.setAttribute('width', '100%');
+		// html.setAttribute('height', '100%');
+		html.setAttribute('width', this._size.width);
+		html.setAttribute('height', this._size.height);
 		html.setAttribute('clip-path', `url(#${clipId})`);
 		html.appendChild(div);
 		/** svg > foreignObject > div **/
@@ -619,6 +621,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 		this._virtualElementList.svgLayerPath = path;
 		this._virtualElementList.svgLayerGFilters = gFilters;
 		this._virtualElementList.svgLayerGShadows = gShadows;
+		this._virtualElementList.svgLayerHtml = html;
 		this._virtualElementList.svgLayerDiv = div;
 		this._virtualElementList.svgLayerBorder = border;
 	}
@@ -792,8 +795,11 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 		svgLayer.setAttribute('viewBox', this._getViewbox());
 
 		const svgLayerPath = this._virtualElementList.svgLayerPath;
+		const svgLayerHtml = this._virtualElementList.svgLayerHtml;
 		if (this._path) {
 			svgLayerPath.setAttribute('d', this._path);
+			svgLayerHtml.setAttribute('width', this._size.width);
+			svgLayerHtml.setAttribute('height', this._size.height);
 		} else {
 			svgLayerPath.setAttribute('d', '');
 		}
