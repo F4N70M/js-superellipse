@@ -10,6 +10,7 @@
  */
 
 import { StylesheetParser } from './stylesheet-parser.js';
+import { GlobalHoverTracker } from './hover-tracker.js';
 
 
 /**
@@ -34,6 +35,55 @@ export const jsse_stylesheet = new StylesheetParser();
  * @type {WeakMap<Element, Object>}
  */
 export const jsse_styles = new WeakMap();
+
+
+/**
+ * Экземпляр обработчика hover событий.
+ * @since 1.4.0
+ * @type {import('./hover-tracker.js').GlobalHoverTracker}
+ */
+export const jsse_hover_tracker = new GlobalHoverTracker();
+
+
+/**
+ * Карта для хранения триггеров состояний элементов.
+ * @since 1.4.0
+ * @type {WeakMap<Element, Set<Element>>}
+ */
+export const jsse_trigger_callbacks = {
+	
+	triggers: new WeakMap(),
+
+	add(trigger, callback) {
+		if(!this.triggers.has(trigger)) {
+			this.triggers.set(trigger, new Set());
+		}
+		const callbacks = this.triggers.get(trigger);
+		callbacks.add(callback);
+	},
+	delete(trigger, callback) {
+		if(!this.triggers.has(trigger)) return;
+		const callbacks = this.triggers.get(trigger);
+		callbacks.delete(callback);
+		if (callbacks.size < 1) {
+			this.triggers.delete(trigger);
+		}
+	},
+	has(trigger) {
+		return this.triggers.has(trigger);
+	},
+    call(trigger, ...args) {
+        if (!this.triggers.has(trigger)) return;
+        const callbacks = this.triggers.get(trigger);
+        for (const callback of callbacks) {
+            try {
+                callback(...args);
+            } catch (error) {
+                console.error('Ошибка в колбэке для триггера:', error);
+            }
+        }
+    }
+};
 
 
 /**

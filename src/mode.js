@@ -492,8 +492,8 @@ export class SuperellipseMode {
 		let cssString = '';
 
 		const activatedStyles = this._getActivatedStyles();
-		cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-activated=true],`;
-		cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:hover,`;
+		// cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-activated=true],`;
+		// cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:hover,`;
 		cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]`;
 		cssString += `{`;
 		for (const prop in activatedStyles) {
@@ -505,8 +505,8 @@ export class SuperellipseMode {
 		cssString += `\n`;
 
 		const readingStyles = this._getReadingStyles();
-		cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-reading=true],`;
-		cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]:hover,`;
+		// cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-reading=true],`;
+		// cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]:hover,`;
 		cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]`;
 		cssString += `{`;
 		for (const prop in readingStyles) {

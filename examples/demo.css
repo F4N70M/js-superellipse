@@ -19,20 +19,6 @@
     --transition: 0.2s ease;
 }
 
-/*
-* + *,
-* ~ *,
-* > *,
-* *::before,
-* *::after,
-div *:hover,
-div *:focus,
-div *:active
-{
-    vertical-align: middle;
-}
-*/
-/* !!! */
 * {
     margin: 0;
     padding: 0;
@@ -373,8 +359,6 @@ select:focus {
     transition: 0.2s;
 }
 
-/*.toggle input:checked+.toggle-slider,*/
-/* !!! */
 .toggle input:checked + .toggle-slider {
     background: linear-gradient(120deg, var(--primary), var(--secondary));
 }
@@ -394,13 +378,6 @@ select:focus {
 }
 
 /* ===== PATH СЕКЦИЯ ===== */
-.path-section {
-    /*background: var(--card-bg);*/
-    /*border-radius: var(--radius-lg);*/
-    /*padding: 1.5rem;*/
-    /*box-shadow: var(--shadow-sm);*/
-    /*border: 1px solid rgba(255, 255, 255, 0.05);*/
-}
 
 .section-header {
     display: flex;

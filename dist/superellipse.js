@@ -1026,6 +1026,212 @@
 	}
 
 	/**
+	 * Глобальный трекер наведения курсора с учётом видимости элементов.
+	 * Отслеживает состояние `:hover` для заданных элементов, автоматически сбрасывая его,
+	 * если элемент выходит за пределы viewport или удаляется из DOM.
+	 *
+	 * @class GlobalHoverTracker
+	 * @since 1.4.0
+	 */
+	class GlobalHoverTracker {
+
+		/**
+		 * Создаёт экземпляр трекера.
+		 * Инициализирует внутренние структуры данных, IntersectionObserver, MutationObserver,
+		 * ResizeObserver и глобальные обработчики событий.
+		 *
+		 * @constructor
+		 * @since 1.4.0
+		 */
+		constructor() {
+			// Ключ: элемент, значение: { hover: bool, inViewport: bool, callback: function }
+			this.data = new WeakMap();
+			this.elementsSet = new Set(); // для быстрого перебора (WeakMap не итерируемый)
+			this.scheduled = false;
+
+			this.intersectionObserver = new IntersectionObserver(
+				(entries) => {
+					for (const entry of entries) {
+						const el = entry.target;
+						const record = this.data.get(el);
+						if (!record) continue;
+						const newInViewport = entry.isIntersecting;
+						if (record.inViewport !== newInViewport) {
+							record.inViewport = newInViewport;
+							if (!newInViewport && record.hover) {
+								record.hover = false;
+								if (record.callback) record.callback(el, false);
+							}
+							if (newInViewport) this._scheduleCheck();
+						}
+					}
+				},
+				{ threshold: 0 }
+			);
+
+			this._initEventListeners();
+			this._initMutationObserver();
+			this._initResizeObserver();
+		}
+
+		/**
+		 * Начинает отслеживание состояния наведения для указанного элемента.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @param {Element} element - DOM-элемент, за которым нужно следить.
+		 * @param {Function} [callback] - Опциональная функция, вызываемая при изменении состояния наведения.
+		 *                                Принимает два аргумента: элемент (Element) и новое состояние (boolean).
+		 */
+		observe(element, callback) {
+			if (this.elementsSet.has(element)) return;
+			this.elementsSet.add(element);
+			this.data.set(element, {
+				hover: false,
+				inViewport: false,
+				callback: callback || null
+			});
+			this.intersectionObserver.observe(element);
+			this.resizeObserver.observe(element);
+			this._scheduleCheck(); // первая проверка
+		}
+
+		/**
+		 * Прекращает отслеживание состояния наведения для указанного элемента.
+		 * Удаляет элемент из всех наблюдателей и очищает связанные с ним данные.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @param {Element} element - DOM-элемент, отслеживание которого нужно прекратить.
+		 */
+		unobserve(element) {
+			if (!this.elementsSet.has(element)) return;
+			this.elementsSet.delete(element);
+			this.data.delete(element);
+			this.intersectionObserver.unobserve(element);
+			this.resizeObserver.unobserve(element);
+		}
+
+		/**
+		 * Возвращает текущее сохранённое состояние указанного элемента.
+		 *
+		 * @since 1.4.0
+		 *
+		 * @param {Element} element - DOM-элемент, чьё состояние требуется получить.
+		 * @returns {Object|null} Объект с полями `hover` (boolean), `inViewport` (boolean), `callback` (Function|null)
+		 *                        или `null`, если элемент не отслеживается.
+		 */
+		getState(element) {
+			return this.data.get(element) || null;
+		}
+
+		/**
+		 * Полностью уничтожает экземпляр трекера:
+		 * - отключает всех наблюдателей (IntersectionObserver, ResizeObserver, MutationObserver),
+		 * - очищает набор отслеживаемых элементов.
+		 * Внутренний WeakMap очищается автоматически сборщиком мусора.
+		 *
+		 * @since 1.4.0
+		 */
+		destroy() {
+			// очистка всех наблюдателей
+			this.intersectionObserver.disconnect();
+			this.resizeObserver.disconnect();
+			this.domObserver.disconnect();
+			this.elementsSet.clear();
+			// WeakMap очистится сам
+		}
+
+		/**
+		 * Инициализирует глобальные обработчики событий (mousemove, pointermove, scroll, resize),
+		 * которые вызывают отложенную проверку состояний.
+		 *
+		 * @protected
+		 * @since 1.4.0
+		 */
+		_initEventListeners() {
+			const events = ['mousemove', 'pointermove', 'scroll', 'resize'];
+			events.forEach(event => {
+				window.addEventListener(event, () => this._scheduleCheck(), { passive: true });
+				document.addEventListener(event, () => this._scheduleCheck(), { passive: true });
+			});
+		}
+
+
+		/**
+		 * Инициализирует MutationObserver для отслеживания изменений в DOM.
+		 * При любых изменениях (поддерево, список дочерних элементов, атрибуты) запускает отложенную проверку.
+		 *
+		 * @protected
+		 * @since 1.4.0
+		 */
+		_initMutationObserver() {
+			this.domObserver = new MutationObserver(() => this._scheduleCheck());
+			this.domObserver.observe(document.body, { subtree: true, childList: true, attributes: true });
+		}
+
+		/**
+		 * Инициализирует ResizeObserver для отслеживания изменения размеров отслеживаемых элементов.
+		 * При изменении размера запускает отложенную проверку.
+		 *
+		 * @protected
+		 * @since 1.4.0
+		 */
+		_initResizeObserver() {
+			this.resizeObserver = new ResizeObserver(() => this._scheduleCheck());
+		}
+
+		/**
+		 * Планирует выполнение полной проверки всех элементов в следующем кадре анимации.
+		 * Предотвращает многократный вызов до выполнения запланированной проверки.
+		 *
+		 * @protected
+		 * @since 1.4.0
+		 */
+		_scheduleCheck() {
+			if (this.scheduled) return;
+			this.scheduled = true;
+			requestAnimationFrame(() => {
+				this.scheduled = false;
+				this._checkAll();
+			});
+		}
+
+		/**
+		 * Выполняет синхронную проверку состояния наведения для всех отслеживаемых элементов.
+		 * Обновляет внутреннее состояние и вызывает колбэки при изменении.
+		 * Элементы, потерявшие связь с DOM, автоматически удаляются из отслеживания.
+		 *
+		 * @protected
+		 * @since 1.4.0
+		 */
+		_checkAll() {
+			for (const el of this.elementsSet) {
+				if (!el.isConnected) {
+					this.unobserve(el);
+					continue;
+				}
+				const record = this.data.get(el);
+				if (!record) continue;
+
+				if (!record.inViewport) {
+					if (record.hover) {
+						record.hover = false;
+						if (record.callback) record.callback(el, false);
+					}
+					continue;
+				}
+
+				const nowHover = el.matches(':hover');
+				if (nowHover !== record.hover) {
+					record.hover = nowHover;
+					if (record.callback) record.callback(el, nowHover);
+				}
+			}
+		}
+	}
+
+	/**
 	 * @file src/global-cache.js
 	 * 
 	 * @module js-superellipse/global-cache
@@ -1060,6 +1266,55 @@
 	 * @type {WeakMap<Element, Object>}
 	 */
 	const jsse_styles = new WeakMap();
+
+
+	/**
+	 * Экземпляр обработчика hover событий.
+	 * @since 1.4.0
+	 * @type {import('./hover-tracker.js').GlobalHoverTracker}
+	 */
+	const jsse_hover_tracker = new GlobalHoverTracker();
+
+
+	/**
+	 * Карта для хранения триггеров состояний элементов.
+	 * @since 1.4.0
+	 * @type {WeakMap<Element, Set<Element>>}
+	 */
+	const jsse_trigger_callbacks = {
+		
+		triggers: new WeakMap(),
+
+		add(trigger, callback) {
+			if(!this.triggers.has(trigger)) {
+				this.triggers.set(trigger, new Set());
+			}
+			const callbacks = this.triggers.get(trigger);
+			callbacks.add(callback);
+		},
+		delete(trigger, callback) {
+			if(!this.triggers.has(trigger)) return;
+			const callbacks = this.triggers.get(trigger);
+			callbacks.delete(callback);
+			if (callbacks.size < 1) {
+				this.triggers.delete(trigger);
+			}
+		},
+		has(trigger) {
+			return this.triggers.has(trigger);
+		},
+	    call(trigger, ...args) {
+	        if (!this.triggers.has(trigger)) return;
+	        const callbacks = this.triggers.get(trigger);
+	        for (const callback of callbacks) {
+	            try {
+	                callback(...args);
+	            } catch (error) {
+	                console.error('Ошибка в колбэке для триггера:', error);
+	            }
+	        }
+	    }
+	};
 
 
 	/**
@@ -1902,8 +2157,8 @@
 			let cssString = '';
 
 			const activatedStyles = this._getActivatedStyles();
-			cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-activated=true],`;
-			cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:hover,`;
+			// cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-activated=true],`;
+			// cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:hover,`;
 			cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]`;
 			cssString += `{`;
 			for (const prop in activatedStyles) {
@@ -1915,8 +2170,8 @@
 			cssString += `\n`;
 
 			const readingStyles = this._getReadingStyles();
-			cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-reading=true],`;
-			cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]:hover,`;
+			// cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-reading=true],`;
+			// cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]:hover,`;
 			cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]`;
 			cssString += `{`;
 			for (const prop in readingStyles) {
@@ -3109,7 +3364,8 @@
 		_intersectionObserver;
 
 		_targetTriggers;
-		_hoverHandlers;
+		// _hoverHandlers;
+		_hoverOptions;
 
 		_needsUpdate;
 		_isSelfApply;
@@ -3466,7 +3722,8 @@
 		_activateMode() {
 			this._mode.activate();
 			this._initStylesheet();
-			this._registerTargetListeners(this._targetTriggers);
+			// this._registerTargetListeners();
+			this._registerTargetHoverTrackers();
 
 			this._emit('activate', { mode: this._mode._getModeName() });
 		}
@@ -3479,7 +3736,8 @@
 		 */
 		_deactivateMode() {
 			this._mode.deactivate();
-			this._unregisterTargetListeners();
+			// this._unregisterTargetListeners();
+			this._unregisterTargetHoverTrackers();
 
 			this._emit('deactivate', { mode: this._mode._getModeName() });
 		}
@@ -3579,6 +3837,7 @@
 		 * =============================================================
 		 */
 
+
 		/**
 		 * Инициализирует парсинг стилей и находит триггеры для hover.
 		 * @since 1.1.0
@@ -3598,194 +3857,89 @@
 		 */
 		_destroyStylesheet() {
 			this._targetTriggers = null;
-			this._hoverHandlers = null;
-			this._unregisterGlobalTouchEndListener();
+			this._hoverOptions = null;
 			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[DESTROY]');
 		}
 
 		/**
 		 * Регистрирует обработчики событий на элементах-триггерах.
-		 * @since 1.1.0
+		 * @since 1.4.0
 		 * @protected
 		 * @param {Object} triggers - Объект, где ключ – селектор, значение – массив элементов.
 		 * @returns {void}
 		 */
-		_registerTargetListeners(triggers) {
-			this._hoverHandlers = {};
+		_registerTargetHoverTrackers() {
+			const triggers = this._targetTriggers;
+			this._hoverOptions = {};
 			for (const selector in triggers) {
-				this._hoverHandlers[selector] = {
-					in : (event) => { this._triggerHandlerIn(selector, event); },
-					out : (event) => { this._triggerHandlerOut(selector, event); },
-					touchStart : (event) => { this._triggerHandlerTouchIn(selector, event); },
-					on : [],
-					hovered : false,
-					touchCount : 0
+				this._hoverOptions[selector] = {
+					callback : (isHover) => this._hoverEventHandler(selector, isHover),
+					triggers : new Set(),
+					active : false,
 				};
 				triggers[selector].forEach((trigger) => {
-					this._hoverHandlers[selector].on.push(trigger);
-					this._registerTriggerListener(trigger, selector);
+					this._hoverOptions[selector].triggers.add(trigger);
+					jsse_trigger_callbacks.add(trigger, this._hoverOptions[selector].callback);
+					jsse_hover_tracker.observe(trigger, (trigger, isHover) => jsse_trigger_callbacks.call(trigger, isHover) );
 				});
 			}
-			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', true);
+			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[TRACKER]', true);
 		}
 
 		/**
 		 * Удаляет все зарегистрированные обработчики с триггеров.
-		 * @since 1.1.0
+		 * @since 1.4.0
 		 * @protected
 		 * @returns {void}
 		 */
-		_unregisterTargetListeners() {
-			for (const selector in this._hoverHandlers) {
-				for (const trigger of this._hoverHandlers[selector].on) {
-					if (trigger && trigger.removeEventListener) {
-						this._unregisterTriggerListener(trigger, selector);
-					}
+		_unregisterTargetHoverTrackers() {
+			for (const selector in this._hoverOptions) {
+				for (const trigger of this._hoverOptions[selector].triggers) {
+					this._hoverOptions[selector].triggers.delete(trigger);
+					jsse_trigger_callbacks.delete(trigger, this._hoverOptions[selector].callback);
+					jsse_hover_tracker.unobserve(trigger, (trigger, isHover) => jsse_trigger_callbacks.call(trigger, isHover) );
+					if (!jsse_trigger_callbacks.has(trigger))
+						jsse_hover_tracker.unobserve(trigger);
 				}
 			}
-			this._hoverHandlers = {};
+			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[TRACKER]', false);
+		}
 
-			// Удаляем глобальный обработчик touchend
-			if (this._globalTouchEndHandler) {
-				document.body.removeEventListener('touchend', this._globalTouchEndHandler);
-				this._globalTouchEndHandler = null;
+		_hoverEventHandler(selector, isHover) {
+			if (isHover) {
+				this._hoverEnterHandler(selector);
 			}
-			
-			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', false);
-		}
-
-		/**
-		 * Добавляет обработчики на конкретный элемент-триггер.
-		 * @since 1.1.0
-		 * @protected
-		 * @param {Element} trigger - DOM-элемент-триггер.
-		 * @param {string} selector - Селектор, связанный с триггером.
-		 * @returns {void}
-		 */
-		_registerTriggerListener(trigger, selector) {
-			// Мышь / перо
-			trigger.addEventListener('mouseenter', this._hoverHandlers[selector].in);
-			trigger.addEventListener('mouseleave', this._hoverHandlers[selector].out);
-			
-			// Касание
-			trigger.addEventListener('touchstart', this._hoverHandlers[selector].touchStart);
-			this._registerGlobalTouchEndListener();
-
-			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', true, selector);
-		}
-
-		/**
-		 * Регистрирует глобальный обработчик `touchend` для корректной работы hover на сенсорных экранах.
-		 * @since 1.1.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_registerGlobalTouchEndListener() {
-			// Глобальный обработчик touchend (добавляем один раз)
-			if (!this._globalTouchEndHandler) {
-				this._globalTouchEndHandler = (event) => {
-					for (const selector in this._hoverHandlers) {
-						const handler = this._hoverHandlers[selector];
-						if (handler.touchCount > 0) {
-							this._triggerHandlerTouchOut(selector, event);
-						}
-					}
-				};
-				document.body.addEventListener('touchend', this._globalTouchEndHandler);
+			else {
+				this._hoverLeaveHandler(selector);
 			}
+			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[HOVER]', selector, isHover);
 		}
 
-		/**
-		 * Удаляет глобальный обработчик `touchend`.
-		 * @since 1.1.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_unregisterGlobalTouchEndListener() {
-			if (this._globalTouchEndHandler) {
-				document.body.removeEventListener('touchend', this._globalTouchEndHandler);
-				this._globalTouchEndHandler = null;
-			}
-		}
 
 		/**
-		 * Удаляет обработчики с элемента-триггера.
-		 * @since 1.1.0
-		 * @protected
-		 * @param {Element} trigger - DOM-элемент-триггер.
-		 * @param {string} selector - Селектор, связанный с триггером.
-		 * @returns {void}
-		 */
-		_unregisterTriggerListener(trigger, selector) {
-			trigger.removeEventListener('mouseenter', this._hoverHandlers[selector].in);
-			trigger.removeEventListener('mouseleave', this._hoverHandlers[selector].out);
-			trigger.removeEventListener('touchstart', this._hoverHandlers[selector].touchStart);
-
-			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', false, selector);
-		}
-
-		/**
-		 * Обработчик события `mouseenter` / `pointerenter` на триггере.
-		 * @since 1.1.0
+		 * Обработчик события `hoverEnter` на триггере.
+		 * @since 1.4.0
 		 * @protected
 		 * @param {string} selector - Селектор триггера.
-		 * @param {Event} event - Событие.
 		 * @returns {void}
 		 */
-		_triggerHandlerIn(selector, event) {
-			if ( !this._element.matches(selector) || !this._hoverHandlers[selector] ) return;
-			this._hoverHandlers[selector].hovered = true;
-			jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector, event);
+		_hoverEnterHandler(selector) {
+			if (this._hoverOptions[selector]?.active || !this._element.matches(selector)) return;
+			this._hoverOptions[selector].active = true;
 			this._mutationHandler();
 		}
 
 		/**
-		 * Обработчик события `mouseleave` / `pointerleave` на триггере.
-		 * @since 1.1.0
+		 * Обработчик события `hoverLeave` на триггере.
+		 * @since 1.4.0
 		 * @protected
 		 * @param {string} selector - Селектор триггера.
-		 * @param {Event} event - Событие.
 		 * @returns {void}
 		 */
-		_triggerHandlerOut(selector, event) {
-			if ( this._element.matches(selector) || !this._hoverHandlers[selector] || !this._hoverHandlers[selector]?.hovered ) return;
-			this._hoverHandlers[selector].hovered = false;
-			jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector, event);
+		_hoverLeaveHandler(selector) {
+			if(!this._hoverOptions[selector]?.active) return;
+			this._hoverOptions[selector].active = false;
 			this._mutationHandler();
-		}
-
-		/**
-		 * Обработчик `touchstart` на триггере (увеличивает счётчик касаний).
-		 * @since 1.1.0
-		 * @protected
-		 * @param {string} selector - Селектор триггера.
-		 * @param {TouchEvent} event - Событие касания.
-		 * @returns {void}
-		 */
-		_triggerHandlerTouchIn(selector, event) {
-			if ( !this._hoverHandlers[selector] || this._hoverHandlers[selector]?.touchCount !== undefined ) {
-				this._hoverHandlers[selector].touchCount++;
-				if (this._hoverHandlers[selector].touchCount === 1) {
-					this._triggerHandlerIn(selector, event);
-				}
-			}
-		}
-
-		/**
-		 * Обработчик `touchend` (уменьшает счётчик касаний и вызывает выход при обнулении).
-		 * @since 1.1.0
-		 * @protected
-		 * @param {string} selector - Селектор триггера.
-		 * @param {TouchEvent} event - Событие касания.
-		 * @returns {void}
-		 */
-		_triggerHandlerTouchOut(selector, event) {
-			if ( !this._hoverHandlers[selector] || this._hoverHandlers[selector]?.touchCount !== undefined ) {
-				this._hoverHandlers[selector].touchCount--;
-				if (this._hoverHandlers[selector].touchCount === 0) {
-					this._triggerHandlerOut(selector, event);
-				}
-			}
 		}
 
 		/**
@@ -3954,16 +4108,6 @@
 
 			const children = this._getSelectorElements(selector, parent);
 			return Array.from(children).includes(this._element);
-		}
-
-		/**
-		 * Заглушка для получения элементов-триггеров (не используется).
-		 * @since 1.1.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_getTriggerElements() {
-			jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
 		}
 
 

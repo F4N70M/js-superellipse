@@ -17,7 +17,7 @@
  * controller.enable();
  */
 
-import { jsse_styles, jsse_counter, jsse_stylesheet } from './global-cache.js';
+import { jsse_styles, jsse_counter, jsse_stylesheet, jsse_hover_tracker, jsse_trigger_callbacks } from './global-cache.js';
 import { jsse_getBorderRadiusFactor } from './core.js';
 import { jsse_controllers } from './global-cache.js';
 import { SuperellipseModeSvgLayer } from './mode-svg-layer.js';
@@ -54,7 +54,8 @@ export class SuperellipseController
 	_intersectionObserver;
 
 	_targetTriggers;
-	_hoverHandlers;
+	// _hoverHandlers;
+	_hoverOptions;
 
 	_needsUpdate;
 	_isSelfApply;
@@ -411,7 +412,8 @@ export class SuperellipseController
 	_activateMode() {
 		this._mode.activate();
 		this._initStylesheet();
-		this._registerTargetListeners(this._targetTriggers);
+		// this._registerTargetListeners();
+		this._registerTargetHoverTrackers();
 
 		this._emit('activate', { mode: this._mode._getModeName() });
 	}
@@ -424,7 +426,8 @@ export class SuperellipseController
 	 */
 	_deactivateMode() {
 		this._mode.deactivate();
-		this._unregisterTargetListeners();
+		// this._unregisterTargetListeners();
+		this._unregisterTargetHoverTrackers();
 
 		this._emit('deactivate', { mode: this._mode._getModeName() });
 	}
@@ -524,6 +527,7 @@ export class SuperellipseController
 	 * =============================================================
 	 */
 
+
 	/**
 	 * Инициализирует парсинг стилей и находит триггеры для hover.
 	 * @since 1.1.0
@@ -543,194 +547,89 @@ export class SuperellipseController
 	 */
 	_destroyStylesheet() {
 		this._targetTriggers = null;
-		this._hoverHandlers = null
-		this._unregisterGlobalTouchEndListener();
+		this._hoverOptions = null
 		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[DESTROY]');
 	}
 
 	/**
 	 * Регистрирует обработчики событий на элементах-триггерах.
-	 * @since 1.1.0
+	 * @since 1.4.0
 	 * @protected
 	 * @param {Object} triggers - Объект, где ключ – селектор, значение – массив элементов.
 	 * @returns {void}
 	 */
-	_registerTargetListeners(triggers) {
-		this._hoverHandlers = {};
+	_registerTargetHoverTrackers() {
+		const triggers = this._targetTriggers;
+		this._hoverOptions = {};
 		for (const selector in triggers) {
-			this._hoverHandlers[selector] = {
-				in : (event) => { this._triggerHandlerIn(selector, event); },
-				out : (event) => { this._triggerHandlerOut(selector, event); },
-				touchStart : (event) => { this._triggerHandlerTouchIn(selector, event) },
-				on : [],
-				hovered : false,
-				touchCount : 0
+			this._hoverOptions[selector] = {
+				callback : (isHover) => this._hoverEventHandler(selector, isHover),
+				triggers : new Set(),
+				active : false,
 			};
 			triggers[selector].forEach((trigger) => {
-				this._hoverHandlers[selector].on.push(trigger);
-				this._registerTriggerListener(trigger, selector);
+				this._hoverOptions[selector].triggers.add(trigger);
+				jsse_trigger_callbacks.add(trigger, this._hoverOptions[selector].callback);
+				jsse_hover_tracker.observe(trigger, (trigger, isHover) => jsse_trigger_callbacks.call(trigger, isHover) );
 			});
 		}
-		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', true);
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[TRACKER]', true);
 	}
 
 	/**
 	 * Удаляет все зарегистрированные обработчики с триггеров.
-	 * @since 1.1.0
+	 * @since 1.4.0
 	 * @protected
 	 * @returns {void}
 	 */
-	_unregisterTargetListeners() {
-		for (const selector in this._hoverHandlers) {
-			for (const trigger of this._hoverHandlers[selector].on) {
-				if (trigger && trigger.removeEventListener) {
-					this._unregisterTriggerListener(trigger, selector);
-				}
+	_unregisterTargetHoverTrackers() {
+		for (const selector in this._hoverOptions) {
+			for (const trigger of this._hoverOptions[selector].triggers) {
+				this._hoverOptions[selector].triggers.delete(trigger);
+				jsse_trigger_callbacks.delete(trigger, this._hoverOptions[selector].callback);
+				jsse_hover_tracker.unobserve(trigger, (trigger, isHover) => jsse_trigger_callbacks.call(trigger, isHover) );
+				if (!jsse_trigger_callbacks.has(trigger))
+					jsse_hover_tracker.unobserve(trigger);
 			}
 		}
-		this._hoverHandlers = {};
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[TRACKER]', false);
+	}
 
-		// Удаляем глобальный обработчик touchend
-		if (this._globalTouchEndHandler) {
-			document.body.removeEventListener('touchend', this._globalTouchEndHandler);
-			this._globalTouchEndHandler = null;
+	_hoverEventHandler(selector, isHover) {
+		if (isHover) {
+			this._hoverEnterHandler(selector);
 		}
-		
-		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[EVENTS]', false);
-	}
-
-	/**
-	 * Добавляет обработчики на конкретный элемент-триггер.
-	 * @since 1.1.0
-	 * @protected
-	 * @param {Element} trigger - DOM-элемент-триггер.
-	 * @param {string} selector - Селектор, связанный с триггером.
-	 * @returns {void}
-	 */
-	_registerTriggerListener(trigger, selector) {
-		// Мышь / перо
-		trigger.addEventListener('mouseenter', this._hoverHandlers[selector].in);
-		trigger.addEventListener('mouseleave', this._hoverHandlers[selector].out);
-		
-		// Касание
-		trigger.addEventListener('touchstart', this._hoverHandlers[selector].touchStart);
-		this._registerGlobalTouchEndListener();
-
-		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', true, selector);
-	}
-
-	/**
-	 * Регистрирует глобальный обработчик `touchend` для корректной работы hover на сенсорных экранах.
-	 * @since 1.1.0
-	 * @protected
-	 * @returns {void}
-	 */
-	_registerGlobalTouchEndListener() {
-		// Глобальный обработчик touchend (добавляем один раз)
-		if (!this._globalTouchEndHandler) {
-			this._globalTouchEndHandler = (event) => {
-				for (const selector in this._hoverHandlers) {
-					const handler = this._hoverHandlers[selector];
-					if (handler.touchCount > 0) {
-						this._triggerHandlerTouchOut(selector, event);
-					}
-				}
-			};
-			document.body.addEventListener('touchend', this._globalTouchEndHandler);
+		else {
+			this._hoverLeaveHandler(selector);
 		}
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[HOVER]', selector, isHover);
 	}
 
-	/**
-	 * Удаляет глобальный обработчик `touchend`.
-	 * @since 1.1.0
-	 * @protected
-	 * @returns {void}
-	 */
-	_unregisterGlobalTouchEndListener() {
-		if (this._globalTouchEndHandler) {
-			document.body.removeEventListener('touchend', this._globalTouchEndHandler);
-			this._globalTouchEndHandler = null;
-		}
-	}
 
 	/**
-	 * Удаляет обработчики с элемента-триггера.
-	 * @since 1.1.0
-	 * @protected
-	 * @param {Element} trigger - DOM-элемент-триггер.
-	 * @param {string} selector - Селектор, связанный с триггером.
-	 * @returns {void}
-	 */
-	_unregisterTriggerListener(trigger, selector) {
-		trigger.removeEventListener('mouseenter', this._hoverHandlers[selector].in);
-		trigger.removeEventListener('mouseleave', this._hoverHandlers[selector].out);
-		trigger.removeEventListener('touchstart', this._hoverHandlers[selector].touchStart);
-
-		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TRIGGER]', '[EVENT]', false, selector);
-	}
-
-	/**
-	 * Обработчик события `mouseenter` / `pointerenter` на триггере.
-	 * @since 1.1.0
+	 * Обработчик события `hoverEnter` на триггере.
+	 * @since 1.4.0
 	 * @protected
 	 * @param {string} selector - Селектор триггера.
-	 * @param {Event} event - Событие.
 	 * @returns {void}
 	 */
-	_triggerHandlerIn(selector, event) {
-		if ( !this._element.matches(selector) || !this._hoverHandlers[selector] ) return;
-		this._hoverHandlers[selector].hovered = true;
-		jsse_console.debug({label:'HOVER',element:this._element}, '[IN]', selector, event);
+	_hoverEnterHandler(selector) {
+		if (this._hoverOptions[selector]?.active || !this._element.matches(selector)) return;
+		this._hoverOptions[selector].active = true;
 		this._mutationHandler();
 	}
 
 	/**
-	 * Обработчик события `mouseleave` / `pointerleave` на триггере.
-	 * @since 1.1.0
+	 * Обработчик события `hoverLeave` на триггере.
+	 * @since 1.4.0
 	 * @protected
 	 * @param {string} selector - Селектор триггера.
-	 * @param {Event} event - Событие.
 	 * @returns {void}
 	 */
-	_triggerHandlerOut(selector, event) {
-		if ( this._element.matches(selector) || !this._hoverHandlers[selector] || !this._hoverHandlers[selector]?.hovered ) return;
-		this._hoverHandlers[selector].hovered = false;
-		jsse_console.debug({label:'HOVER',element:this._element}, '[OUT]', selector, event);
+	_hoverLeaveHandler(selector) {
+		if(!this._hoverOptions[selector]?.active) return;
+		this._hoverOptions[selector].active = false;
 		this._mutationHandler();
-	}
-
-	/**
-	 * Обработчик `touchstart` на триггере (увеличивает счётчик касаний).
-	 * @since 1.1.0
-	 * @protected
-	 * @param {string} selector - Селектор триггера.
-	 * @param {TouchEvent} event - Событие касания.
-	 * @returns {void}
-	 */
-	_triggerHandlerTouchIn(selector, event) {
-		if ( !this._hoverHandlers[selector] || this._hoverHandlers[selector]?.touchCount !== undefined ) {
-			this._hoverHandlers[selector].touchCount++;
-			if (this._hoverHandlers[selector].touchCount === 1) {
-				this._triggerHandlerIn(selector, event);
-			}
-		}
-	}
-
-	/**
-	 * Обработчик `touchend` (уменьшает счётчик касаний и вызывает выход при обнулении).
-	 * @since 1.1.0
-	 * @protected
-	 * @param {string} selector - Селектор триггера.
-	 * @param {TouchEvent} event - Событие касания.
-	 * @returns {void}
-	 */
-	_triggerHandlerTouchOut(selector, event) {
-		if ( !this._hoverHandlers[selector] || this._hoverHandlers[selector]?.touchCount !== undefined ) {
-			this._hoverHandlers[selector].touchCount--;
-			if (this._hoverHandlers[selector].touchCount === 0) {
-				this._triggerHandlerOut(selector, event);
-			}
-		}
 	}
 
 	/**
@@ -899,16 +798,6 @@ export class SuperellipseController
 
 		const children = this._getSelectorElements(selector, parent);
 		return Array.from(children).includes(this._element);
-	}
-
-	/**
-	 * Заглушка для получения элементов-триггеров (не используется).
-	 * @since 1.1.0
-	 * @protected
-	 * @returns {void}
-	 */
-	_getTriggerElements() {
-		const targetSelectors = jsse_stylesheet.getTargetSelectors(this._element, {selectorHasHover:true});
 	}
 
 
