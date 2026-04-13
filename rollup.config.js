@@ -5,6 +5,7 @@ const terser = require('@rollup/plugin-terser');
 const fs = require('fs');
 // Читаем файл с комментарием
 const headerComment = fs.readFileSync('src/header.js', 'utf8');
+const headerCommentMin = fs.readFileSync('src/header.min.js', 'utf8');
 
 module.exports = {
 	input: 'src/index.js',
@@ -20,7 +21,7 @@ module.exports = {
 			file: 'dist/superellipse.min.js',
 			format: 'umd',
 			name: 'Superellipse',
-			banner: headerComment,
+			banner: headerCommentMin,
 			plugins: [terser({
 				mangle: {
 					properties: {

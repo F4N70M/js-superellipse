@@ -1,7 +1,7 @@
 /**
  * 
  * @module js-superellipse
- * @version 1.0.0
+ * @version 1.4.1
  * @author f4n70m
  * @license MIT
  * 
@@ -43,26 +43,3 @@
  * document.querySelector('path').setAttribute('d', path);
  */
 
-/**
- * Глобальная функция для инициализации суперэллипса на одном или нескольких элементах.
- * @function superellipseInit
- * @memberof module:js-superellipse
- * @param {string|Element|NodeList|Array<Element>} target - CSS-селектор, DOM-элемент или коллекция.
- * @param {Object} [options] - Опции инициализации.
- * @param {string} [options.mode='svg-layer'] - Режим: `'svg-layer'` (полная поддержка стилей) или `'clip-path'` (только обрезка).
- * @param {number} [options.curveFactor] - Коэффициент кривизны (от -2 до 2). По умолчанию `(4/3)*(√2-1) ≈ 0.5523`.
- * @param {number} [options.precision=2] - Количество знаков после запятой в координатах пути.
- * @param {boolean} [options.force=false] - Принудительное пересоздание контроллера, если элемент уже инициализирован.
- * @returns {SuperellipseController|Array<SuperellipseController>} Контроллер для одного элемента или массив контроллеров.
- * @throws {Error} Если target не является селектором, элементом или коллекцией.
- */
-
-/**
- * Класс контроллера, управляющего жизненным циклом суперэллипса для конкретного элемента.
- * @class SuperellipseController
- * @memberof module:js-superellipse
- * @hideconstructor
- * @example
- * const controller = new SuperellipseController(element, options);
- * // или через фабрику: element.superellipseInit(options)
- */

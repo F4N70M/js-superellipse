@@ -26,7 +26,10 @@ import { jsse_console, jsse_css_selector } from './support.js';
 
 
 /**
- * Контроллер, управляющий применением суперэллипса к DOM-элементу.
+ * Класс контроллера, управляющего жизненным циклом суперэллипса для конкретного элемента.
+ * 
+ * const controller = new SuperellipseController(element, options);
+ * // или через фабрику: element.superellipseInit(options)
  */
 export class SuperellipseController
 {
