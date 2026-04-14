@@ -19,13 +19,23 @@
 
 ## Установка
 
-### Скачать файл
-
-Скачайте `superellipse.js` и подключите через тег `<script>`:
-
 ```html
 <script src="path/to/superellipse.js"></script>
 ```
+
+### Через npm (рекомендуется):
+```bash
+npm install js-superellipse
+```
+
+### Через npm (из GitHub)
+```bash
+npm install git+https://github.com/f4n70m/js-superellipse.git
+```
+
+### Скачать файл
+
+Скачайте `superellipse.js` и подключите через тег `<script>`:
 
 ### Как ES-модуль
 

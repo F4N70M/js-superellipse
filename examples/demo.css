@@ -262,6 +262,17 @@ input[type="range"]::-webkit-slider-thumb:hover {
     justify-content: center;
     margin: 16px 0 12px;    /* было 1.2rem 0 0.8rem */
 }
+.demo__mode-buttons {
+    gap: unset;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #2d2d2e;
+    transition: .2s;
+}
+
+.demo__mode-buttons:has(.demo__mode-btn:not(.demo__mode-btn_active):hover) {
+    background-color: #3a3a3c;
+}
 
 .demo__mode-btn {
     background: #2d2d2e;
@@ -271,20 +282,33 @@ input[type="range"]::-webkit-slider-thumb:hover {
     font-weight: 500;
     font-size: 12px;        /* было 0.8rem -> 16px */
     cursor: pointer;
-    transition: var(--transition);
+    /*transition: var(--transition);*/
     font-family: inherit;
     color: var(--text-muted);
+}
+
+.demo__mode-btn {
+    border-radius: unset;
+    transition: unset;
 }
 
 .demo__mode-btn_active {
     background: linear-gradient(-15deg, var(--primary), var(--secondary));
     color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    /*box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);*/
+}
+
+.demo__mode-btn_active {
+    border-radius: 16px;
 }
 
 .demo__mode-btn:hover:not(.demo__mode-btn_active) {
     background: #3a3a3c;
     color: var(--text-dark);
+}
+
+.demo__mode-btn:hover:not(.demo__mode-btn_active) {
+    background: unset;
 }
 
 .demo__toggle-wrapper {
@@ -421,7 +445,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 @media (max-width: 480px) {
     .demo__mode-buttons {
-        flex-direction: column;
+        /*flex-direction: column;*/
         align-items: stretch;
     }
     .demo__card {

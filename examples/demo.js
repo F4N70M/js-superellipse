@@ -27,7 +27,7 @@ let currentCurve = 0.75;
 let currentRadius = 24;
 
 // Сохраняем контроллеры для кнопок режимов
-let modeControllers = [];
+// let modeControllers = [];
 
 // Инициализация всех элементов с superellipse
 function initAllElements() {
@@ -39,17 +39,18 @@ function initAllElements() {
     });
 
     // Инициализируем кнопки режимов
-    modeControllers = [];
-    modeBtns.forEach(modeBtn => {
-        const controller = modeBtn.superellipseInit({
-            curveFactor: 0.75,
-            precision: 2,
-        });
-        modeControllers.push(controller);
-    });
+    // modeControllers = [];
+    // modeBtns.forEach(modeBtn => {
+    //     const controller = modeBtn.superellipseInit({
+    //         curveFactor: 0.75,
+    //         precision: 2,
+    //     });
+    //     modeControllers.push(controller);
+    // });
 
     // Инициализируем остальные элементы (бывшие .value-badge, .chip)
-    window.superellipseInit(document.querySelectorAll('.controls__value, .demo__chip'), {
+    window.superellipseInit(document.querySelectorAll('.controls__value, .demo__chip, .demo__mode-buttons'), {
+    // window.superellipseInit(document.querySelectorAll('.controls__value, .demo__chip'), {
         curveFactor: 0.75,
         precision: 2,
         mode: 'clip-path'

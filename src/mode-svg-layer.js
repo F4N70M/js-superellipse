@@ -109,7 +109,6 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 		return {
 			'background': 'none',
 			'border-color': 'transparent',
-			'border-width': '',
 			'border-width': '0px',
 			// 'border-style': 'none',
 			// 'border': 'unset',
@@ -132,7 +131,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 			'left': '0px',
 			'width': '100%',
 			'height': '100%',
-			'pointer-events': 'none'
+			'pointer-events': 'none',
 		};
 	}
 

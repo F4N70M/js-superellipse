@@ -1,7 +1,8 @@
 # Superellipse Shape Engine
 
-[![Лицензия: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![Версия](https://img.shields.io/badge/version-1.0.0-blue)
+[![version on github](https://img.shields.io/github/v/tag/f4n70m/js-superellipse?label=github&color=blue)](https://github.com/F4N70M/js-superellipse)
+[![version on npm](https://img.shields.io/npm/v/js-superellipse?label=npm&color=red)](https://www.npmjs.com/package/js-superellipse)
+[![license: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Суперэллипс для любых DOM-элементов** – плавное изменение формы углов от вогнутых прямоугольных до выгнутых прямоугольных, включая скос, круглые углы и классический суперэллипс.
 
@@ -23,16 +24,21 @@
 
 ## Установка
 
-### Прямая загрузка
-Скачайте [последний релиз](https://github.com/f4n70m/js-superellipse/releases) и подключите скрипт:
-
-```html
-<script src="dist/superellipse.min.js"></script>
+### Через npm (рекомендуется):
+```bash
+npm install js-superellipse
 ```
 
 ### Через npm (из GitHub)
 ```bash
 npm install git+https://github.com/f4n70m/js-superellipse.git
+```
+
+### Прямая загрузка
+Скачайте [последний релиз](https://github.com/f4n70m/js-superellipse/releases) и подключите скрипт:
+
+```html
+<script src="dist/superellipse.min.js"></script>
 ```
 
 ### Как ES-модуль
@@ -74,7 +80,7 @@ superellipseInit('.rounded', { mode: 'clip-path' });
 | `controller.switchMode(mode)` | Переключить режим (`'svg-layer'` / `'clip-path'`) |
 | `controller.on(event, callback)` | Подписка на события `update`, `activate`, `deactivate`, `error` |
 
-Полная документация по API находится в папке [`docs/`](./docs/).
+Полная документация по API находится в папке [`docs/`](https://github.com/F4N70M/js-superellipse/blob/main/docs/).
 
 ## Режимы работы
 
@@ -85,21 +91,16 @@ superellipseInit('.rounded', { mode: 'clip-path' });
 
 В большинстве случаев рекомендуется `svg-layer`, так как он сохраняет все визуальные стили. Используйте `clip-path` для изображений или когда важна производительность.
 
-## Примеры
-
-Живые демо находятся в папке [`examples/`](./examples/).  
-Чтобы запустить их локально, запустите статический сервер (например, `npx http-server`) и откройте `examples/index.html`.
-
 ## Документация
 
-Полная документация находится в папке [`docs/`](./docs/):
+Полная документация находится в папке [`docs/`](https://github.com/F4N70M/js-superellipse/blob/main/docs/):
 
-- [Введение](./docs/00-index.md) – Основная информация
-- [API Reference](./docs/01-api.md) – все методы, классы и опции
-- [Режимы работы](./docs/02-modes.md) – `clip-path` vs `svg-layer`
-- [Продвинутые возможности](./docs/03-advanced.md) – hover-триггеры, события, отладка
-- [Примеры использования](./docs/04-examples.md) – готовые фрагменты кода
-- [FAQ и ограничения](./docs/05-faq.md) – известные проблемы и решения
+- [Введение](https://github.com/F4N70M/js-superellipse/blob/main/docs/00-index.md) – Основная информация
+- [API Reference](https://github.com/F4N70M/js-superellipse/blob/main/docs/01-api.md) – все методы, классы и опции
+- [Режимы работы](https://github.com/F4N70M/js-superellipse/blob/main/docs/02-modes.md) – `clip-path` vs `svg-layer`
+- [Продвинутые возможности](https://github.com/F4N70M/js-superellipse/blob/main/docs/03-advanced.md) – hover-триггеры, события, отладка
+- [Примеры использования](https://github.com/F4N70M/js-superellipse/blob/main/docs/04-examples.md) – готовые фрагменты кода
+- [FAQ и ограничения](https://github.com/F4N70M/js-superellipse/blob/main/docs/05-faq.md) – известные проблемы и решения
 
 ## Поддержка браузеров
 
