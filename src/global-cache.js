@@ -51,9 +51,16 @@ export const jsse_hover_tracker = new GlobalHoverTracker();
  * @type {WeakMap<Element, Set<Element>>}
  */
 export const jsse_trigger_callbacks = {
-	
+    /**
+     * @type {WeakMap<Element, Set<Function>>}
+     */
 	triggers: new WeakMap(),
 
+    /**
+     * @param {Element} trigger
+     * @param {Function} callback
+     * @returns {void}
+     */
 	add(trigger, callback) {
 		if(!this.triggers.has(trigger)) {
 			this.triggers.set(trigger, new Set());
@@ -61,6 +68,12 @@ export const jsse_trigger_callbacks = {
 		const callbacks = this.triggers.get(trigger);
 		callbacks.add(callback);
 	},
+	
+    /**
+     * @param {Element} trigger
+     * @param {Function} callback
+     * @returns {void}
+     */
 	delete(trigger, callback) {
 		if(!this.triggers.has(trigger)) return;
 		const callbacks = this.triggers.get(trigger);
@@ -69,9 +82,20 @@ export const jsse_trigger_callbacks = {
 			this.triggers.delete(trigger);
 		}
 	},
+
+    /**
+     * @param {Element} trigger
+     * @returns {boolean}
+     */
 	has(trigger) {
 		return this.triggers.has(trigger);
 	},
+
+    /**
+     * @param {Element} trigger
+     * @param {...any} args
+     * @returns {void}
+     */
     call(trigger, ...args) {
         if (!this.triggers.has(trigger)) return;
         const callbacks = this.triggers.get(trigger);

@@ -1,7 +1,7 @@
 /**
- * @file src/support.js
+ * @file src/stylesheet-parser.js
  * 
- * @module js-superellipse/css-parser
+ * @module js-superellipse/stylesheet-parser
  * @since 1.1.0
  * @author f4n70m
  * 
@@ -68,7 +68,7 @@ class StylesheetParserFragment {
 	 * @since 1.1.0
 	 * @returns {string[]}
 	 */
-	getPseudoList() { return this.pseudo; };
+	getPseudoList() { return this._pseudo; };
 
 	/**
 	 * Проверяет наличие конкретного псевдокласса.
@@ -309,7 +309,7 @@ class StylesheetParserSelector {
 	/**
 	 * Возвращает части селектора, участвующие в hover-триггерах.
 	 * @since 1.1.0
-	 * @returns {Array<{parent: string, neighbor: Object|null, child: string}>}
+	 * @returns {Array<{parent: string, neighbor: {combinator: string, clean: string}|null, child: string}>}
 	 */
 	getTriggerParts() {
 		if (this._triggerParts === null) {
@@ -652,7 +652,13 @@ export class StylesheetParser {
 			const fragments = selector.getFragments();
 			const clean = fragments.getTarget().getClean();
 			if (!clean) continue;
-			const isMatch = element.matches(clean);
+			let isMatch;
+			try {
+				isMatch = element.matches(clean);
+			} catch (e) {
+				isMatch = false;
+				jsse_console.warn({label:'STYLESHEET'}, `last fragment`,clean, ` in `, selector.getSelector(), `not supported`, e, element);
+			}
 			const selectorHasHover = fragments.hasTrigger();
 			if (
 				isMatch &&

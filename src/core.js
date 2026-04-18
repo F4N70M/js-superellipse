@@ -86,7 +86,7 @@ export function jsse_getBorderRadiusFactor() {
  * @since 1.0.0
  * @param {number} width  - Ширина фигуры.
  * @param {number} height - Высота фигуры.
- * @param {number} radius - Радиус скругления углов (будет автоматически ограничен).
+ * @param {number} radius - Радиус скругления углов (будет автоматически ограничен, NaN преобразуется в 0).
  * @param {number} curveFactor - Коэффициент формы углов, диапазон [-2, 2].
  * @param {number} [precision=2] - Количество знаков после запятой в координатах.
  * @returns {string} Строка с SVG-командами для элемента <path>.

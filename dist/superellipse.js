@@ -1,7 +1,7 @@
 /**
  * 
  * @module js-superellipse
- * @version 1.4.1
+ * @version 1.5.0
  * @author f4n70m
  * @license MIT
  * 
@@ -166,9 +166,9 @@
 	};
 
 	/**
-	 * @file src/support.js
+	 * @file src/stylesheet-parser.js
 	 * 
-	 * @module js-superellipse/css-parser
+	 * @module js-superellipse/stylesheet-parser
 	 * @since 1.1.0
 	 * @author f4n70m
 	 * 
@@ -234,7 +234,7 @@
 		 * @since 1.1.0
 		 * @returns {string[]}
 		 */
-		getPseudoList() { return this.pseudo; };
+		getPseudoList() { return this._pseudo; };
 
 		/**
 		 * Проверяет наличие конкретного псевдокласса.
@@ -475,7 +475,7 @@
 		/**
 		 * Возвращает части селектора, участвующие в hover-триггерах.
 		 * @since 1.1.0
-		 * @returns {Array<{parent: string, neighbor: Object|null, child: string}>}
+		 * @returns {Array<{parent: string, neighbor: {combinator: string, clean: string}|null, child: string}>}
 		 */
 		getTriggerParts() {
 			if (this._triggerParts === null) {
@@ -818,7 +818,13 @@
 				const fragments = selector.getFragments();
 				const clean = fragments.getTarget().getClean();
 				if (!clean) continue;
-				const isMatch = element.matches(clean);
+				let isMatch;
+				try {
+					isMatch = element.matches(clean);
+				} catch (e) {
+					isMatch = false;
+					jsse_console.warn({label:'STYLESHEET'}, `last fragment`,clean, ` in `, selector.getSelector(), `not supported`, e, element);
+				}
 				fragments.hasTrigger();
 				if (
 					isMatch &&
@@ -1053,12 +1059,10 @@
 
 		/**
 		 * Начинает отслеживание состояния наведения для указанного элемента.
-		 *
 		 * @since 1.4.0
-		 *
 		 * @param {Element} element - DOM-элемент, за которым нужно следить.
-		 * @param {Function} [callback] - Опциональная функция, вызываемая при изменении состояния наведения.
-		 *                                Принимает два аргумента: элемент (Element) и новое состояние (boolean).
+		 * @param {Function} [callback] - function(element:Element,isHover:boolean):void - Опциональная функция, вызываемая при изменении состояния наведения.
+		 * @returns {void}
 		 */
 		observe(element, callback) {
 			if (this.elementsSet.has(element)) return;
@@ -1076,10 +1080,9 @@
 		/**
 		 * Прекращает отслеживание состояния наведения для указанного элемента.
 		 * Удаляет элемент из всех наблюдателей и очищает связанные с ним данные.
-		 *
 		 * @since 1.4.0
-		 *
 		 * @param {Element} element - DOM-элемент, отслеживание которого нужно прекратить.
+		 * @returns {void}
 		 */
 		unobserve(element) {
 			if (!this.elementsSet.has(element)) return;
@@ -1095,8 +1098,7 @@
 		 * @since 1.4.0
 		 *
 		 * @param {Element} element - DOM-элемент, чьё состояние требуется получить.
-		 * @returns {Object|null} Объект с полями `hover` (boolean), `inViewport` (boolean), `callback` (Function|null)
-		 *                        или `null`, если элемент не отслеживается.
+		 * @returns {{hover: boolean, inViewport: boolean, callback: Function|null}|null} — Объект с полями или `null`, если элемент не отслеживается.
 		 */
 		getState(element) {
 			return this.data.get(element) || null;
@@ -1107,8 +1109,8 @@
 		 * - отключает всех наблюдателей (IntersectionObserver, ResizeObserver, MutationObserver),
 		 * - очищает набор отслеживаемых элементов.
 		 * Внутренний WeakMap очищается автоматически сборщиком мусора.
-		 *
 		 * @since 1.4.0
+		 * @returns {void}
 		 */
 		destroy() {
 			// очистка всех наблюдателей
@@ -1122,9 +1124,9 @@
 		/**
 		 * Инициализирует глобальные обработчики событий (mousemove, pointermove, scroll, resize),
 		 * которые вызывают отложенную проверку состояний.
-		 *
 		 * @protected
 		 * @since 1.4.0
+		 * @returns {void}
 		 */
 		_initEventListeners() {
 			const events = ['mousemove', 'pointermove', 'scroll', 'resize'];
@@ -1138,9 +1140,9 @@
 		/**
 		 * Инициализирует MutationObserver для отслеживания изменений в DOM.
 		 * При любых изменениях (поддерево, список дочерних элементов, атрибуты) запускает отложенную проверку.
-		 *
 		 * @protected
 		 * @since 1.4.0
+		 * @returns {void}
 		 */
 		_initMutationObserver() {
 			this.domObserver = new MutationObserver(() => this._scheduleCheck());
@@ -1150,9 +1152,9 @@
 		/**
 		 * Инициализирует ResizeObserver для отслеживания изменения размеров отслеживаемых элементов.
 		 * При изменении размера запускает отложенную проверку.
-		 *
 		 * @protected
 		 * @since 1.4.0
+		 * @returns {void}
 		 */
 		_initResizeObserver() {
 			this.resizeObserver = new ResizeObserver(() => this._scheduleCheck());
@@ -1161,9 +1163,9 @@
 		/**
 		 * Планирует выполнение полной проверки всех элементов в следующем кадре анимации.
 		 * Предотвращает многократный вызов до выполнения запланированной проверки.
-		 *
 		 * @protected
 		 * @since 1.4.0
+		 * @returns {void}
 		 */
 		_scheduleCheck() {
 			if (this.scheduled) return;
@@ -1178,9 +1180,9 @@
 		 * Выполняет синхронную проверку состояния наведения для всех отслеживаемых элементов.
 		 * Обновляет внутреннее состояние и вызывает колбэки при изменении.
 		 * Элементы, потерявшие связь с DOM, автоматически удаляются из отслеживания.
-		 *
 		 * @protected
 		 * @since 1.4.0
+		 * @returns {void}
 		 */
 		_checkAll() {
 			for (const el of this.elementsSet) {
@@ -1259,9 +1261,16 @@
 	 * @type {WeakMap<Element, Set<Element>>}
 	 */
 	const jsse_trigger_callbacks = {
-		
+	    /**
+	     * @type {WeakMap<Element, Set<Function>>}
+	     */
 		triggers: new WeakMap(),
 
+	    /**
+	     * @param {Element} trigger
+	     * @param {Function} callback
+	     * @returns {void}
+	     */
 		add(trigger, callback) {
 			if(!this.triggers.has(trigger)) {
 				this.triggers.set(trigger, new Set());
@@ -1269,6 +1278,12 @@
 			const callbacks = this.triggers.get(trigger);
 			callbacks.add(callback);
 		},
+		
+	    /**
+	     * @param {Element} trigger
+	     * @param {Function} callback
+	     * @returns {void}
+	     */
 		delete(trigger, callback) {
 			if(!this.triggers.has(trigger)) return;
 			const callbacks = this.triggers.get(trigger);
@@ -1277,9 +1292,20 @@
 				this.triggers.delete(trigger);
 			}
 		},
+
+	    /**
+	     * @param {Element} trigger
+	     * @returns {boolean}
+	     */
 		has(trigger) {
 			return this.triggers.has(trigger);
 		},
+
+	    /**
+	     * @param {Element} trigger
+	     * @param {...any} args
+	     * @returns {void}
+	     */
 	    call(trigger, ...args) {
 	        if (!this.triggers.has(trigger)) return;
 	        const callbacks = this.triggers.get(trigger);
@@ -1479,7 +1505,7 @@
 	 * @since 1.0.0
 	 * @param {number} width  - Ширина фигуры.
 	 * @param {number} height - Высота фигуры.
-	 * @param {number} radius - Радиус скругления углов (будет автоматически ограничен).
+	 * @param {number} radius - Радиус скругления углов (будет автоматически ограничен, NaN преобразуется в 0).
 	 * @param {number} curveFactor - Коэффициент формы углов, диапазон [-2, 2].
 	 * @param {number} [precision=2] - Количество знаков после запятой в координатах.
 	 * @returns {string} Строка с SVG-командами для элемента <path>.
@@ -1656,14 +1682,6 @@
 	 * Содержит общую логику захвата стилей и размеров элемента, пересчёта SVG-пути суперэллипса,
 	 * применения/восстановления CSS-свойств (`clip-path`). Определяет защищённые методы, которые должны
 	 * быть переопределены в дочерних классах.
-	 * 
-	 * @example
-	 * class MyMode extends SuperellipseMode {
-	 *   _getActivatedStyles() { return { /* стили активации *\}; }
-	 *   _getModeName() { return 'my-mode'; }
-	 *   _appendVirtualElements() { /* реализация *\/ }
-	 *   _removeVirtualElements() { /* реализация *\/ }
-	 * }
 	 */
 
 
@@ -1673,6 +1691,8 @@
 	 * @since 1.0.0
 	 */
 	class SuperellipseMode {
+
+		_id;
 
 		_element;
 
@@ -1889,7 +1909,7 @@
 		/**
 		 * Инициализация режима.
 		 * @since 1.0.0
-		 * @private
+		 * @protected
 		 * @returns {void}
 		 */
 		_init() {
@@ -1904,7 +1924,7 @@
 		/**
 		 * Устанавливает статус активации.
 		 * @since 1.0.0
-		 * @private
+		 * @protected
 		 * @param {boolean} status - Статус активации.
 		 * @returns {void}
 		 */
@@ -1920,7 +1940,7 @@
 		/**
 		 * Захватывает актуальные стили и размеры.
 		 * @since 1.0.0
-		 * @private
+		 * @protected
 		 * @returns {void}
 		 */
 		_updateCaptured() {
@@ -1931,7 +1951,7 @@
 		/**
 		 * Подготавливает обновление (пересчёт кривой).
 		 * @since 1.0.0
-		 * @private
+		 * @protected
 		 * @returns {void}
 		 */
 		_prepareUpdate() {
@@ -1941,7 +1961,7 @@
 		/**
 		 * Выполняет обновление (применяет кривую).
 		 * @since 1.0.0
-		 * @private
+		 * @protected
 		 * @returns {void}
 		 */
 		_executeUpdate() {
@@ -1988,6 +2008,19 @@
 		 * VIRTUAL
 		 * =============================================================
 		 */
+
+
+
+		/**
+		 * Создаёт HTML-элемент с указанным тегом.
+		 * @since 1.5.0 – Перенесен из `SuperellipseModeSvgLayer::_createVirtualHtmlElement` [1.0.0]
+		 * @protected
+		 * @param {string} tag - Имя тега (например, 'div').
+		 * @returns {HTMLElement}
+		 */
+		_createVirtualHtmlElement(tag) {
+			return document.createElement(tag);
+		}
 
 
 		/**
@@ -2425,439 +2458,1048 @@
 	}
 
 	/**
-	 * @file src/mode-svg-layer.js
+	 * @file src/svg-builder.js
 	 * 
-	 * @module js-superellipse/mode-svg-layer
-	 * @since 1.0.0
+	 * @module js-superellipse/svg-builder
+	 * @since 1.5.0
 	 * @author f4n70m
 	 * 
 	 * @description
-	 * Режим `svg-layer` – полнофункциональный режим, создающий наложенный SVG-слой для отрисовки
-	 * суперэллипса. Позволяет корректно отображать `background`, `border`, `box-shadow` элемента.
-	 * Переносит дочернее содержимое во внутренний div-контейнер, а поверх него размещает SVG,
-	 * который повторяет геометрию суперэллипса с возможностью применения градиентов, теней и
-	 * произвольных стилей обводки.
+	 * `SvgBuilder` – вспомогательный класс для динамического создания SVG-слоя, который повторяет
+	 * геометрию заданного пути (`<path>`). Позволяет накладывать фоновое содержимое (через `foreignObject`),
+	 * обрабатывать `box-shadow` (внешние и внутренние тени с использованием фильтров), рисовать обводку
+	 * (`border`) с поддержкой различных стилей, а также создавать внешний контур (`outline`).
 	 * 
-	 * @extends SuperellipseMode
+	 * Класс автоматически строит древовидную структуру SVG с элементами `<defs>`, масками, клипами,
+	 * фильтрами для теней и управляет их обновлением при изменении параметров.
+	 * 
 	 * @example
-	 * const mode = new SuperellipseModeSvgLayer(element);
-	 * mode.activate();
+	 * const builder = new SvgBuilder('myShape', {
+	 *   width: 300,
+	 *   height: 200,
+	 *   path: 'M10 10 L100 10 L100 100 Z',
+	 *   classes: ['shape', 'rounded'],
+	 *   styles: { 'display': 'block' }
+	 * });
+	 * 
+	 * builder.setBackground('linear-gradient(red, blue)');
+	 * builder.setBoxShadow('5px 5px 10px rgba(0,0,0,0.5), inset 2px 2px 4px white');
+	 * builder.setBorder('solid', '2px', '#333');
+	 * 
+	 * const svgElement = builder.getSvg();
+	 * document.body.appendChild(svgElement);
 	 */
-
 
 
 	/**
-	 * Режим, создающий наложенный SVG-слой для отрисовки фона, границ и теней.
-	 * @class SuperellipseModeSvgLayer
-	 * @extends SuperellipseMode
+	 * Строитель SVG-графики с поддержкой теней, обводок, фона и клиппинга.
+	 * Класс создаёт иерархию SVG-элементов для отображения фигуры, заданной путём (path).
+	 * Управляет фильтрами для внешних и внутренних теней, масками для контуров и адаптацией под CSS-стили.
+	 *
+	 * @class SvgBuilder
+	 * @since 1.5.0
+	 * @property {string} _id - Уникальный идентификатор экземпляра.
+	 * @property {{width: number, height: number}} _size - Размеры SVG (ширина, высота).
+	 * @property {string} _path - Строка d для элемента path.
+	 * @property {SVGSVGElement|null} _link - Корневой SVG-элемент.
+	 * @property {SVGDefsElement|null} _linkDefs - Контейнер определений (defs).
+	 * @property {SVGClipPathElement|null} _linkClipPath - Элемент clipPath.
+	 * @property {SVGPathElement|null} _linkPath - Элемент path внутри clipPath.
+	 * @property {SVGFilterElement|null} _linkFilterShadowOut - Фильтр для внешних теней.
+	 * @property {Object<string, Object>} _shadowsListOut - Хранилище примитивов внешних теней.
+	 * @property {SVGFEMergeElement|null} _linkFilterShadowOutMerge - Контейнер merge для внешних теней.
+	 * @property {SVGFilterElement|null} _linkFilterShadowIn - Фильтр для внутренних теней.
+	 * @property {Object<string, Object>} _shadowsListIn - Хранилище примитивов внутренних теней.
+	 * @property {SVGFEMergeElement|null} _linkFilterShadowInMerge - Контейнер merge для внутренних теней.
+	 * @property {SVGMaskElement|null} _linkMaskOutline - Элемент маски для контура (outline).
+	 * @property {Object<string, SVGRectElement|SVGUseElement>} _outlineMaskLinks - Элементы маски (show/hide).
+	 * @property {SVGUseElement|null} _linkShadowOut - Элемент use для отображения внешней тени.
+	 * @property {SVGForeignObjectElement|null} _linkBackgroundWrapper - Обёртка для фона (foreignObject).
+	 * @property {HTMLDivElement|null} _linkBackground - Фоновый div-элемент.
+	 * @property {SVGUseElement|null} _linkShadowIn - Элемент use для отображения внутренней тени.
+	 * @property {SVGUseElement|null} _linkBorder - Элемент use для обводки.
+	 * @property {SVGUseElement|null} _linkOutline - Элемент use для контура (outline).
 	 */
-	class SuperellipseModeSvgLayer extends SuperellipseMode {
+	class SvgBuilder {
+		_id;
 
-		/**
-		 * Хранилище ссылок на созданные виртуальные DOM-элементы (svg, div, path и т.д.).
-		 * @since 1.0.0
-		 * @type {Object<string, Element>}
-		 * @protected
-		 */
-		_virtualElementList = {};
+		_size;
+		_path = null;
 
-		/**
-		 * Текущая строка viewBox для SVG.
-		 * @since 1.0.0
-		 * @type {string}
-		 * @protected
-		 */
-		_viewbox;
-
-
-		/**
-		 * =============================================================
-		 * PUBLIC
-		 * =============================================================
-		 */
-
-
-		/**
-		 * Создаёт экземпляр режима svg-layer.
-		 * @since 1.0.0
-		 * @param {Element} element - Целевой DOM-элемент.
-		 * @param {boolean} [debug=false] - Флаг отладки.
-		 */
-		constructor(element, debug = false) {
-			super(element, debug);
-
-			this._initViewbox();
-			this._initVirtualElementList();
-		}
+		_link = null;
+		_linkDefs = null;
+			_linkClipPath = null;
+				_linkPath = null;
+			_linkFilterShadowOut = null;
+				_shadowsListOut = {};
+				_linkFilterShadowOutMerge = null;
+			_linkFilterShadowIn = null;
+				_shadowsListIn = {};
+				_linkFilterShadowInMerge = null;
+			_linkMaskOutline = null;
+				_outlineMaskLinks = {};
+		_linkShadowOut = null;
+		_linkBackgroundWrapper = null;
+		_linkBackground = null;
+		_linkShadowIn = null;
+		_linkBorder = null;
+		_linkOutline = null;
 
 
-		/**
-		 * =============================================================
-		 * PRIVATE
-		 * =============================================================
-		 */
-
-
-		/**
-		 * Выполняет обновление: применяет стили к слою div и обновляет путь.
-		 * @since 1.0.0
-		 * @override
-		 * @protected
-		 * @returns {void}
-		 */
-		_executeUpdate() {
-			this._applyCurrentInlineVirtualSvgLayerStyles();
-			this._applyCurrentCurve();
-		}
-
-		/**
-		 * Возвращает имя режима ('svg-layer').
-		 * @since 1.0.0
-		 * @override
-		 * @protected
-		 * @returns {string}
-		 */
-		_getModeName() {
-			return 'svg-layer';
-		}
-
-		/**
-		 * Возвращает стили, применяемые к основному элементу при активации.
-		 * @since 1.0.0
-		 * @override
-		 * @protected
-		 * @returns {Object<string, string>}
-		 */
-		_getActivatedStyles() {
-			return {
-				'background': 'none',
-				'border-color': 'transparent',
-				'border-width': '0px',
-				// 'border-style': 'none',
-				// 'border': 'unset',
-				'border-radius': '0px',
-				'box-shadow': 'unset',
-				'position': 'relative',
+	    /**
+	     * Создаёт экземпляр построителя SVG.
+	     * @since 1.5.0
+	     * @param {string} id - Уникальный идентификатор (используется в id элементов).
+	     * @param {object} [options] - Опции конфигурации.
+	     * @param {number} [options.width=0] - Ширина SVG.
+	     * @param {number} [options.height=0] - Высота SVG.
+	     * @param {string} [options.path=''] - Строка d для path.
+	     * @param {string[]} [options.classes=[]] - Список CSS-классов для корневого SVG.
+	     * @param {object<string, string>} [options.styles={}] - Инлайновые стили для корневого SVG.
+	     */
+		constructor(id, options={}) {
+			this._id = id;
+			this._size = {
+				width: options.width??0,
+				height: options.height??0
 			};
+			this._path = options.path??'';
+			this._classes = options.classes??[];
+			this._styles = options.styles??{};
+			this._initSvg();
 		}
 
-		/**
-		 * Возвращает стили для SVG-контейнера.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {Object<string, string>}
-		 */
-		_getSvgLayerStyles() {
-			return {
-				'position': 'absolute',
-				'top': '0px',
-				'left': '0px',
+	    /**
+	     * Возвращает корневой SVG-элемент, при необходимости инициализируя его.
+	     * @since 1.5.0
+	     * @returns {SVGSVGElement} Корневой элемент SVG.
+	     */
+		getSvg() {
+			if (this._link === null) {
+				this._initSvg();
+			}
+			return this._link;
+		}
+
+	    /**
+	     * Инициализирует структуру SVG: создаёт корневой элемент и вложенные компоненты.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initSvg() {
+			const svg = this._createSvgElement('svg', {
+				'id': this._getLinkId(),
+				'width': this._size.width,
+				'height': this._size.height,
+				'viewbox': this._getViewbox(),
+				'preserveAspectRatio': 'none'
+			});
+
+			const styles = this._styles;
+			for (const prop in styles) {
+				svg.style.setProperty(prop, styles[prop]);
+			}
+			svg.style.setProperty('overflow', 'visible');
+
+			for (const classname of this._classes) {
+				svg.classList.add(classname);
+			}
+
+			const linkDefs = this._getLinkDefs();
+			const linkShadowOut = this._getLinkShadowOut();
+			const linkBackgroud = this._getLinkBackgroundWrapper();
+			const linkShadowIn = this._getLinkShadowIn();
+			const linkBorder = this._getLinkBorder();
+			const linkOutline = this._getLinkOutline();
+
+			svg.appendChild(linkDefs);
+			svg.appendChild(linkShadowOut);
+			svg.appendChild(linkBackgroud);
+			svg.appendChild(linkShadowIn);
+			svg.appendChild(linkBorder);
+			svg.appendChild(linkOutline);
+
+			this._link = svg;
+		}
+
+	    /**
+	     * Формирует идентификатор для внутренних элементов на основе базового id.
+	     * @since 1.5.0
+	     * @param {string|null} [name=null] - Дополнительный суффикс.
+	     * @returns {string} Идентификатор вида `jsse_${this._id}--svg${prefix}${name}`.
+	     * @protected
+	     */
+		_getLinkId(name=null) {
+			const prefix = name?'__':'';
+			return `jsse_${this._id}--svg${prefix}${name??''}`;
+		}
+
+	    /**
+	     * Возвращает элемент `svg` > `defs`, создавая его при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGDefsElement}
+	     * @protected
+	     */
+		_getLinkDefs() {
+			if (this._linkDefs === null) this._initLinkDefs();
+			return this._linkDefs;
+		}
+
+	    /**
+	     * Инициализирует элемент `svg` > `defs` и добавляет в него `clipPath`, фильтры и маску.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkDefs() {
+			const link = this._createSvgElement('defs');
+			const linkClipPath = this._getLinkClipPath();
+			const linkFilterShadowOut = this._getLinkFilterShadowOut();
+			const linkFilterShadowIn = this._getLinkFilterShadowIn();
+			const linkMaskOutline = this._getLinkMaskOutline();
+			link.appendChild(linkClipPath);
+			link.appendChild(linkFilterShadowOut);
+			link.appendChild(linkFilterShadowIn);
+			link.appendChild(linkMaskOutline);
+			this._linkDefs = link;
+		}
+
+	    /**
+	     * Возвращает элемент `svg` > `defs` > `clipPath`, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGClipPathElement}
+	     * @protected
+	     */
+		_getLinkClipPath() {
+			if (this._linkClipPath === null) this._initLinkClipPath();
+			return this._linkClipPath;
+		}
+
+	    /**
+	     * Инициализирует элемент `svg` > `defs` > `clipPath` с вложенным path.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkClipPath() {
+			const link = this._createSvgElement('clipPath', {
+				'id': this._getLinkId('clip')
+			});
+			const linkPath = this._getLinkPath();
+			link.appendChild(linkPath);
+			this._linkClipPath = link;
+		}
+
+	    /**
+	     * Возвращает элемент `svg` > `defs` > `clipPath` > `path` внутри clipPath, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGPathElement}
+	     * @protected
+	     */
+		_getLinkPath() {
+			if (this._linkPath === null) this._initLinkPath();
+			return this._linkPath;
+		}
+
+	    /**
+	     * Инициализирует элемент `svg` > `defs` > `clipPath` > `path` с атрибутом d из this._path.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkPath() {
+			const link = this._createSvgElement('path', {
+				'id': this._getLinkId('path'),
+				'd': this._path
+			});
+			this._linkPath = link;
+		}
+
+	    /**
+	     * Возвращает элемент `svg` > `defs` > `filter` для внешних теней, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGFilterElement}
+	     * @protected
+	     */
+		_getLinkFilterShadowOut() {
+			if (this._linkFilterShadowOut === null) this._initLinkFilterShadowOut();
+			return this._linkFilterShadowOut;
+		}
+
+	    /**
+	     * Инициализирует элемент `svg` > `defs` > `filter` внешних теней и его контейнер merge.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkFilterShadowOut() {
+			const link = this._createSvgElement('filter', {
+				'id': this._getLinkId('filter_shadow_out'),
+				'x': '-100%',
+				'y': '-100%',
+				'width': '300%',
+				'height': '300%',
+			});
+			const linkMerge = this._getLinkFilterShadowOutMerge();
+			link.appendChild(linkMerge);
+			this._linkFilterShadowOut = link;
+		}
+
+	    /**
+	     * Возвращает элемент `svg` > `defs` > `filter` для внутренних теней, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGFilterElement}
+	     * @protected
+	     */
+		_getLinkFilterShadowIn() {
+			if (this._linkFilterShadowIn === null) this._initLinkFilterShadowIn();
+			return this._linkFilterShadowIn;
+		}
+
+	    /**
+	     * Инициализирует элемент `svg` > `defs` > `filter` внутренних теней и его контейнер merge.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkFilterShadowIn() {
+			const link = this._createSvgElement('filter', {
+				'id': this._getLinkId('filter_shadow_in'),
+				'x': '-200%',
+				'y': '-200%',
+				'width': '500%',
+				'height': '500%',
+			});
+			const linkMerge = this._getLinkFilterShadowInMerge();
+			link.appendChild(linkMerge);
+			this._linkFilterShadowIn = link;
+		}
+
+	    /**
+	     * Возвращает контейнер `svg` > `defs` > `filter` > `merge` фильтра внешних теней, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGFEMergeElement}
+	     * @protected
+	     */
+		_getLinkFilterShadowOutMerge() {
+			if (this._linkFilterShadowOutMerge === null) this._initLinkFilterShadowOutMerge();
+			return this._linkFilterShadowOutMerge;
+		}
+
+	    /**
+	     * Инициализирует контейнер `svg` > `defs` > `filter` > `merge` merge для внешних теней.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkFilterShadowOutMerge() {
+			const link = this._createSvgElement('feMerge', {
+				'id': this._getLinkId('filter_shadow_out__merge')
+			});
+			this._linkFilterShadowOutMerge = link;
+		}
+
+	    /**
+	     * Возвращает контейнер `svg` > `defs` > `filter` > `merge` фильтра внутренних теней, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGFEMergeElement}
+	     * @protected
+	     */
+		_getLinkFilterShadowInMerge() {
+			if (this._linkFilterShadowInMerge === null) this._initLinkFilterShadowInMerge();
+			return this._linkFilterShadowInMerge;
+		}
+
+	    /**
+	     * Инициализирует контейнер `svg` > `defs` > `filter` > `merge` для внутренних теней.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkFilterShadowInMerge() {
+			const link = this._createSvgElement('feMerge', {
+				'id': this._getLinkId('filter_shadow_in__merge')
+			});
+			this._linkFilterShadowInMerge = link;
+		}
+
+	    /**
+	     * Возвращает элемент маски `svg` > `defs` > `mask` для контура outline, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGMaskElement}
+	     * @protected
+	     */
+		_getLinkMaskOutline() {
+			if (this._linkMaskOutline === null) this._initLinkMaskOutline();
+			return this._linkMaskOutline;
+		}
+
+	    /**
+	     * Инициализирует маску `svg` > `defs` > `mask` для контура outline.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkMaskOutline() {
+			const id = this._getLinkId('mask_outline');
+			const link = this._createSvgElement('mask', {
+				'id': id,
+				'maskUnits': 'userSpaceOnUse',
+				'x': '-200%',
+				'y': '-200%',
+				'width': '500%',
+				'height': '500%',
+			});
+			const maskLinks = {
+				'show': this._createSvgElement('rect', {
+					'x': '-200%',
+					'y': '-200%',
+					'width': '500%',
+					'height': '500%',
+					'fill': 'white'
+				}),
+				'hide': this._createSvgElement('use', {
+					'href': `#${this._getLinkId('path')}`,
+					'stroke': 'black',
+					'stroke-width': 0,
+					'fill': 'black'
+				})
+			};
+			this._outlineMaskLinks = maskLinks;
+
+			link.appendChild(maskLinks.show);
+			link.appendChild(maskLinks.hide);
+
+			this._linkMaskOutline = link;
+		}
+
+	    /**
+	     * Возвращает обёртку фона `svg` > `backgroundWrapper`, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGForeignObjectElement}
+	     * @protected
+	     */
+		_getLinkBackgroundWrapper() {
+			if (this._linkBackgroundWrapper === null) this._initLinkBackgroundWrapper();
+			return this._linkBackgroundWrapper;
+		}
+
+	    /**
+	     * Инициализирует `svg` > `backgroundWrapper` с clip-path и вкладывает в него фон.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkBackgroundWrapper() {
+			const linkBackgroundWrapper = this._createSvgElement('foreignObject', {
+				'id': this._getLinkId('background-wrapper'),
+				'width': this._size.width,
+				'height': this._size.height,
+				'clip-path': `url(#${this._getLinkId('clip')})`
+			});
+			const linkBackground = this._getLinkBackground();
+			linkBackgroundWrapper.appendChild(linkBackground);
+			this._linkBackgroundWrapper = linkBackgroundWrapper;
+		}
+
+	    /**
+	     * Возвращает элемент `svg` > `backgroundWrapper` > `background` для фона, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {HTMLDivElement}
+	     * @protected
+	     */
+		_getLinkBackground() {
+			if (this._linkBackground === null) this._initLinkBackground();
+			return this._linkBackground;
+		}
+
+	    /**
+	     * Инициализирует элемент `svg` > `backgroundWrapper` > `background` для фона.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkBackground() {
+			const linkBackground = this._createHtmlElement('div', {
+				'id': this._getLinkId('background')
+			}, {
 				'width': '100%',
-				'height': '100%',
-				'pointer-events': 'none',
-			};
+				'height': '100%'
+			});
+			this._linkBackground = linkBackground;
 		}
 
-		/**
-		 * Возвращает список CSS-свойств, которые переносятся во внутренний div.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {string[]}
-		 */
-		_getSvgLayerDivProps() {
-			return [
-				// 'color',
-				'background',
-				// 'background-size',
-				// 'background-position',
-				'box-shadow'
-			];
+	    /**
+	     * Возвращает элемент обводки `svg` > `border`, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGUseElement}
+	     * @protected
+	     */
+		_getLinkBorder() {
+			if (this._linkBorder === null) this._initLinkBorder();
+			return this._linkBorder;
 		}
 
+	    /**
+	     * Инициализирует use-элемент обводки `svg` > `border`, ссылающийся на path.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkBorder() {
+			const link = this._createSvgElement('use', {
+				'id': this._getLinkId('border'),
+				'href': `#${this._getLinkId('path')}`,
+				'fill': 'none',
+				'stroke': '',
+				'stroke-width': '0',
+				'clip-path': `url(#${this._getLinkId('clip')})`
+			});
+			this._linkBorder = link;
+		}
 
-		/**
-		 * =============================================================
-		 * STYLES
-		 * =============================================================
-		 */
+	    /**
+	     * Возвращает элемент `svg` > `shadow` для внешней тени, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGUseElement}
+	     * @protected
+	     */
+		_getLinkShadowOut() {
+			if (this._linkShadowOut === null) this._initLinkShadowOut();
+			return this._linkShadowOut;
+		}
 
+	    /**
+	     * Инициализирует use-элемент `svg` > `shadow` для внешней тени с фильтром.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkShadowOut() {
+			const link = this._createSvgElement('use', {
+				'id': this._getLinkId('shadow_out'),
+				'href': `#${this._getLinkId('path')}`,
+				'filter': `url(#${this._getLinkId('filter_shadow_out')})`
+			});
+			this._linkShadowOut = link;
+		}
 
-		/**
-		 * Применяет инлайновые стили к указанному элементу.
-		 * @since 1.0.0
-		 * @protected
-		 * @param {Object<string, string>} props - Объект стилей.
-		 * @param {HTMLElement|SVGElement} element - Целевой элемент.
-		 * @returns {void}
-		 */
-		_applyInlineStyles(props, element) {
-			const managedProperties = this._getManagedProperties();
-			for(const prop of managedProperties) {
-				const inlineValue = props[prop];
-				const currentValue = element.style.getPropertyValue(prop);
-				if (inlineValue !== undefined) {
-					if (currentValue !== inlineValue) {
-						element.style.setProperty(prop, inlineValue);
-					}
+	    /**
+	     * Возвращает элемент `svg` > `shadow` для внутренней тени, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGUseElement}
+	     * @protected
+	     */
+		_getLinkShadowIn() {
+			if (this._linkShadowIn === null) this._initLinkShadowIn();
+			return this._linkShadowIn;
+		}
+
+	    /**
+	     * Инициализирует use-элемент `svg` > `shadow` для внутренней тени с фильтром.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkShadowIn() {
+			const link = this._createSvgElement('use', {
+				'id': this._getLinkId('shadow_in'),
+				'href': `#${this._getLinkId('path')}`,
+				'filter': `url(#${this._getLinkId('filter_shadow_in')})`
+			});
+			this._linkShadowIn = link;
+		}
+
+	    /**
+	     * Возвращает элемент `svg` > `outline` для контура outline, создавая при необходимости.
+	     * @since 1.5.0
+	     * @returns {SVGUseElement}
+	     * @protected
+	     */
+		_getLinkOutline() {
+			if (this._linkOutline === null) this._initLinkOutline();
+			return this._linkOutline;
+		}
+
+	    /**
+	     * Инициализирует use-элемент `svg` > `outline` для контура с маской.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_initLinkOutline() {
+			const link = this._createSvgElement('use', {
+				'id': this._getLinkId('outline'),
+				'href': `#${this._getLinkId('path')}`,
+				'stroke': 'transparent',
+				'stroke-width': 0,
+				'mask': `url(#${this._getLinkId('mask_outline')})`,
+				'fill': 'none'
+			});
+			this._linkOutline = link;
+		}
+
+	    /**
+	     * Устанавливает тени на основе CSS-значения box-shadow.
+	     * Разбирает строку, создаёт или обновляет внешние и внутренние тени.
+	     * @since 1.5.0
+	     * @param {string} boxShadowValue - Значение CSS свойства `box-shadow` (например, "2px 2px 4px rgba(0,0,0,0.5)").
+	     */
+		setBoxShadow(boxShadowValue) {
+			const shadowList = this._parseBoxShadow(boxShadowValue);
+
+			let iIn = 0;
+			let iOut = 0;
+
+			// Потенциально лишние ключи
+			const keysToDeleteIn = new Set(Object.keys(this._shadowsListIn));
+			const keysToDeleteOut = new Set(Object.keys(this._shadowsListOut));
+
+			for(const shadow of shadowList) {
+				if (shadow.inset) {
+					const keyIn = String(iIn);
+					this._setFilterShadowIn(keyIn, shadow);
+					// если ключ был в keysToDeleteIn, он больше не подлежит удалению
+					keysToDeleteIn.delete(keyIn);
+					iIn++;
 				} else {
-					if (currentValue !== '') {
-						element.style.removeProperty(prop);
-					}
+					const keyOut = String(iOut);
+					this._setFilterShadowOut(keyOut, shadow);
+					// если ключ был в keysToDeleteOut, он больше не подлежит удалению
+					keysToDeleteOut.delete(keyOut);
+					iOut++;
 				}
 			}
-		}
-
-		/**
-		 * Применяет все стили (div, border, shadows) к виртуальным слоям, если режим активен.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_applyCurrentInlineVirtualSvgLayerStyles() {
-			if ( this.isActivated() ) {
-				this._applyCurrentInlineVirtualSvgLayerDivStyles();
-				this._applyCurrentInlineVirtualSvgLayerBorderStyles();
-				this._applyCurrentInlineVirtualSvgLayerShadowsStyles();
+			// Очистить лишние
+			for (const key of keysToDeleteIn) {
+				this._unsetFilterShadowIn(key);
+			}
+			for (const key of keysToDeleteOut) {
+				this._unsetFilterShadowOut(key);
 			}
 		}
 
-
-		/**
-		 * Применяет стили к виртуальному div-слою.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_applyCurrentInlineVirtualSvgLayerDivStyles() {
-			const inlineSvgLayerDivStyles = this._getCurrentInlineVirtualSvgLayerDivStyles();
-			const svgLayerDiv = this._virtualElementList.svgLayerDiv;
-			this._applyInlineStyles(inlineSvgLayerDivStyles, svgLayerDiv);
+	    /**
+	     * Настраивает примитивы фильтра для одной внешней тени.
+	     * @since 1.5.0
+	     * @param {string} key - Ключ тени (индекс).
+	     * @param {object} options - Параметры тени.
+	     * @param {number} options.offsetX - Смещение по X.
+	     * @param {number} options.offsetY - Смещение по Y.
+	     * @param {number} options.spreadRadius - Радиус расширения.
+	     * @param {number} options.blurRadius - Радиус размытия.
+	     * @param {string} options.color - Цвет тени (в формате CSS).
+	     * @protected
+	     */
+		_setFilterShadowOut(key, options) {
+			const filterLinks = this._getFilterShadowOut(key);
+			filterLinks.primitives.spreadRadius.setAttribute('radius', options.spreadRadius);
+			filterLinks.primitives.spreadBlur.setAttribute('stdDeviation', options.spreadRadius);
+			filterLinks.primitives.blur.setAttribute('stdDeviation', options.blurRadius / 2);
+			filterLinks.primitives.color.setAttribute('flood-color', options.color);
+			filterLinks.primitives.offsetBlur.setAttribute('dx', options.offsetX);
+			filterLinks.primitives.offsetBlur.setAttribute('dy', options.offsetY);
 		}
 
-		/**
-		 * Возвращает стили для внутреннего div-слоя, извлечённые из вычисленных стилей элемента.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {Object<string, string>}
-		 */
-		_getCurrentInlineVirtualSvgLayerDivStyles() {
-			// jsse_console.debug(this._element, '[MODE SvgLayer]', '_getCurrentInlineVirtualSvgLayerDivStyles()');
-			const result = {};
-			const svgLayerDivProps = this._getSvgLayerDivProps();
-			for (const prop of svgLayerDivProps) {
-				const value = this._getComputedProp(prop);
-				if (value !== undefined) {
-					result[prop] = value;
-				}
+	    /**
+	     * Настраивает примитивы фильтра для одной внутренней тени.
+	     * @since 1.5.0
+	     * @param {string} key - Ключ тени (индекс).
+	     * @param {object} options - Параметры тени (аналогично _setFilterShadowOut).
+	     * @protected
+	     */
+		_setFilterShadowIn(key, options) {
+			const filterLinks = this._getFilterShadowIn(key);
+			filterLinks.primitives.eroded.setAttribute('radius', options.spreadRadius);
+			filterLinks.primitives.blur.setAttribute('stdDeviation', options.blurRadius / 2);
+			filterLinks.primitives.color.setAttribute('flood-color', options.color);
+			filterLinks.primitives.offsetBlur.setAttribute('dx', options.offsetX);
+			filterLinks.primitives.offsetBlur.setAttribute('dy', options.offsetY);
+		}
+
+	    /**
+	     * Сбрасывает внешнюю тень (устанавливает нулевые параметры и прозрачный цвет).
+	     * @since 1.5.0
+	     * @param {string} key - Ключ тени.
+	     * @protected
+	     */
+		_unsetFilterShadowOut(key) {
+			this._setFilterShadowOut(key, {
+				'offsetX': 0,
+				'offsetY': 0,
+				'spreadRadius': 0,
+				'blurRadius': 0,
+				'color': 'transparent'
+			});
+		}
+
+	    /**
+	     * Сбрасывает внутреннюю тень (устанавливает нулевые параметры и прозрачный цвет).
+	     * @since 1.5.0
+	     * @param {string} key - Ключ тени.
+	     * @protected
+	     */
+		_unsetFilterShadowIn(key) {
+			this._setFilterShadowIn(key, {
+				'offsetX': 0,
+				'offsetY': 0,
+				'spreadRadius': 0,
+				'blurRadius': 0,
+				'color': 'transparent'
+			});
+		}
+
+	    /**
+	     * Возвращает объект с примитивами для внешней тени по ключу, создавая при отсутствии.
+	     * @since 1.5.0
+	     * @param {string} key - Ключ тени.
+	     * @returns {object} Объект, содержащий `primitives`, `functions`, `node`.
+	     * @protected
+	     */
+		_getFilterShadowOut(key) {
+			if ( !(key in this._shadowsListOut) ) {
+				this._createFilterShadowOut(key);
 			}
-			return result;
+			return this._shadowsListOut[key];
 		}
 
-		/**
-		 * Применяет стили границы (цвет, толщину, стиль) к SVG-элементу `border`.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_applyCurrentInlineVirtualSvgLayerBorderStyles() {
-			const svgLayerBorder = this._virtualElementList.svgLayerBorder;
-			const borderColor = this._getComputedProp('border-color');
-			svgLayerBorder.setAttribute('stroke', borderColor);
-			const borderWidth = this._getComputedProp('border-width');
-			const borderWidthNumber = borderWidth ? (parseFloat(borderWidth) * 2) : 0;
-			svgLayerBorder.setAttribute('stroke-width', borderWidthNumber);
-			const borderStyle = this._getComputedProp('border-style');
-			this._applyBorderStyleToStroke(borderStyle, svgLayerBorder);
+	    /**
+	     * Создаёт и добавляет в фильтр все необходимые fe-примитивы для внешней тени.
+	     * @since 1.5.0
+	     * @param {string} key - Ключ (индекс) тени.
+	     * @protected
+	     */
+		_createFilterShadowOut(key) {
+			const id = `${this._getLinkId('filter_shadow_out')}_${key}`;
+			const filterLinks = {
+				'primitives': {
+					// Расширяем на значение spread
+					'spreadRadius': this._createSvgElement('feMorphology', {
+						'operator': 'dilate',
+						'radius': 0,
+						'in': 'SourceAlpha',
+						'result': `${id}--spreadRadius`
+					}),
+					// Размываем на половину значения spread
+					'spreadBlur': this._createSvgElement('feGaussianBlur', {
+						'stdDeviation': 0, // feMorphology[radius] / 2
+						'in': `${id}--spreadRadius`,
+						'result': `${id}--spreadBlur`
+					}),
+					// Возвращаем четкость границы контрастом
+					'spread': this._createSvgElement('feComponentTransfer', {
+						'in': `${id}--spreadBlur`,
+						'result': `${id}--spread`
+					}),
+					// Размываем расширенную границу
+					'blur': this._createSvgElement('feGaussianBlur', {
+						'stdDeviation': 0,
+						'in': `${id}--spread`,
+						'result': `${id}--blur`
+					}),
+					// Задаем цвет
+					'color': this._createSvgElement('feFlood', {
+						'flood-color': 'transparent',
+						// 'flood-opacity задается альфа каналом flood-color
+						'result': `${id}--color`
+					}),
+					// Красим
+					'coloredBlur': this._createSvgElement('feComposite', {
+						'operator': 'in',
+						'in': `${id}--color`,
+						'in2': `${id}--blur`,
+						'result': `${id}--coloredBlur`
+					}),
+					// Сдвигаем
+					'offsetBlur': this._createSvgElement('feOffset', {
+						'dx': 0,
+						'dy': 0,
+						'in': `${id}--coloredBlur`,
+						'result': `${id}--offsetBlur`
+					}),
+					// После offsetBlur вычитаем SourceAlpha
+					'glow': this._createSvgElement('feComposite', {
+						'operator': 'out',
+						'in': `${id}--offsetBlur`,
+						'in2': 'SourceAlpha',
+						'result': `${id}--glow`
+					})
+				},
+				'functions': {
+					'spreadFunc': this._createSvgElement('feFuncA', {
+						'type': 'discrete',
+						'tableValues': '0 0 0 0 0 1 1 1 1 1'
+					})
+				},
+				// Добавляем
+				'node': this._createSvgElement('feMergeNode', {
+					'in': `${id}--glow`
+				})
+
+			};
+
+			this._shadowsListOut[key] = filterLinks;
+
+			this._getLinkFilterShadowOut();
+			const linkMerge = this._getLinkFilterShadowOutMerge();
+			linkMerge.before(filterLinks.primitives.spreadRadius);
+			linkMerge.before(filterLinks.primitives.spreadBlur);
+			linkMerge.before(filterLinks.primitives.spread);
+			filterLinks.primitives.spread.appendChild(filterLinks.functions.spreadFunc);
+			linkMerge.before(filterLinks.primitives.blur);
+			linkMerge.before(filterLinks.primitives.color);
+			linkMerge.before(filterLinks.primitives.coloredBlur);
+			linkMerge.before(filterLinks.primitives.offsetBlur);
+			linkMerge.before(filterLinks.primitives.glow);
+
+			linkMerge.prepend(filterLinks.node);
 		}
 
-		/**
-		 * Устанавливает атрибут `stroke-dasharray` для элемента пути.
-		 * @since 1.0.0
-		 * @protected
-		 * @param {SVGElement} pathElement - SVG-элемент (обычно path или use).
-		 * @param {string} value - Значение dasharray.
-		 * @returns {void}
-		 */
-		_setStrokeDasharray(pathElement, value) {
-			pathElement.setAttribute('stroke-dasharray', value);
-		}
-
-		/**
-		 * Устанавливает атрибут `stroke-linecap` для элемента пути.
-		 * @since 1.0.0
-		 * @protected
-		 * @param {SVGElement} pathElement - SVG-элемент.
-		 * @param {string} value - Значение linecap (butt, round, square).
-		 * @returns {void}
-		 */
-		_setStrokeLinecap(pathElement, value) {
-			pathElement.setAttribute('stroke-linecap', value);
-		}
-
-		/**
-		 * Устанавливает атрибут `stroke-opacity` для элемента пути.
-		 * @since 1.0.0
-		 * @protected
-		 * @param {SVGElement} pathElement - SVG-элемент.
-		 * @param {string|number} value - Прозрачность (0..1).
-		 * @returns {void}
-		 */
-		_setStrokeOpacity(pathElement, value) {
-			pathElement.setAttribute('stroke-opacity', value);
-		}
-
-		/**
-		 * Преобразует CSS-стиль границы в атрибуты SVG-элемента.
-		 * @since 1.0.0
-		 * @protected
-		 * @param {string} borderStyle - Стиль границы (solid, dotted, dashed и т.д.).
-		 * @param {SVGElement} pathElement - Элемент, к которому применяется обводка.
-		 * @returns {void}
-		 */
-		_applyBorderStyleToStroke(borderStyle, pathElement) {
-			/** Сброс атрибутов **/
-			pathElement.removeAttribute('stroke-dasharray');
-			pathElement.removeAttribute('stroke-linecap');
-			pathElement.removeAttribute('stroke-linejoin');
-			
-			switch(borderStyle) {
-				case 'solid':
-					/** Сплошная линия (значения по умолчанию) **/
-					break;
-					
-				case 'dotted':
-					this._setStrokeDasharray(pathElement, '0, 8');
-					this._setStrokeLinecap(pathElement, 'round');
-					break;
-					
-				case 'dashed':
-					this._setStrokeDasharray(pathElement, '10, 6');
-					break;
-					
-				case 'double':
-					/** Для double нужно два отдельных пути или фильтр **/
-					jsse_console.warn({label:'MODE SVG LAYER',element:this._element}, '«border-style: double» is not supported');
-					break;
-					
-				case 'groove':
-					this._setStrokeDasharray(pathElement, '1, 2');
-					this._setStrokeLinecap(pathElement, 'round');
-					break;
-					
-				case 'ridge':
-					this._setStrokeDasharray(pathElement, '3, 3');
-					break;
-					
-				case 'inset':
-					/** Имитация inset через полупрозрачность **/
-					this._setStrokeOpacity(pathElement, '0.7');
-					break;
-					
-				case 'outset':
-					this._setStrokeOpacity(pathElement, '0.5');
-					break;
-					
-				case 'dash-dot':
-					/** Кастомный стиль **/
-					this._setStrokeDasharray(pathElement, '15, 5, 5, 5');
-					break;
-					
-				case 'dash-dot-dot':
-					/** Кастомный стиль **/
-					this._setStrokeDasharray(pathElement, '15, 5, 5, 5, 5, 5');
-					break;
+	    /**
+	     * Возвращает объект с примитивами для внутренней тени по ключу, создавая при отсутствии.
+	     * @since 1.5.0
+	     * @param {string} key - Ключ тени.
+	     * @returns {object} Объект, содержащий `primitives` и `node`.
+	     * @protected
+	     */
+		_getFilterShadowIn(key) {
+			if ( !(key in this._shadowsListIn) ) {
+				this._createFilterShadowIn(key);
 			}
+			return this._shadowsListIn[key];
 		}
 
-		/**
-		 * Применяет тени (`box-shadow`) к SVG-слою, создавая фильтры.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_applyCurrentInlineVirtualSvgLayerShadowsStyles() {
-			const boxShadowValue = this._getComputedProp('box-shadow');
-			const shadows = this._parseBoxShadow(boxShadowValue);
+	    /**
+	     * Создаёт и добавляет в фильтр все необходимые fe-примитивы для внутренней тени.
+	     * @since 1.5.0
+	     * @param {string} key - Ключ (индекс) тени.
+	     * @protected
+	     */
+		_createFilterShadowIn(key) {
+			const id = `${this._getLinkId('filter_shadow_in')}_${key}`;
+			const filterLinks = {
+				'primitives': {
+					// Инвертируем
+					'invertedAlpha': this._createSvgElement('feColorMatrix', {
+						'type': 'matrix',
+						// R, G, B остаются без изменений, Alpha: -1 * A + 1
+						'values': '1 0 0 0 0   0 1 0 0 0   0 0 1 0 0   0 0 0 -1 1',
+						'in': 'SourceAlpha',
+						'result': `${id}--invertedAlpha`
+					}),
+					// Расширяем на значение spread
+					'eroded': this._createSvgElement('feMorphology', {
+						'operator': 'dilate',
+						'radius': 0,
+						'in': `${id}--invertedAlpha`,
+						'result': `${id}--eroded`
+					}),
+					// Размываем расширенную границу
+					'blur': this._createSvgElement('feGaussianBlur', {
+						'stdDeviation': 0,
+						'in': `${id}--eroded`,
+						'result': `${id}--blur`
+					}),
+					// Задаем цвет
+					'color': this._createSvgElement('feFlood', {
+						'flood-color': 'transparent',
+						'result': `${id}--color`
+					}),
+					// Красим
+					'coloredBlur': this._createSvgElement('feComposite', {
+						'operator': 'in',
+						'in': `${id}--color`,
+						'in2': `${id}--blur`,
+						'result': `${id}--coloredBlur`
+					}),
+					// Сдвигаем
+					'offsetBlur': this._createSvgElement('feOffset', {
+						'dx': 0,
+						'dy': 0,
+						'in': `${id}--coloredBlur`,
+						'result': `${id}--offsetBlur`
+					}),
+					// После offsetBlur вычитаем SourceAlpha
+					'inside': this._createSvgElement('feComposite', {
+						'operator': 'in',
+						'in': `${id}--offsetBlur`,
+						'in2': 'SourceAlpha',
+						'result': `${id}--inside`
+					}),
+				},
+				// Добавляем
+				'node': this._createSvgElement('feMergeNode', {
+					'in': `${id}--inside`
+				})
 
-			const svg = this._virtualElementList.svgLayer;
-			const gFilters = this._virtualElementList.svgLayerGFilters;
-			const gShadows = this._virtualElementList.svgLayerGShadows;
-			const path = this._virtualElementList.svgLayerPath;
+			};
 
-			gFilters.replaceChildren();
-			gShadows.replaceChildren();
+			this._shadowsListIn[key] = filterLinks;
 
-			const id = svg.getAttribute('id');
-			const pathId = path.getAttribute('id');
+			this._getLinkFilterShadowIn();
+			const linkMerge = this._getLinkFilterShadowInMerge();
+			linkMerge.before(filterLinks.primitives.invertedAlpha);
+			linkMerge.before(filterLinks.primitives.eroded);
+			linkMerge.before(filterLinks.primitives.blur);
+			linkMerge.before(filterLinks.primitives.color);
+			linkMerge.before(filterLinks.primitives.coloredBlur);
+			linkMerge.before(filterLinks.primitives.offsetBlur);
+			linkMerge.before(filterLinks.primitives.inside);
 
-			for (let i = 0; i < shadows.length; i++) {
+			linkMerge.prepend(filterLinks.node);
+		}
 
-				if (shadows[i].inset) continue;
+	    /**
+	     * Добавляет CSS-класс корневому SVG-элементу.
+	     * @since 1.5.0
+	     * @param {string} classname - Имя класса.
+	     */
+		addClass(classname) {
+			const link = this.getSvg();
+			link.classList.add(classname);
+		}
 
-				const shadowValues = shadows[i];
-				shadowValues.spreadRadius;
+	    /**
+	     * Изменяет размеры SVG и обновляет viewBox.
+	     * @since 1.5.0
+	     * @param {number} width - Новая ширина.
+	     * @param {number} height - Новая высота.
+	     */
+		setSize(width, height) {
+			this._size.width = width;
+			this._size.height = height;
+			this._updateViewbox();
+			const link = this.getSvg();
+			const linkBackgroundWrapper = this._getLinkBackgroundWrapper();
+			link.setAttribute('width', this._size.width);
+			link.setAttribute('height', this._size.height);
+			linkBackgroundWrapper.setAttribute('width', this._size.width);
+			linkBackgroundWrapper.setAttribute('height', this._size.height);
+		}
 
-				const filter = this._createVirtualSvgElement('filter');
-					const feGaussianBlur = this._createVirtualSvgElement('feGaussianBlur');
-					const feOffset = this._createVirtualSvgElement('feOffset');
-					const feFlood = this._createVirtualSvgElement('feFlood');
-					const feComposite = this._createVirtualSvgElement('feComposite');
-				const shadow = this._createVirtualSvgElement('use');
+	    /**
+	     * Обновляет атрибут viewBox корневого SVG на основе текущих размеров.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_updateViewbox() {
+			const svg = this.getSvg();
+			const viewbox = this._getViewbox();
+			svg.setAttribute('viewbox', viewbox);
+		}
 
-				const filterId = `${id}__filter_${i}`;
-					const filterBlurId = `${filterId}__blur`;
-					const filterOffsetId = `${filterId}__offset`;
-					const filterColorId = `${filterId}__color`;
-					const filterShadowId = `${filterId}__shadow`;
-				const shadowId = `${id}__shadow_${i}`;
+	    /**
+	     * Возвращает строку viewBox для текущих размеров.
+	     * @since 1.5.0
+	     * @returns {string} Например "0 0 100 100".
+	     * @protected
+	     */
+		_getViewbox() {
+			return ( this._size.width > 0 && this._size.height > 0 ) 
+				? `0 0 ${this._size.width} ${this._size.height}`
+				: '0 0 0 0'; // Сбрасываем путь
+		}
 
-				gFilters.appendChild(filter);
-					filter.setAttribute('id', filterId);
-					filter.setAttribute('x', '-100%');
-					filter.setAttribute('y', '-100%');
-					filter.setAttribute('width', '300%');
-					filter.setAttribute('height', '300%');
-					filter.appendChild(feGaussianBlur);
-					filter.appendChild(feOffset);
-					filter.appendChild(feFlood);
-					filter.appendChild(feComposite);
-						feGaussianBlur.setAttribute('in', 'SourceAlpha');
-						feGaussianBlur.setAttribute('stdDeviation', shadowValues.blurRadius / 2);
-						feGaussianBlur.setAttribute('result', filterBlurId);
-						feOffset.setAttribute('dx', shadowValues.offsetX);
-						feOffset.setAttribute('dy', shadowValues.offsetY);
-						feOffset.setAttribute('in', filterBlurId);
-						feOffset.setAttribute('result', filterOffsetId);
-						feFlood.style.setProperty('flood-color', shadowValues.color);
-						feFlood.setAttribute('result', filterColorId);
-						feComposite.setAttribute('in', filterColorId);
-						feComposite.setAttribute('in2', filterOffsetId);
-						feComposite.setAttribute('operator', 'in');
-						feComposite.setAttribute('result', filterShadowId);
+	    /**
+	     * Устанавливает новый путь (d) для фигуры.
+	     * @since 1.5.0
+	     * @param {string} path - Строка d для path.
+	     */
+		setPath(path) {
+			this._path = path;
+			this._updatePath();
+		}
 
-				gShadows.appendChild(shadow);
-					shadow.setAttribute('href', `#${pathId}`);
-					shadow.setAttribute('id', shadowId);
-					shadow.setAttribute('filter', `url(#${filterId})`);
+	    /**
+	     * Обновляет атрибут d у path внутри clipPath.
+	     * @since 1.5.0
+	     * @protected
+	     */
+		_updatePath() {
+			const link = this._getLinkPath();
+			link.setAttribute('d', this._path);
+		}
+
+	    /**
+	     * Устанавливает фон через CSS-свойство `background` на фоновом div-элементе.
+	     * @since 1.5.0
+	     * @param {string} value - Значение CSS background (цвет, градиент, изображение и т.п.).
+	     */
+		setBackground(value) {
+			const link = this._getLinkBackground();
+			link.style.setProperty('background', value);
+		}
+
+	    /**
+	     * Устанавливает обводку (border) фигуры.
+	     * @since 1.5.0
+	     * @param {string} style - Стиль обводки (solid, dotted, dashed и др.).
+	     * @param {string|number} width - Толщина обводки (в пикселях).
+	     * @param {string} color - Цвет обводки (CSS-формат).
+	     */
+		setBorder(style, width, color) {
+			const numWidth = parseFloat(width);
+			const link = this._getLinkBorder();
+			link.setAttribute('stroke', color);
+			link.setAttribute('stroke-width', (numWidth * 2));
+			this._setBorderStyle(link, style);
+		}
+
+	    /**
+	     * Устанавливает внешний контур (outline) вокруг фигуры.
+	     * @since 1.5.0
+	     * @param {string|number} width - Толщина контура.
+	     * @param {string} color - Цвет контура.
+	     * @param {string|number} offset - Смещение контура (может быть отрицательным).
+	     */
+		setOutline(width, color, offset) {
+			const link = this._getLinkOutline();
+			const numOffset = parseFloat(offset);
+			const numWidth = parseFloat(width);
+
+			if (numWidth === 0) {
+				link.setAttribute('stroke', 'transparent');
+				return;
 			}
+
+			// Защита от NaN
+			if (isNaN(numOffset) || isNaN(numWidth)) return;
+
+			const absWidth = Math.abs(numWidth);
+			const absOffset = Math.abs(numOffset);
+			const isAbs = absWidth < absOffset;
+
+			let showFill, hideFill, hideStroke, thisFill, thisStrokeWidth, maskStrokeWidth;
+
+			if (numOffset < 0 && isAbs) {
+				// Особый случай: отрицательный offset и ширина меньше offset по модулю
+				showFill = 'black';
+				hideFill = 'white';
+				hideStroke = 'black';
+				thisFill = 'transparent';
+				thisStrokeWidth = absOffset * 2;
+				maskStrokeWidth = (absOffset - absWidth) * 2;
+			} else {
+				// Обычный случай
+				showFill = 'white';
+				hideFill = 'black';
+				hideStroke = numOffset >= 0 ? 'black' : 'white';
+				thisFill = color;
+				thisStrokeWidth = absWidth * 2 + numOffset * 2;
+				maskStrokeWidth = absOffset * 2;
+			}
+
+			this._outlineMaskLinks.show.setAttribute('fill', showFill);
+			this._outlineMaskLinks.hide.setAttribute('fill', hideFill);
+			this._outlineMaskLinks.hide.setAttribute('stroke', hideStroke);
+			this._outlineMaskLinks.hide.setAttribute('stroke-width', maskStrokeWidth);
+			link.setAttribute('stroke-width', thisStrokeWidth);
+			link.setAttribute('stroke', color);
+			link.setAttribute('fill', thisFill);
 		}
 
 		/**
 		 * Разбирает значение `box-shadow` на массив объектов теней.
-		 * @since 1.0.0
+		 * @since 1.5.0 — перенесен из `SuperellipseModeSvgLayer::_parseBoxShadow` [1.0.0]
 		 * @protected
-		 * @param {string} boxShadowValue - Строка свойства `box-shadow`.
-		 * @returns {Array<Object>} Массив теней с полями: inset, color, offsetX, offsetY, blurRadius, spreadRadius, originalColorFormat.
+		 * @param {string} boxShadowStr - Строка свойства `box-shadow`.
+		 * @returns {Array<{inset: boolean, color: string|null, offsetX: number, offsetY: number, blurRadius: number, spreadRadius: number, originalColorFormat: string|null}>}
 		 */
-		_parseBoxShadow(boxShadowValue) {
-			if (!boxShadowValue || boxShadowValue === 'none') return [];
+		_parseBoxShadow(boxShadowStr) {
+			if (!boxShadowStr || boxShadowStr === 'none') return [];
 			
 			/** Разделяем тени **/
 			const shadows = [];
 			let current = '';
 			let depth = 0;
 			
-			for (let char of boxShadowValue) {
+			for (let char of boxShadowStr) {
 				if (char === '(') depth++;
 				if (char === ')') depth--;
 				if (char === ',' && depth === 0) {
@@ -2913,6 +3555,338 @@
 			});
 		}
 
+		/**
+		 * Устанавливает атрибут `stroke-dasharray` для элемента пути.
+		 * @since 1.5.0 — перенесен из `SuperellipseModeSvgLayer::_setStrokeDasharray` [1.0.0]
+		 * @protected
+		 * @param {SVGElement} element - SVG-элемент (обычно path или use).
+		 * @param {string} value - Значение dasharray.
+		 * @returns {void}
+		 */
+		_setStrokeDasharray(element, value) {
+			element.setAttribute('stroke-dasharray', value);
+		}
+
+		/**
+		 * Устанавливает атрибут `stroke-linecap` для элемента пути.
+		 * @since 1.5.0 — перенесен из `SuperellipseModeSvgLayer::_setStrokeLinecap` [1.0.0]
+		 * @protected
+		 * @param {SVGElement} element - SVG-элемент.
+		 * @param {string} value - Значение linecap (butt, round, square).
+		 * @returns {void}
+		 */
+		_setStrokeLinecap(element, value) {
+			element.setAttribute('stroke-linecap', value);
+		}
+
+		/**
+		 * Устанавливает атрибут `stroke-opacity` для элемента пути.
+		 * @since 1.5.0 — перенесен из `SuperellipseModeSvgLayer::_setStrokeOpacity` [1.0.0]
+		 * @protected
+		 * @param {SVGElement} element - SVG-элемент.
+		 * @param {string|number} value - Прозрачность (0..1).
+		 * @returns {void}
+		 */
+		_setStrokeOpacity(element, value) {
+			element.setAttribute('stroke-opacity', value);
+		}
+
+		/**
+		 * Преобразует CSS-стиль границы в атрибуты SVG-элемента.
+		 * @since 1.5.0 — перенесен из `SuperellipseModeSvgLayer::_applyBorderStyleToStroke` [1.0.0]
+		 * @protected
+		 * @param {SVGElement} element - SVG-элемент.
+		 * @param {string} borderStyle - Стиль границы (solid, dotted, dashed и т.д.).
+		 * @returns {void}
+		 */
+		_setBorderStyle(element, borderStyle) {
+			/** Сброс атрибутов **/
+			element.removeAttribute('stroke-dasharray');
+			element.removeAttribute('stroke-linecap');
+			element.removeAttribute('stroke-linejoin');
+			
+			switch(borderStyle) {
+				case 'solid':
+					/** Сплошная линия (значения по умолчанию) **/
+					break;
+					
+				case 'dotted':
+					this._setStrokeDasharray(element, '0, 8');
+					this._setStrokeLinecap(element, 'round');
+					break;
+					
+				case 'dashed':
+					this._setStrokeDasharray(element, '10, 6');
+					break;
+					
+				case 'double':
+					/** Для double нужно два отдельных пути или фильтр **/
+					jsse_console.warn({label:'MODE SVG LAYER',element: element}, '«border-style: double» is not supported');
+					break;
+					
+				case 'groove':
+					this._setStrokeDasharray(element, '1, 2');
+					this._setStrokeLinecap(element, 'round');
+					break;
+					
+				case 'ridge':
+					this._setStrokeDasharray(element, '3, 3');
+					break;
+					
+				case 'inset':
+					/** Имитация inset через полупрозрачность **/
+					this._setStrokeOpacity(element, '0.7');
+					break;
+					
+				case 'outset':
+					this._setStrokeOpacity(element, '0.5');
+					break;
+					
+				case 'dash-dot':
+					/** Кастомный стиль **/
+					this._setStrokeDasharray(element, '15, 5, 5, 5');
+					break;
+					
+				case 'dash-dot-dot':
+					/** Кастомный стиль **/
+					this._setStrokeDasharray(element, '15, 5, 5, 5, 5, 5');
+					break;
+			}
+		}
+
+		/**
+		 * Создаёт SVG-элемент с указанным тегом в пространстве имён SVG.
+		 * @since 1.5.0 — перенесен из `SuperellipseModeSvgLayer::_createSvgElement` [1.0.0]
+		 * @protected
+		 * @param {string} tag - Имя тега (например, 'svg', 'path', 'filter').
+		 * @returns {SVGElement}
+		 */
+		_createSvgElement(tag, attrs = {}, styles={}) {
+			const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+			Object.entries(attrs).forEach(([key, val]) => el.setAttribute(key, val));
+			Object.entries(styles).forEach(([key, val]) => el.style.setProperty(key, val));
+			return el;
+		}
+
+		/**
+		 * Создаёт HTML-элемент с указанным тегом.
+		 * @since 1.5.0 — перенесен из `SuperellipseModeSvgLayer::_createHtmlElement` [1.0.0]
+		 * @protected
+		 * @param {string} tag - Имя тега (например, 'div').
+		 * @returns {HTMLElement}
+		 */
+		_createHtmlElement(tag, attrs = {}, styles={}) {
+			const el = document.createElement(tag);
+			Object.entries(attrs).forEach(([key, val]) => el.setAttribute(key, val));
+			Object.entries(styles).forEach(([key, val]) => el.style.setProperty(key, val));
+			return el;
+		}
+	}
+
+	/**
+	 * @file src/mode-svg-layer.js
+	 * 
+	 * @module js-superellipse/mode-svg-layer
+	 * @since 1.0.0
+	 * @author f4n70m
+	 * 
+	 * @description
+	 * Режим `svg-layer` – полнофункциональный режим, создающий наложенный SVG-слой для отрисовки
+	 * суперэллипса. Позволяет корректно отображать `background`, `border`, `box-shadow` элемента.
+	 * Переносит дочернее содержимое во внутренний div-контейнер, а поверх него размещает SVG,
+	 * который повторяет геометрию суперэллипса с возможностью применения градиентов, теней и
+	 * произвольных стилей обводки.
+	 * 
+	 * @example
+	 * const mode = new SuperellipseModeSvgLayer(element);
+	 * mode.activate();
+	 */
+
+
+
+	/**
+	 * Режим, создающий наложенный SVG-слой для отрисовки фона, границ и теней.
+	 * @class SuperellipseModeSvgLayer
+	 * @extends SuperellipseMode
+	 * @since 1.0.0
+	 * @inheritdoc
+	 */
+	class SuperellipseModeSvgLayer extends SuperellipseMode {
+
+		/**
+		 * Хранилище ссылок на созданные виртуальные DOM-элементы (svg, div, path и т.д.).
+		 * @since 1.0.0
+		 * @type {Object<string, Element>}
+		 * @protected
+		 */
+		_virtualElementList = {};
+
+		/**
+		 * Текущая строка viewBox для SVG.
+		 * @since 1.0.0
+		 * @type {string}
+		 * @protected
+		 */
+		_viewbox;
+
+		/**
+		 * Экземпляр SvgBuilder для управления SVG-элементами.
+		 * @since 1.5.0
+		 * @type {SvgBuilder}
+		 * @protected
+		 */
+		_svgBuilder;
+
+
+		/**
+		 * =============================================================
+		 * PUBLIC
+		 * =============================================================
+		 */
+
+
+		/**
+		 * Создаёт экземпляр режима svg-layer.
+		 * @since 1.0.0
+		 * @param {Element} element - Целевой DOM-элемент.
+		 * @param {boolean} [debug=false] - Флаг отладки.
+		 */
+		constructor(element, debug = false) {
+			super(element, debug);
+
+			// this._initViewbox();
+			this._initVirtualElementList();
+		}
+
+
+		/**
+		 * =============================================================
+		 * PRIVATE
+		 * =============================================================
+		 */
+
+
+		/**
+		 * Выполняет обновление: применяет стили к слою div и обновляет путь.
+		 * @since 1.0.0
+		 * @override
+		 * @protected
+		 * @returns {void}
+		 */
+		_executeUpdate() {
+			this._applyCurrentInlineVirtualSvgLayerStyles();
+			this._applyCurrentCurve();
+		}
+
+		/**
+		 * Возвращает имя режима ('svg-layer').
+		 * @since 1.0.0
+		 * @override
+		 * @protected
+		 * @returns {string}
+		 */
+		_getModeName() {
+			return 'svg-layer';
+		}
+
+		/**
+		 * Возвращает стили, применяемые к основному элементу при активации.
+		 * @since 1.0.0
+		 * @override
+		 * @protected
+		 * @returns {Object<string, string>}
+		 */
+		_getActivatedStyles() {
+			return {
+				'position': 'relative',
+				'background': 'none',
+				'border-style': 'none',
+				'border-color': '',
+				'border-width': '',
+				'border-radius': '0px',
+				// 'outline': 'none',
+				'outline-style': 'none',
+				'outline-width': '',
+				'outline-color': '',
+				'outline-offset': '',
+				'box-shadow': 'unset',
+			};
+		}
+
+		/**
+		 * Возвращает стили для SVG-контейнера.
+		 * @since 1.0.0
+		 * @protected
+		 * @returns {Object<string, string>}
+		 */
+		_getSvgLayerStyles() {
+			return {
+				'position': 'absolute',
+				'top': '0px',
+				'left': '0px',
+				'width': '100%',
+				'height': '100%',
+				'pointer-events': 'none',
+			};
+		}
+
+
+		/**
+		 * =============================================================
+		 * STYLES
+		 * =============================================================
+		 */
+
+		/**
+	 	 * Применяет все стили (background, border, box-shadow, outline) к виртуальным слоям, если режим активен.
+		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @requires SvgBuilder#setBackground
+		 * @requires SvgBuilder#setBoxShadow
+		 * @requires SvgBuilder#setBorder
+		 * @requires SvgBuilder#setOutline
+		 * @protected
+		 * @returns {void}
+		 */
+		_applyCurrentInlineVirtualSvgLayerStyles() {
+			if ( this.isActivated() ) {
+				/** background **/
+				this._svgBuilder.setBackground( this._getComputedProp('background') );
+				/** box-shadow **/
+				this._svgBuilder.setBoxShadow( this._getComputedProp('box-shadow') );
+				/** border **/
+				this._applyCurrentVirtualSvgLayerStyleBorder();
+				/** outline **/
+				this._applyCurrentVirtualSvgLayerStyleOutline();
+			}
+		}
+
+		/**
+		 * Применяет стили border к SVG-слою.
+		 * @since 1.5.0
+		 * @protected
+		 * @returns {void}
+		 */
+		_applyCurrentVirtualSvgLayerStyleBorder() {
+			const borderColor = this._getComputedProp('border-color');
+			const borderWidth = this._getComputedProp('border-width');
+			const borderStyle = this._getComputedProp('border-style');
+			this._svgBuilder.setBorder(borderStyle, borderWidth, borderColor);
+		}
+
+		/**
+		 * Применяет стили outline к SVG-слою.
+		 * @since 1.5.0
+		 * @protected
+		 * @returns {void}
+		 */
+		_applyCurrentVirtualSvgLayerStyleOutline() {
+			// const outline = this._getComputedProp('outline-style');
+			const width = this._getComputedProp('outline-width');
+			const color = this._getComputedProp('outline-color');
+			const offset = this._getComputedProp('outline-offset');
+			this._svgBuilder.setOutline(width, color, offset);
+		}
+
 
 		/**
 		 * =============================================================
@@ -2933,110 +3907,20 @@
 		}
 
 		/**
-		 * Создаёт SVG-элемент с указанным тегом в пространстве имён SVG.
-		 * @since 1.0.0
-		 * @protected
-		 * @param {string} tag - Имя тега (например, 'svg', 'path', 'filter').
-		 * @returns {SVGElement}
-		 */
-		_createVirtualSvgElement(tag) {
-			return document.createElementNS('http://www.w3.org/2000/svg', tag);
-		}
-
-		/**
-		 * Создаёт HTML-элемент с указанным тегом.
-		 * @since 1.0.0
-		 * @protected
-		 * @param {string} tag - Имя тега (например, 'div').
-		 * @returns {HTMLElement}
-		 */
-		_createVirtualHtmlElement(tag) {
-			return document.createElement(tag);
-		}
-
-		/**
-		 * Создаёт SVG-элементы для слоя.
-		 * @since 1.0.0
+		 * Создаёт SVG-слой через SvgBuilder.
+		 * @since 1.5.0 — обновлён для работы с SvgBuilder
 		 * @protected
 		 * @returns {void}
 		 */
 		_initVirtualSvgLayer() {
-			if (this._virtualElementList.svgLayer) return;
-
-			const id = this._id;
-			const svgId		= `jsse_${id}`;
-			const clipId	= `jsse_${id}__clip`;
-			const pathId	= `jsse_${id}__path`;
-			const filtersId	= `jsse_${id}__filters`;
-			const shadowsId	= `jsse_${id}__shadows`;
-			const divId		= `jsse_${id}__div`;
-			const borderId	= `jsse_${id}__border`;
-
-			const svg = this._createVirtualSvgElement('svg');
-			const defs = this._createVirtualSvgElement('defs');
-			const clipPath = this._createVirtualSvgElement('clipPath');
-			const path = this._createVirtualSvgElement('path');
-			const gFilters = this._createVirtualSvgElement('g');
-			const gShadows = this._createVirtualSvgElement('g');
-			const html = this._createVirtualSvgElement('foreignObject');
-			const div = this._createVirtualHtmlElement('div');
-			const border = this._createVirtualSvgElement('use');
-
-			/** svg **/
-			svg.setAttribute('id', svgId);
-			svg.classList.add('jsse--svg-layer--bg');
-			svg.setAttribute('viewBox', this._getViewbox());
-			svg.setAttribute('preserveAspectRatio', 'none');
-			const svgProps = this._getSvgLayerStyles();
-			for (const prop in svgProps) {
-				svg.style.setProperty(prop, svgProps[prop]);
-			}
-			svg.style.setProperty('overflow', 'visible');
-			svg.appendChild(defs);
-			svg.appendChild(gShadows);
-			svg.appendChild(html);
-			svg.appendChild(border);
-			/** svg > defs **/
-			defs.appendChild(clipPath);
-			defs.appendChild(gFilters);
-			/** svg > defs > clipPath **/
-			clipPath.setAttribute('id', clipId);
-			clipPath.appendChild(path);
-			/** svg > defs > clipPath > path **/
-			path.setAttribute('id', pathId);
-			path.setAttribute('d', ''); // только создаем слой, не заполняем
-			/** svg > defs > g **/
-			gFilters.setAttribute('id', filtersId);
-			/** svg > g **/
-			gShadows.setAttribute('id', shadowsId);
-			/** svg > foreignObject **/
-			html.setAttribute('id', shadowsId);
-			// html.setAttribute('width', '100%');
-			// html.setAttribute('height', '100%');
-			html.setAttribute('width', this._size.width);
-			html.setAttribute('height', this._size.height);
-			html.setAttribute('clip-path', `url(#${clipId})`);
-			html.appendChild(div);
-			/** svg > foreignObject > div **/
-			div.setAttribute('id', divId);
-			div.style.setProperty('width', '100%');
-			div.style.setProperty('height', '100%');
-			/** svg > border **/
-			border.setAttribute('id', borderId);
-			border.setAttribute('href', `#${pathId}`);
-			border.setAttribute('fill', 'none');
-			border.setAttribute('stroke', '');
-			border.setAttribute('stroke-width', '0');
-			border.setAttribute('clip-path', `url(#${clipId})`);
-
-
-			this._virtualElementList.svgLayer = svg;
-			this._virtualElementList.svgLayerPath = path;
-			this._virtualElementList.svgLayerGFilters = gFilters;
-			this._virtualElementList.svgLayerGShadows = gShadows;
-			this._virtualElementList.svgLayerHtml = html;
-			this._virtualElementList.svgLayerDiv = div;
-			this._virtualElementList.svgLayerBorder = border;
+			const options = {
+				width: this._size.width??null,
+				height: this._size.height??null,
+				styles: this._getSvgLayerStyles(),
+				classes: ['jsse--svg-layer--bg']
+			};
+			const svgBuilder = new SvgBuilder(this._id, options);
+			this._svgBuilder = svgBuilder;
 		}
 
 		/**
@@ -3081,24 +3965,25 @@
 
 		/**
 		 * Добавляет SVG-слой в начало элемента.
-		 * @since 1.0.0
+		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @requires SvgBuilder#getSvg
 		 * @protected
 		 * @returns {void}
 		 */
 		_appendSvgLayer() {
-			const svgLayer = this._virtualElementList.svgLayer;
-			// TODO: нужна ли проверка на наличие svgLayer у this._element?
+			const svgLayer = this._svgBuilder.getSvg();
 			this._element.insertBefore(svgLayer, this._element.firstChild);
 		}
 
 		/**
 		 * Удаляет SVG-слой.
-		 * @since 1.0.0
+		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @requires SvgBuilder#getSvg
 		 * @protected
 		 * @returns {void}
 		 */
 		_removeSvgLayer() {
-			const svgLayer = this._virtualElementList.svgLayer;
+			const svgLayer = this._svgBuilder.getSvg();
 			if (svgLayer && svgLayer.parentNode === this._element) {
 				this._element.removeChild(svgLayer);
 			}
@@ -3148,88 +4033,31 @@
 		 * =============================================================
 		 */
 
-
 		/**
-		 * Инициализирует viewBox.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_initViewbox() {
-			this._recalculateViewbox();
-		}
-
-		/**
-		 * Пересчитывает viewBox при изменении размеров.
+		 * Применяет кривую, обновляя размеры SVG и путь.
 		 * @override
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_recalculateCurve() {
-			super._recalculateCurve();
-
-			this._recalculateViewbox();
-		}
-
-		/**
-		 * Обновляет viewBox на основе текущих размеров.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {void}
-		 */
-		_recalculateViewbox() {
-			if ( this._size.width > 0 && this._size.height > 0 ) {
-				this._viewbox = `0 0 ${this._size.width} ${this._size.height}`;
-			} else {
-				this._viewbox = '0 0 0 0'; // Сбрасываем путь
-			}
-		}
-
-		/**
-		 * Возвращает строку viewBox.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {string}
-		 */
-		_getViewbox() {
-			return this._viewbox;
-		}
-
-		/**
-		 * Применяет кривую, обновляя viewBox и d-атрибут пути.
-		 * @override
-		 * @since 1.0.0
+		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @requires SvgBuilder#setSize
+		 * @requires SvgBuilder#setPath
 		 * @protected
 		 * @returns {void}
 		 */
 		_applyCurve() {
-			const svgLayer = this._virtualElementList.svgLayer;
-			svgLayer.setAttribute('viewBox', this._getViewbox());
-
-			const svgLayerPath = this._virtualElementList.svgLayerPath;
-			const svgLayerHtml = this._virtualElementList.svgLayerHtml;
-			if (this._path) {
-				svgLayerPath.setAttribute('d', this._path);
-				svgLayerHtml.setAttribute('width', this._size.width);
-				svgLayerHtml.setAttribute('height', this._size.height);
-			} else {
-				svgLayerPath.setAttribute('d', '');
-			}
+			this._svgBuilder.setSize(this._size.width, this._size.height);
+			const path = this._path ? this._path : '';
+			this._svgBuilder.setPath(path);
 		}
 
 		/**
 		 * Восстанавливает исходный путь и очищает d-атрибут.
 		 * @override
-		 * @since 1.0.0
+		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @requires SvgBuilder#setPath
 		 * @protected
 		 * @returns {void}
 		 */
 		_restoreCurve() {
-			const svgLayerPath = this._virtualElementList.svgLayerPath;
-
-			svgLayerPath.setAttribute('d', '');
-
+			this._svgBuilder.setPath('');
 			super._restoreCurve();
 		}
 
@@ -3253,7 +4081,6 @@
 	 * для обрезки элемента по форме суперэллипса. Не требует создания дополнительных DOM-узлов,
 	 * но не поддерживает корректное отображение теней (`box-shadow`), границ и сложных фонов.
 	 * 
-	 * @extends SuperellipseMode
 	 * @example
 	 * const mode = new SuperellipseModeClipPath(element);
 	 * mode.activate();
@@ -3267,6 +4094,7 @@
 	 * @class SuperellipseModeClipPath
 	 * @extends SuperellipseMode
 	 * @since 1.0.0
+	 * @inheritdoc
 	 */
 	class SuperellipseModeClipPath extends SuperellipseMode {
 
@@ -3282,7 +4110,6 @@
 		 * @since 1.0.0
 		 * @param {Element} element - Целевой DOM-элемент.
 		 * @param {boolean} [debug=false] - Флаг отладки (передаётся в родительский класс).
-		 * @returns {SuperellipseModeClipPath} Экземпляр режима.
 		 */
 		constructor(element, debug = false) {
 			super(element, debug);
@@ -3376,7 +4203,6 @@
 		 * @param {number} [options.curveFactor] - Коэффициент кривизны (диапазон -2..2).
 		 * @param {number} [options.precision=2] - Количество знаков после запятой в координатах пути.
 		 * @param {boolean} [options.debug=false] - Включить отладочный вывод.
-		 * @returns {SuperellipseController} Экземпляр контроллера.
 		 */
 		constructor(element, options = {}) {
 
@@ -3462,7 +4288,7 @@
 		/**
 		 * Деактивирует суперэллипс, восстанавливая исходные стили.
 		 * @since 1.0.0
-		 * @returns {Element} Целевой элемент.
+		 * @returns {SuperellipseController} this.
 		 */
 		disable() {
 			this._deactivateMode();
@@ -3889,7 +4715,15 @@
 			}
 			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[TRACKER]', false);
 		}
-
+		
+		/**
+		 * Обработчик события наведения на триггер.
+		 * @since 1.4.0
+		 * @protected
+		 * @param {string} selector - Селектор триггера.
+		 * @param {boolean} isHover - Состояние наведения (true – курсор вошёл, false – вышел).
+		 * @returns {void}
+		 */
 		_hoverEventHandler(selector, isHover) {
 			if (isHover) {
 				this._hoverEnterHandler(selector);

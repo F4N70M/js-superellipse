@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+
+	<style>
+		:root {
+		    font-size: 16px;
+		    --gap: 16px;
+		    --c-body: 27 27 28;
+		    --c-text: 229 231 235;
+		    --c-backgroud: 0 169 255;
+		    --c-color: 255 255 255;
+		    --c-shadow-out-0: 255 213 0;
+		    --c-shadow-out-1: 244 67 54;
+		    --c-shadow-in-0: 128 236 19;
+		    /*--c-outline: 0 255 255;*/
+		    --c-outline: 255 0 255;
+
+		    --box-shadow-0: 20px 20px 30px rgba(var(--c-shadow-out-0) / .5);
+		    --box-shadow-1: -10px -10px 0px 20px rgba(var(--c-shadow-out-1) / .25);
+		    --box-shadow-2: -20px 20px 30px rgba(var(--c-shadow-in-0) / 1) inset;
+
+		    --path: 'M 0.00 60.00 L 0.00 60.00 C 0.00 3.43 0.00 0.00 70.29 0.00 L 70.29 0.00 L 223.51 0.00 L 223.51 0.00 C 293.80 0.00 293.80 3.43 293.80 60.00 L 293.80 60.00 L 293.80 60.00 L 293.80 60.00 C 293.80 116.57 293.80 120.00 223.51 120.00 L 223.51 120.00 L 70.29 120.00 L 70.29 120.00 C 0.00 120.00 0.00 116.57 0.00 60.00 L 0.00 60.00 Z';
+		}
+		* {
+			box-sizing: border-box;
+		}
+		body {
+			display: flex;
+			width: 100dvw;
+			height: 100dvh;
+			justify-content: center;
+			align-items: center;
+			margin: unset;
+		}
+		body {
+		    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+		    background: rgb(var(--c-body));
+		    color: rgb(var(--c-text));
+		}
+		section {
+			display: flex;
+			flex-direction: column;
+			gap: 120px;
+		}
+		div {
+			width: 293.8046875px;
+			height: 120px;
+			background: linear-gradient(135deg, #ff000088, #0000ff88);
+			background: rgb(var(--c-backgroud));
+			border: solid 4px rgb(var(--c-color) / 1);
+			border-radius: 30px;
+			box-shadow: var(--box-shadow-0), var(--box-shadow-1), var(--box-shadow-2);
+			outline: solid 4px rgb(var(--c-outline) / .5);
+			outline-offset: 4px;
+		}
+		svg {
+			width: 293.8046875px;
+			height: 120px;
+		}
+	</style>
+</head>
+<body>
+	<section>
+		<div></div>
+	</section>
+<script src="../src/svg-builder.js" type="module"></script>
+<script type="module">
+
+	import {SvgBuilder} from '../src/svg-builder.js';
+
+	const builder = new SvgBuilder('test', {
+		width: 293.8046875,
+		height: 120,
+	});
+
+	const svg = builder.getSvg();
+	document.querySelector('section').appendChild(svg);
+
+
+	builder.setPath('M 0.00 60.00 L 0.00 60.00 C 0.00 3.43 0.00 0.00 70.29 0.00 L 70.29 0.00 L 223.51 0.00 L 223.51 0.00 C 293.80 0.00 293.80 3.43 293.80 60.00 L 293.80 60.00 L 293.80 60.00 L 293.80 60.00 C 293.80 116.57 293.80 120.00 223.51 120.00 L 223.51 120.00 L 70.29 120.00 L 70.29 120.00 C 0.00 120.00 0.00 116.57 0.00 60.00 L 0.00 60.00 Z');
+
+	builder.setBackground('rgb(var(--c-backgroud))');
+
+	builder.setBorder('solid', 4, 'rgb(var(--c-color) / 1)');
+
+	builder.setOutline(4, 'rgb(var(--c-outline) / .5)', 4);
+
+	svg.style.setProperty('box-shadow', 'var(--box-shadow-0), var(--box-shadow-1), var(--box-shadow-2)');
+	const boxShadowValue = getComputedStyle(svg).getPropertyValue('box-shadow');
+	svg.style.removeProperty('box-shadow');
+	builder.setBoxShadow(boxShadowValue);
+
+</script>
+</body>
+</html>

@@ -84,7 +84,6 @@ export class SuperellipseController
 	 * @param {number} [options.curveFactor] - Коэффициент кривизны (диапазон -2..2).
 	 * @param {number} [options.precision=2] - Количество знаков после запятой в координатах пути.
 	 * @param {boolean} [options.debug=false] - Включить отладочный вывод.
-	 * @returns {SuperellipseController} Экземпляр контроллера.
 	 */
 	constructor(element, options = {}) {
 
@@ -170,7 +169,7 @@ export class SuperellipseController
 	/**
 	 * Деактивирует суперэллипс, восстанавливая исходные стили.
 	 * @since 1.0.0
-	 * @returns {Element} Целевой элемент.
+	 * @returns {SuperellipseController} this.
 	 */
 	disable() {
 		this._deactivateMode();
@@ -597,7 +596,15 @@ export class SuperellipseController
 		}
 		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[TARGET]', '[TRACKER]', false);
 	}
-
+	
+	/**
+	 * Обработчик события наведения на триггер.
+	 * @since 1.4.0
+	 * @protected
+	 * @param {string} selector - Селектор триггера.
+	 * @param {boolean} isHover - Состояние наведения (true – курсор вошёл, false – вышел).
+	 * @returns {void}
+	 */
 	_hoverEventHandler(selector, isHover) {
 		if (isHover) {
 			this._hoverEnterHandler(selector);

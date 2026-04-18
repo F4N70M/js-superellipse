@@ -1,6 +1,6 @@
 {
   "name": "js-superellipse",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "Superellipse shape for DOM elements",
   "main": "dist/superellipse.js",
   "module": "src/index.js",
@@ -9,7 +9,7 @@
     "dev": "rollup -c -w"
   },
   "keywords": ["superellipse", "rounded corners", "svg", "clip-path"],
-  "author": "",
+  "author": "f4n70m",
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.0",

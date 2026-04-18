@@ -49,12 +49,10 @@ export class GlobalHoverTracker {
 
 	/**
 	 * Начинает отслеживание состояния наведения для указанного элемента.
-	 *
 	 * @since 1.4.0
-	 *
 	 * @param {Element} element - DOM-элемент, за которым нужно следить.
-	 * @param {Function} [callback] - Опциональная функция, вызываемая при изменении состояния наведения.
-	 *                                Принимает два аргумента: элемент (Element) и новое состояние (boolean).
+	 * @param {Function} [callback] - function(element:Element,isHover:boolean):void - Опциональная функция, вызываемая при изменении состояния наведения.
+	 * @returns {void}
 	 */
 	observe(element, callback) {
 		if (this.elementsSet.has(element)) return;
@@ -72,10 +70,9 @@ export class GlobalHoverTracker {
 	/**
 	 * Прекращает отслеживание состояния наведения для указанного элемента.
 	 * Удаляет элемент из всех наблюдателей и очищает связанные с ним данные.
-	 *
 	 * @since 1.4.0
-	 *
 	 * @param {Element} element - DOM-элемент, отслеживание которого нужно прекратить.
+	 * @returns {void}
 	 */
 	unobserve(element) {
 		if (!this.elementsSet.has(element)) return;
@@ -91,8 +88,7 @@ export class GlobalHoverTracker {
 	 * @since 1.4.0
 	 *
 	 * @param {Element} element - DOM-элемент, чьё состояние требуется получить.
-	 * @returns {Object|null} Объект с полями `hover` (boolean), `inViewport` (boolean), `callback` (Function|null)
-	 *                        или `null`, если элемент не отслеживается.
+	 * @returns {{hover: boolean, inViewport: boolean, callback: Function|null}|null} — Объект с полями или `null`, если элемент не отслеживается.
 	 */
 	getState(element) {
 		return this.data.get(element) || null;
@@ -103,8 +99,8 @@ export class GlobalHoverTracker {
 	 * - отключает всех наблюдателей (IntersectionObserver, ResizeObserver, MutationObserver),
 	 * - очищает набор отслеживаемых элементов.
 	 * Внутренний WeakMap очищается автоматически сборщиком мусора.
-	 *
 	 * @since 1.4.0
+	 * @returns {void}
 	 */
 	destroy() {
 		// очистка всех наблюдателей
@@ -118,9 +114,9 @@ export class GlobalHoverTracker {
 	/**
 	 * Инициализирует глобальные обработчики событий (mousemove, pointermove, scroll, resize),
 	 * которые вызывают отложенную проверку состояний.
-	 *
 	 * @protected
 	 * @since 1.4.0
+	 * @returns {void}
 	 */
 	_initEventListeners() {
 		const events = ['mousemove', 'pointermove', 'scroll', 'resize'];
@@ -134,9 +130,9 @@ export class GlobalHoverTracker {
 	/**
 	 * Инициализирует MutationObserver для отслеживания изменений в DOM.
 	 * При любых изменениях (поддерево, список дочерних элементов, атрибуты) запускает отложенную проверку.
-	 *
 	 * @protected
 	 * @since 1.4.0
+	 * @returns {void}
 	 */
 	_initMutationObserver() {
 		this.domObserver = new MutationObserver(() => this._scheduleCheck());
@@ -146,9 +142,9 @@ export class GlobalHoverTracker {
 	/**
 	 * Инициализирует ResizeObserver для отслеживания изменения размеров отслеживаемых элементов.
 	 * При изменении размера запускает отложенную проверку.
-	 *
 	 * @protected
 	 * @since 1.4.0
+	 * @returns {void}
 	 */
 	_initResizeObserver() {
 		this.resizeObserver = new ResizeObserver(() => this._scheduleCheck());
@@ -157,9 +153,9 @@ export class GlobalHoverTracker {
 	/**
 	 * Планирует выполнение полной проверки всех элементов в следующем кадре анимации.
 	 * Предотвращает многократный вызов до выполнения запланированной проверки.
-	 *
 	 * @protected
 	 * @since 1.4.0
+	 * @returns {void}
 	 */
 	_scheduleCheck() {
 		if (this.scheduled) return;
@@ -174,9 +170,9 @@ export class GlobalHoverTracker {
 	 * Выполняет синхронную проверку состояния наведения для всех отслеживаемых элементов.
 	 * Обновляет внутреннее состояние и вызывает колбэки при изменении.
 	 * Элементы, потерявшие связь с DOM, автоматически удаляются из отслеживания.
-	 *
 	 * @protected
 	 * @since 1.4.0
+	 * @returns {void}
 	 */
 	_checkAll() {
 		for (const el of this.elementsSet) {

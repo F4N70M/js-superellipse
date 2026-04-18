@@ -10,14 +10,6 @@
  * Содержит общую логику захвата стилей и размеров элемента, пересчёта SVG-пути суперэллипса,
  * применения/восстановления CSS-свойств (`clip-path`). Определяет защищённые методы, которые должны
  * быть переопределены в дочерних классах.
- * 
- * @example
- * class MyMode extends SuperellipseMode {
- *   _getActivatedStyles() { return { /* стили активации *\}; }
- *   _getModeName() { return 'my-mode'; }
- *   _appendVirtualElements() { /* реализация *\/ }
- *   _removeVirtualElements() { /* реализация *\/ }
- * }
  */
 
 import { jsse_styles, jsse_reset_css } from './global-cache.js';
@@ -31,6 +23,8 @@ import { jsse_console } from './support.js';
  * @since 1.0.0
  */
 export class SuperellipseMode {
+
+	_id;
 
 	_element;
 
@@ -247,7 +241,7 @@ export class SuperellipseMode {
 	/**
 	 * Инициализация режима.
 	 * @since 1.0.0
-	 * @private
+	 * @protected
 	 * @returns {void}
 	 */
 	_init() {
@@ -262,7 +256,7 @@ export class SuperellipseMode {
 	/**
 	 * Устанавливает статус активации.
 	 * @since 1.0.0
-	 * @private
+	 * @protected
 	 * @param {boolean} status - Статус активации.
 	 * @returns {void}
 	 */
@@ -278,7 +272,7 @@ export class SuperellipseMode {
 	/**
 	 * Захватывает актуальные стили и размеры.
 	 * @since 1.0.0
-	 * @private
+	 * @protected
 	 * @returns {void}
 	 */
 	_updateCaptured() {
@@ -289,7 +283,7 @@ export class SuperellipseMode {
 	/**
 	 * Подготавливает обновление (пересчёт кривой).
 	 * @since 1.0.0
-	 * @private
+	 * @protected
 	 * @returns {void}
 	 */
 	_prepareUpdate() {
@@ -299,7 +293,7 @@ export class SuperellipseMode {
 	/**
 	 * Выполняет обновление (применяет кривую).
 	 * @since 1.0.0
-	 * @private
+	 * @protected
 	 * @returns {void}
 	 */
 	_executeUpdate() {
@@ -346,6 +340,19 @@ export class SuperellipseMode {
 	 * VIRTUAL
 	 * =============================================================
 	 */
+
+
+
+	/**
+	 * Создаёт HTML-элемент с указанным тегом.
+	 * @since 1.5.0 – Перенесен из `SuperellipseModeSvgLayer::_createVirtualHtmlElement` [1.0.0]
+	 * @protected
+	 * @param {string} tag - Имя тега (например, 'div').
+	 * @returns {HTMLElement}
+	 */
+	_createVirtualHtmlElement(tag) {
+		return document.createElement(tag);
+	}
 
 
 	/**
