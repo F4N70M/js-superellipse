@@ -199,11 +199,11 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	 * @returns {void}
 	 */
 	_applyCurrentVirtualSvgLayerStyleOutline() {
-		// const outline = this._getComputedProp('outline-style');
+		const style = this._getComputedProp('outline-style');
 		const width = this._getComputedProp('outline-width');
 		const color = this._getComputedProp('outline-color');
 		const offset = this._getComputedProp('outline-offset');
-		this._svgBuilder.setOutline(width, color, offset);
+		this._svgBuilder.setOutline(style, width, color, offset);
 	}
 
 

@@ -1,7 +1,7 @@
 /**
  * 
  * @module js-superellipse
- * @version 1.5.0
+ * @version 1.5.1
  * @author f4n70m
  * @license MIT
  * 
@@ -3438,12 +3438,12 @@
 	     * @param {string} color - Цвет контура.
 	     * @param {string|number} offset - Смещение контура (может быть отрицательным).
 	     */
-		setOutline(width, color, offset) {
+		setOutline(style, width, color, offset) {
 			const link = this._getLinkOutline();
 			const numOffset = parseFloat(offset);
 			const numWidth = parseFloat(width);
 
-			if (numWidth === 0) {
+			if (style == "none" || numWidth === 0) {
 				link.setAttribute('stroke', 'transparent');
 				return;
 			}
@@ -3880,11 +3880,11 @@
 		 * @returns {void}
 		 */
 		_applyCurrentVirtualSvgLayerStyleOutline() {
-			// const outline = this._getComputedProp('outline-style');
+			const style = this._getComputedProp('outline-style');
 			const width = this._getComputedProp('outline-width');
 			const color = this._getComputedProp('outline-color');
 			const offset = this._getComputedProp('outline-offset');
-			this._svgBuilder.setOutline(width, color, offset);
+			this._svgBuilder.setOutline(style, width, color, offset);
 		}
 
 

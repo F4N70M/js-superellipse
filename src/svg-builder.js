@@ -980,12 +980,12 @@ export class SvgBuilder {
      * @param {string} color - Цвет контура.
      * @param {string|number} offset - Смещение контура (может быть отрицательным).
      */
-	setOutline(width, color, offset) {
+	setOutline(style, width, color, offset) {
 		const link = this._getLinkOutline();
 		const numOffset = parseFloat(offset);
 		const numWidth = parseFloat(width);
 
-		if (numWidth === 0) {
+		if (style == "none" || numWidth === 0) {
 			link.setAttribute('stroke', 'transparent');
 			return;
 		}
