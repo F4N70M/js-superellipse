@@ -499,9 +499,10 @@ export class SuperellipseMode {
 		let cssString = '';
 
 		const activatedStyles = this._getActivatedStyles();
+		jsse_console.debug({label:'ResetCssText',element:this._element}, activatedStyles, this._styles.computed);
 		// cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-activated=true],`;
 		// cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:hover,`;
-		cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]`;
+		cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:not([data-jsse-reading=true])`;
 		cssString += `{`;
 		for (const prop in activatedStyles) {
 			if (activatedStyles[prop] === '') continue;
@@ -557,7 +558,7 @@ export class SuperellipseMode {
 	 * @returns {void}
 	 */
 	_updateCapturedStyles() {
-		jsse_console.debug({label:'MODE',element:this._element}, '_updateCapturedStyles()');
+		jsse_console.debug({label:'MODE',element:this._element}, '[STYLES]', '[CAPTURE]');
 		const capturedComputedStyles = this._getCapturedStyles();
 		/** Сохранить computed-стили **/
 		this._styles.computed = capturedComputedStyles;

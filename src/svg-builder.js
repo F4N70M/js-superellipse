@@ -176,6 +176,10 @@ export class SvgBuilder {
 		return `jsse_${this._id}--svg${prefix}${name??''}`;
 	}
 
+	getClipId() {
+		return this._getLinkId('clip');
+	}
+
     /**
      * Возвращает элемент `svg` > `defs`, создавая его при необходимости.
      * @since 1.5.0
@@ -1028,7 +1032,7 @@ export class SvgBuilder {
 
 	/**
 	 * Разбирает значение `box-shadow` на массив объектов теней.
-	 * @since 1.5.0 — перенесен из `SuperellipseModeSvgLayer::_parseBoxShadow` [1.0.0]
+	 * @since 1.5.0
 	 * @protected
 	 * @param {string} boxShadowStr - Строка свойства `box-shadow`.
 	 * @returns {Array<{inset: boolean, color: string|null, offsetX: number, offsetY: number, blurRadius: number, spreadRadius: number, originalColorFormat: string|null}>}

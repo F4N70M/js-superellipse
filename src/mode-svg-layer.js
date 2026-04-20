@@ -41,14 +41,6 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	_virtualElementList = {};
 
 	/**
-	 * Текущая строка viewBox для SVG.
-	 * @since 1.0.0
-	 * @type {string}
-	 * @protected
-	 */
-	_viewbox;
-
-	/**
 	 * Экземпляр SvgBuilder для управления SVG-элементами.
 	 * @since 1.5.0
 	 * @type {SvgBuilder}
@@ -117,13 +109,15 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	 */
 	_getActivatedStyles() {
 		return {
+			'overflow-x' : 'visible',
+			'overflow-y' : 'visible',
 			'position': 'relative',
 			'background': 'none',
 			'border-style': 'none',
 			'border-color': '',
 			'border-width': '',
 			'border-radius': '0px',
-			// 'outline': 'none',
+			'padding': '0px',
 			'outline-style': 'none',
 			'outline-width': '',
 			'outline-color': '',
@@ -158,7 +152,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
  	 * Применяет все стили (background, border, box-shadow, outline) к виртуальным слоям, если режим активен.
-	 * @since 1.5.0 — обновлён для работы с SvgBuilder
+	 * @since 1.5.0
 	 * @requires SvgBuilder#setBackground
 	 * @requires SvgBuilder#setBoxShadow
 	 * @requires SvgBuilder#setBorder
@@ -168,15 +162,41 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	 */
 	_applyCurrentInlineVirtualSvgLayerStyles() {
 		if ( this.isActivated() ) {
+			/** overflow **/
+			this._applyCurrentVirtualSvgLayerStyleOverflow();
 			/** background **/
 			this._svgBuilder.setBackground( this._getComputedProp('background') );
 			/** box-shadow **/
 			this._svgBuilder.setBoxShadow( this._getComputedProp('box-shadow') );
 			/** border **/
 			this._applyCurrentVirtualSvgLayerStyleBorder();
+			/** padding **/
+			this._applyCurrentVirtualSvgLayerStylePadding();
 			/** outline **/
 			this._applyCurrentVirtualSvgLayerStyleOutline();
 		}
+	}
+
+
+	/**
+	 * Применяет стили overflow к SVG-слою.
+	 * @since 1.5.2
+	 * @protected
+	 * @returns {void}
+	 */
+	_applyCurrentVirtualSvgLayerStyleOverflow() {
+		const overflowX = this._getComputedProp('overflow-x');
+		const overflowY = this._getComputedProp('overflow-y');
+		// this._svgBuilder.setOverflow( overflowX, overflowY );
+
+		/** если overflow равен visible+visible или visible+clip в любом порядке */
+		const clipValue = (overflowY === 'visible' && overflowX === 'clip') || (overflowX === 'visible' && (overflowY === 'visible' || overflowY === 'clip'))
+			?``
+			:`url(#${this._svgBuilder.getClipId()})`;
+			// jsse_console.warn({element: this._element}, {clipValue});
+		this._virtualElementList.innerWrapper.style.setProperty('clip-path', clipValue);
+		this._virtualElementList.innerWrapper.style.setProperty('overflow-x', overflowX);
+		this._virtualElementList.innerWrapper.style.setProperty('overflow-y', overflowY);
 	}
 
 	/**
@@ -186,10 +206,24 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	 * @returns {void}
 	 */
 	_applyCurrentVirtualSvgLayerStyleBorder() {
-		const borderColor = this._getComputedProp('border-color');
-		const borderWidth = this._getComputedProp('border-width');
 		const borderStyle = this._getComputedProp('border-style');
+		const borderWidth = this._getComputedProp('border-width');
+		const borderColor = this._getComputedProp('border-color');
 		this._svgBuilder.setBorder(borderStyle, borderWidth, borderColor);
+		this._virtualElementList.innerWrapper.style.setProperty('border-style', borderStyle);
+		this._virtualElementList.innerWrapper.style.setProperty('border-width', borderWidth);
+		this._virtualElementList.innerWrapper.style.setProperty('border-color', 'transparent');
+	}
+
+	/**
+	 * Применяет стили padding к SVG-слою.
+	 * @since 1.5.2
+	 * @protected
+	 * @returns {void}
+	 */
+	_applyCurrentVirtualSvgLayerStylePadding() {
+		const padding = this._getComputedProp('padding');
+		this._virtualElementList.innerWrapper.style.setProperty('padding', padding);
 	}
 
 	/**
@@ -227,7 +261,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Создаёт SVG-слой через SvgBuilder.
-	 * @since 1.5.0 — обновлён для работы с SvgBuilder
+	 * @since 1.5.0
 	 * @protected
 	 * @returns {void}
 	 */
@@ -254,6 +288,8 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 		const innerWrapper = this._createVirtualHtmlElement('div');
 		innerWrapper.className = 'jsse--svg-layer--content';
 		innerWrapper.style.setProperty('position', 'relative');
+		innerWrapper.style.setProperty('max-width', '100%');
+		innerWrapper.style.setProperty('max-height', '100%');
 
 		this._virtualElementList.innerWrapper = innerWrapper;
 	}
@@ -284,7 +320,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Добавляет SVG-слой в начало элемента.
-	 * @since 1.5.0 — обновлён для работы с SvgBuilder
+	 * @since 1.5.0
 	 * @requires SvgBuilder#getSvg
 	 * @protected
 	 * @returns {void}
@@ -296,7 +332,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 
 	/**
 	 * Удаляет SVG-слой.
-	 * @since 1.5.0 — обновлён для работы с SvgBuilder
+	 * @since 1.5.0
 	 * @requires SvgBuilder#getSvg
 	 * @protected
 	 * @returns {void}
@@ -355,7 +391,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	/**
 	 * Применяет кривую, обновляя размеры SVG и путь.
 	 * @override
-	 * @since 1.5.0 — обновлён для работы с SvgBuilder
+	 * @since 1.5.0
 	 * @requires SvgBuilder#setSize
 	 * @requires SvgBuilder#setPath
 	 * @protected
@@ -370,7 +406,7 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	/**
 	 * Восстанавливает исходный путь и очищает d-атрибут.
 	 * @override
-	 * @since 1.5.0 — обновлён для работы с SvgBuilder
+	 * @since 1.5.0
 	 * @requires SvgBuilder#setPath
 	 * @protected
 	 * @returns {void}
