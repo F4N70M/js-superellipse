@@ -176,6 +176,22 @@ export class SvgBuilder {
 		return `jsse_${this._id}--svg${prefix}${name??''}`;
 	}
 
+	/**
+	 * Возвращает имя CSS-переменной для transition указанного свойства.
+	 * @since 1.5.3
+	 * @protected
+	 * @param {string} prop - Имя свойства (например, 'background', 'border').
+	 * @returns {string}.
+	 */
+	_getTransitionVar(prop) {
+		return `--jsse_${this._id}--transition--${prop}`;
+	}
+
+	/**
+	 * Возвращает ID clipPath элемента для использования в CSS или SVG.
+	 * @since 1.5.0
+	 * @returns {string} ID clipPath (например, "jsse_xxx--svg__clip").
+	 */
 	getClipId() {
 		return this._getLinkId('clip');
 	}
@@ -401,6 +417,8 @@ export class SvgBuilder {
 				'stroke': 'black',
 				'stroke-width': 0,
 				'fill': 'black'
+			}, {
+					'transition':`var(${this._getTransitionVar('outline')}, 0s)`
 			})
 		};
 		this._outlineMaskLinks = maskLinks;
@@ -457,11 +475,13 @@ export class SvgBuilder {
      */
 	_initLinkBackground() {
 		const linkBackground = this._createHtmlElement('div', {
-			'id': this._getLinkId('background')
-		}, {
-			'width': '100%',
-			'height': '100%'
-		});
+				'id': this._getLinkId('background')
+			}, {
+				'width': '100%',
+				'height': '100%',
+				'transition': `var(${this._getTransitionVar('background')}, 0s)`
+			}
+		);
 		this._linkBackground = linkBackground;
 	}
 
@@ -483,13 +503,16 @@ export class SvgBuilder {
      */
 	_initLinkBorder() {
 		const link = this._createSvgElement('use', {
-			'id': this._getLinkId('border'),
-			'href': `#${this._getLinkId('path')}`,
-			'fill': 'none',
-			'stroke': '',
-			'stroke-width': '0',
-			'clip-path': `url(#${this._getLinkId('clip')})`
-		});
+				'id': this._getLinkId('border'),
+				'href': `#${this._getLinkId('path')}`,
+				'fill': 'none',
+				'stroke': '',
+				'stroke-width': '0',
+				'clip-path': `url(#${this._getLinkId('clip')})`
+			}, {
+				'transition':`var(${this._getTransitionVar('border')}, 0s)`
+			}
+		);
 		this._linkBorder = link;
 	}
 
@@ -561,13 +584,16 @@ export class SvgBuilder {
      */
 	_initLinkOutline() {
 		const link = this._createSvgElement('use', {
-			'id': this._getLinkId('outline'),
-			'href': `#${this._getLinkId('path')}`,
-			'stroke': 'transparent',
-			'stroke-width': 0,
-			'mask': `url(#${this._getLinkId('mask_outline')})`,
-			'fill': 'none'
-		});
+				'id': this._getLinkId('outline'),
+				'href': `#${this._getLinkId('path')}`,
+				'stroke': 'transparent',
+				'stroke-width': 0,
+				'mask': `url(#${this._getLinkId('mask_outline')})`,
+				'fill': 'none'
+			}, {
+				'transition':`var(${this._getTransitionVar('outline')}, 0s)`
+			}
+		);
 		this._linkOutline = link;
 	}
 
@@ -609,6 +635,16 @@ export class SvgBuilder {
 		for (const key of keysToDeleteOut) {
 			this._unsetFilterShadowOut(key);
 		}
+	}
+
+	/**
+	 * Устанавливает CSS-переменную для transition свойства box-shadow.
+	 * @since 1.5.3
+	 * @param {string} [transition='0s'] - Значение перехода (например, "0.2s ease").
+	 * @returns {void}
+	 */
+	setBoxShadowTransition(transition = '0s') {
+		this.getSvg().style.setProperty(this._getTransitionVar('box-shadow'), transition);
 	}
 
     /**
@@ -711,12 +747,16 @@ export class SvgBuilder {
 					'radius': 0,
 					'in': 'SourceAlpha',
 					'result': `${id}--spreadRadius`
+				}, {
+					'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 				}),
 				// Размываем на половину значения spread
 				'spreadBlur': this._createSvgElement('feGaussianBlur', {
 					'stdDeviation': 0, // feMorphology[radius] / 2
 					'in': `${id}--spreadRadius`,
 					'result': `${id}--spreadBlur`
+				}, {
+					'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 				}),
 				// Возвращаем четкость границы контрастом
 				'spread': this._createSvgElement('feComponentTransfer', {
@@ -728,12 +768,16 @@ export class SvgBuilder {
 					'stdDeviation': 0,
 					'in': `${id}--spread`,
 					'result': `${id}--blur`
+				}, {
+					'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 				}),
 				// Задаем цвет
 				'color': this._createSvgElement('feFlood', {
 					'flood-color': 'transparent',
 					// 'flood-opacity задается альфа каналом flood-color
 					'result': `${id}--color`
+				}, {
+					'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 				}),
 				// Красим
 				'coloredBlur': this._createSvgElement('feComposite', {
@@ -748,6 +792,8 @@ export class SvgBuilder {
 					'dy': 0,
 					'in': `${id}--coloredBlur`,
 					'result': `${id}--offsetBlur`
+				}, {
+					'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 				}),
 				// После offsetBlur вычитаем SourceAlpha
 				'glow': this._createSvgElement('feComposite', {
@@ -761,7 +807,7 @@ export class SvgBuilder {
 				'spreadFunc': this._createSvgElement('feFuncA', {
 					'type': 'discrete',
 					'tableValues': '0 0 0 0 0 1 1 1 1 1'
-				})
+				}),
 			},
 			// Добавляем
 			'node': this._createSvgElement('feMergeNode', {
@@ -825,17 +871,23 @@ export class SvgBuilder {
 					'radius': 0,
 					'in': `${id}--invertedAlpha`,
 					'result': `${id}--eroded`
+				}, {
+					'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 				}),
 				// Размываем расширенную границу
 				'blur': this._createSvgElement('feGaussianBlur', {
 					'stdDeviation': 0,
 					'in': `${id}--eroded`,
 					'result': `${id}--blur`
+				}, {
+					'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 				}),
 				// Задаем цвет
 				'color': this._createSvgElement('feFlood', {
 					'flood-color': 'transparent',
 					'result': `${id}--color`
+				}, {
+					'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 				}),
 				// Красим
 				'coloredBlur': this._createSvgElement('feComposite', {
@@ -850,6 +902,8 @@ export class SvgBuilder {
 					'dy': 0,
 					'in': `${id}--coloredBlur`,
 					'result': `${id}--offsetBlur`
+				}, {
+					'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 				}),
 				// После offsetBlur вычитаем SourceAlpha
 				'inside': this._createSvgElement('feComposite', {
@@ -961,6 +1015,9 @@ export class SvgBuilder {
 		const link = this._getLinkBackground();
 		link.style.setProperty('background', value);
 	}
+	setBackgroundTransition(transition = '0s') {
+		this.getSvg().style.setProperty(this._getTransitionVar('background'), transition);
+	}
 
     /**
      * Устанавливает обводку (border) фигуры.
@@ -974,7 +1031,18 @@ export class SvgBuilder {
 		const link = this._getLinkBorder();
 		link.setAttribute('stroke', color);
 		link.setAttribute('stroke-width', (numWidth * 2));
-		this._setBorderStyle(link, style)
+		this._setBorderStyle(link, style);
+	}
+
+	/**
+	 * Устанавливает CSS-переменные для transition свойств border (stroke-width и stroke).
+	 * @since 1.5.3
+	 * @param {string} [width='0s'] - Переход для толщины обводки.
+	 * @param {string} [color='0s'] - Переход для цвета обводки.
+	 * @returns {void}
+	 */
+	setBorderTransition(width = '0s', color = '0s') {
+		this.getSvg().style.setProperty(this._getTransitionVar('border'), `stroke-width ${width}, stroke ${color}`);
 	}
 
     /**
@@ -984,7 +1052,7 @@ export class SvgBuilder {
      * @param {string} color - Цвет контура.
      * @param {string|number} offset - Смещение контура (может быть отрицательным).
      */
-	setOutline(style, width, color, offset) {
+	setOutline(style, width, color, offset, transition = '0s') {
 		const link = this._getLinkOutline();
 		const numOffset = parseFloat(offset);
 		const numWidth = parseFloat(width);
@@ -1031,13 +1099,24 @@ export class SvgBuilder {
 	}
 
 	/**
+	 * Устанавливает CSS-переменные для transition свойств outline (stroke-width и stroke).
+	 * @since 1.5.3
+	 * @param {string} [width='0s'] - Переход для толщины контура.
+	 * @param {string} [color='0s'] - Переход для цвета контура.
+	 * @returns {void}
+	 */
+	setOutlineTransition(width = '0s', color = '0s') {
+		this.getSvg().style.setProperty(this._getTransitionVar('outline'), `stroke-width ${width}, stroke ${color}`);
+	}
+
+	/**
 	 * Разбирает значение `box-shadow` на массив объектов теней.
 	 * @since 1.5.0
 	 * @protected
 	 * @param {string} boxShadowStr - Строка свойства `box-shadow`.
 	 * @returns {Array<{inset: boolean, color: string|null, offsetX: number, offsetY: number, blurRadius: number, spreadRadius: number, originalColorFormat: string|null}>}
 	 */
-	_parseBoxShadow(boxShadowStr) {
+	_parseBoxShadow(boxShadowStr, transition = '0s') {
 		if (!boxShadowStr || boxShadowStr === 'none') return [];
 		
 		/** Разделяем тени **/

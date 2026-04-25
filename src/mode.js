@@ -12,9 +12,9 @@
  * быть переопределены в дочерних классах.
  */
 
+import { jsse_animated_props, Transition } from './transition.js';
 import { jsse_styles, jsse_reset_css } from './global-cache.js';
 import { jsse_generateSuperellipsePath, jsse_getBorderRadiusFactor } from './core.js';
-
 import { jsse_console } from './support.js';
 
 /**
@@ -40,6 +40,7 @@ export class SuperellipseMode {
 	_precision;
 
 	_styles;
+	_transition = null;
 
 	_path;
 	_resetPath;
@@ -102,6 +103,8 @@ export class SuperellipseMode {
 		jsse_console.debug({label:'MODE',element:this._element}, `deactivate(${this._getModeName()})`);
 		/** Установить статус **/
 		this._setStatus(false);
+		/** Отменить анимацию перехода возвращения сброшеннных стилей **/
+		this._cancelTransition();
 		/** Удалить элементы виртуальных слоев **/
 		this._removeVirtualElements();
 		/** Выполнить обновление **/
@@ -114,6 +117,7 @@ export class SuperellipseMode {
 	 * @returns {void}
 	 */
 	update() {
+		if (!this.isActivated()) return;
 		jsse_console.debug({label:'MODE',element:this._element}, 'update()');
 		/** Актуализировать данные захвата **/
 		this._updateCaptured();
@@ -129,6 +133,7 @@ export class SuperellipseMode {
 	 * @returns {void}
 	 */
 	updateSize() {
+		if (!this.isActivated()) return;
 		/** Актуализировать размеры **/
 		this._updateCapturedSize();
 		/** Подготовить обновление **/
@@ -144,7 +149,7 @@ export class SuperellipseMode {
 	 * @returns {void}
 	 */
 	updateStyles() {
-		jsse_console.debug({label:'MODE',element:this._element}, 'updateStyles()');
+		if (!this.isActivated()) return;
 		/** Актуализировать стили **/
 		this._updateCapturedStyles();
 		/** Подготовить обновление **/
@@ -161,6 +166,7 @@ export class SuperellipseMode {
 	 */
 	updateCurveFactor(value) {
 		this.setCurveFactor(value);
+		if (!this.isActivated()) return;
 		/** Подготовить обновление **/
 		this._prepareUpdate();
 		/** Выполнить обновление **/
@@ -175,6 +181,7 @@ export class SuperellipseMode {
 	 */
 	updatePrecision(value) {
 		this.setPrecision(value);
+		if (!this.isActivated()) return;
 		/** Подготовить обновление **/
 		this._prepareUpdate();
 		/** Выполнить обновление **/
@@ -311,18 +318,6 @@ export class SuperellipseMode {
 	}
 
 	/**
-	 * Возвращает карту стилей, которые нужно временно применить для корректного чтения.
-	 * @since 1.0.0
-	 * @protected
-	 * @returns {Object<string, string>}
-	 */
-	_getReadingStyles() {
-		return {
-			'transition': 'unset'
-		};
-	}
-
-	/**
 	 * Возвращает карту стилей, применяемых при активации режима.
 	 * @since 1.0.0
 	 * @protected
@@ -332,6 +327,18 @@ export class SuperellipseMode {
 		return {
 			'border-radius': '0px'
 		};
+	}
+
+	/**
+	 * Возвращает список свойств, отслеживаемых для анимаций.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {Array<string>}
+	 */
+	_getTransitionProperties() {
+		return [
+			'border-radius',
+		];
 	}
 
 
@@ -498,30 +505,24 @@ export class SuperellipseMode {
 	_getResetCssText(modeName) {
 		let cssString = '';
 
+		const transitionStyles = {
+			'transition-property': 'all',
+			'transition-duration': '0s',
+			'transition-timing-function': 'ease',
+			'transition-delay': '0s',
+		};
+
 		const activatedStyles = this._getActivatedStyles();
 		jsse_console.debug({label:'ResetCssText',element:this._element}, activatedStyles, this._styles.computed);
-		// cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-activated=true],`;
-		// cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:hover,`;
 		cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:not([data-jsse-reading=true])`;
 		cssString += `{`;
 		for (const prop in activatedStyles) {
 			if (activatedStyles[prop] === '') continue;
 			cssString += `\n\t${prop}: ${activatedStyles[prop]} !important;`;
 		}
-		cssString += `\n}`;
-
-		cssString += `\n`;
-
-		const readingStyles = this._getReadingStyles();
-		// cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-reading=true],`;
-		// cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]:hover,`;
-		cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]`;
-		cssString += `{`;
-		for (const prop in readingStyles) {
-			if (readingStyles[prop] === '') continue;
-			cssString += `\n\t${prop}: ${readingStyles[prop]} !important;`;
+		for (const prop in transitionStyles) {
+			cssString += `\n\t${prop}: var(--jsse-${prop}, ${transitionStyles[prop]});`;
 		}
-		cssString += `\n}`;
 
 		return cssString;
 	}
@@ -552,55 +553,202 @@ export class SuperellipseMode {
 
 
 	/**
-	 * Обновляет захваченные стили.
-	 * @since 1.0.0
+	 * Обновляет захваченные стили и переходы.
+	 * @since 1.5.3
 	 * @protected
 	 * @returns {void}
 	 */
 	_updateCapturedStyles() {
-		jsse_console.debug({label:'MODE',element:this._element}, '[STYLES]', '[CAPTURE]');
-		const capturedComputedStyles = this._getCapturedStyles();
 		/** Сохранить computed-стили **/
-		this._styles.computed = capturedComputedStyles;
+		const captured = this._getCapturedStyles();
+		this._styles.computed = captured.computed;
+		this._styles.transition = captured.transition;
+		this._updateTransitionStyles();
+		jsse_console.debug({label:'MODE',element:this._element}, '[STYLES]', '[CAPTURED]');
 	}
 
 	/**
 	 * Получает вычисленные стили с временным снятием атрибута активации.
 	 * @since 1.0.0
 	 * @protected
-	 * @param {boolean} [clear=true] - Снимать ли атрибут активации перед чтением.
-	 * @returns {Object<string, string>}
+	 * @returns {{ computed: Object<string, string>, transition: Object<string, string> }}
+	 *          Объект с вычисленными стилями (computed) и параметрами перехода (transition).
 	 */
-	_getCapturedStyles(clear = true) {
-		const hasAttribute = this._element.hasAttribute('data-jsse-activated');
+	_getCapturedStyles() {
+		return this._getManagedComputedStyle();
+	}
 
-		if (hasAttribute && clear) {
-			this._removeActivatedAttr();
+	/**
+	 * Получает вычисленные стили применяя принудительный reflow.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {CSSStyleDeclaration}
+	 */
+	_getComputedStyle() {
+		this._reflow();
+		return getComputedStyle(this._element);
+	}
+
+	/**
+	 * Вызывает принудительный reflow элемента для синхронизации стилей.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {void}
+	 */
+	_reflow() {
+		jsse_console.debug({label:'MODE',element:this._element}, '[REFLOW]');
+		this._element.offsetHeight;
+	}
+
+	/**
+	 * Возвращает объект управления переходами (`Transition`).
+	 * Если объект ещё не создан, инициализирует новый экземпляр.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {Transition} Экземпляр класса `Transition`.
+	 */
+	_getTransition() {
+		if (this._transition === null) {
+			this._transition = new Transition();
 		}
-		this._setReadingAttr();
-
-		const result = this._getManagedComputedStyle();
-
-		if (hasAttribute && clear) {
-			this._setActivatedAttr();
-		}
-		this._removeReadingAttr();
-		return result;
+		return this._transition;
 	}
 
 	/**
 	 * Получает вычисленные стили для управляемых свойств.
-	 * @since 1.0.0
+	 * @since 1.5.3
 	 * @protected
-	 * @returns {Object<string, string>}
+	 * @returns {{ computed: Object<string, string>, transition: Object<string, string> }}
+	 *          Объект, содержащий захваченные значения управляемых свойств (computed)
+	 *          и распарсенные компоненты CSS-перехода (transition).
 	 */
 	_getManagedComputedStyle() {
-		const result = {};
-		const capturedStyles = getComputedStyle(this._element);
-		for (const prop of this._getManagedProperties()) {
-			result[prop] = capturedStyles.getPropertyValue(prop);
+
+		const managed = this._getManagedProperties();
+		const animatedPropList = jsse_animated_props.getList();
+
+		const micro = performance.now(); 
+
+		/**  **/
+		const computed = getComputedStyle(this._element);
+		const current = {
+			computed: {},
+			transition: {}
+		};
+		const diff = {};
+		const before = {
+			/** Сохранить начальные значения стилей **/
+			computed: (()=>{
+				const result = {};
+				for (const prop of animatedPropList) {
+					result[prop] = computed.getPropertyValue(prop);
+				}
+				return result;
+			})(),
+			/** Получить все inline значения **/
+			inline: (()=>{
+				const result = {};
+				for (let i = 0; i < this._element.style.length; i++) {
+					const prop = this._element.style[i];
+					result[prop] = {
+						value: this._element.style.getPropertyValue(prop),
+						priority: this._element.style.getPropertyPriority(prop)
+					}
+				}
+				return result;
+			})(),
+			transition: {
+				inline: this._element.style.getPropertyValue('transition'),
+				priority: this._element.style.getPropertyPriority('transition'),
+			}
 		}
-		return result;
+
+		/** Включить режим чтения стилей **/
+		this._setReadingAttr();
+
+		/** Получить оригинальное значение transition – Вынужденный reflow при чтении значений свойств стилей – фиксирует значения стилей как начальные **/
+		const transitionValue = computed.getPropertyValue('transition');
+
+			const transition = this._getTransition();
+			transition.setStyleString(transitionValue);
+			const resetTransitionProps = this._getTransitionProperties();
+			current.transition = transition.getStyleString(resetTransitionProps);
+
+		/** Установить временный transition: none – для мгновенного применения стилей **/
+		this._element.style.setProperty('transition', 'none', 'important');
+
+		/** Получить конечные значения стилей – Вынужденный reflow при чтении значений свойств стилей – фиксирует значения стилей как начальные (инициализирует скачек при анимации) **/
+		for (const prop of managed) {
+			if (prop === 'transition') continue;
+			current.computed[prop] = computed.getPropertyValue(prop);
+		}
+
+		/** Установить временный transition: 0s – для отмены мгновенного применения стилей **/
+		this._element.style.setProperty('transition', '0s', 'important');
+
+		/** Установить временно в inline начальные значения стилей **/
+		for (const prop in before.computed) {
+			const beforeValue = before.computed[prop];
+			const value = computed.getPropertyValue(prop);
+			if (value !== beforeValue) {
+				/** сохранить конечное значение расхождения **/
+				diff[prop] = value;
+				/** сбросить начальное значение через установку временного inline **/
+				this._element.style.setProperty(prop, beforeValue, 'important');
+			}
+		}
+
+		/** Вызвать reflow – фиксирует значения стилей как начальные (отменяет скачек при анимации) **/
+		this._reflow();
+
+		/** Сбросить временный transition **/
+		this._element.style.setProperty('transition', before.transition.inline, before.transition.priority);
+
+		/** Сбросить временные inline **/
+		for (const prop in diff) {
+			this._element.style.setProperty(prop, before.inline[prop]?.value??'', before.inline[prop]?.priority??'');
+		}
+
+		/** Выключить режим чтения стилей **/
+		this._removeReadingAttr();
+
+		return current;
+	}
+
+	/**
+	 * Обновляет CSS-переменные элемента, отвечающие за параметры перехода, на основе захваченных стилей transition.
+	 * Устанавливает переменные:
+	 * - `--jsse-transition-property`
+	 * - `--jsse-transition-duration`
+	 * - `--jsse-transition-timing-function`
+	 * - `--jsse-transition-delay`
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {void}
+	 */
+	_updateTransitionStyles() {
+		jsse_console.debug({label:'MODE',element:this._element}, '[TRANSITION]', '[PARTS]', this._styles.transition);
+		this._element.style.setProperty('--jsse-transition-property', this._styles.transition['property']);
+		this._element.style.setProperty('--jsse-transition-duration', this._styles.transition['duration']);
+		this._element.style.setProperty('--jsse-transition-timing-function', this._styles.transition['timing-function']);
+		this._element.style.setProperty('--jsse-transition-delay', this._styles.transition['delay']);
+	}
+
+	/**
+	 * Отменяет CSS-переход при деактивации режима для предотвращения нежелательных анимаций.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {void}
+	 */
+	_cancelTransition() {
+		const before = {
+			value: this._element.style.getPropertyValue('transition'),
+			priority: this._element.style.getPropertyPriority('transition')
+		};
+		this._element.style.setProperty('transition', 'none', 'important');
+		this._element.style.setProperty('transition', '0s', 'important');
+		this._reflow();
+		this._element.style.setProperty('transition', before.value, before.priority);
 	}
 
 	/**
@@ -623,6 +771,16 @@ export class SuperellipseMode {
 	 */
 	_getManagedProperties() {
 		return Object.keys(this._getActivatedStyles());
+	}
+
+	/**
+ 	 * Возвращает массив свойств CSS, управляемых режимом для переходов.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {string[]}
+	 */
+	_getManagedTransitionProperties() {
+		return ['transition-property', 'transition-duration', 'transition-timing-function', 'transition-delay'];
 	}
 
 

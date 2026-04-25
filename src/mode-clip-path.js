@@ -41,8 +41,8 @@ export class SuperellipseModeClipPath extends SuperellipseMode {
 	 * @param {Element} element - Целевой DOM-элемент.
 	 * @param {boolean} [debug=false] - Флаг отладки (передаётся в родительский класс).
 	 */
-	constructor(element, debug = false) {
-		super(element, debug);
+	constructor(element) {
+		super(element);
 	}
 
 

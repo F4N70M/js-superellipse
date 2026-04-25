@@ -62,8 +62,8 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	 * @param {Element} element - Целевой DOM-элемент.
 	 * @param {boolean} [debug=false] - Флаг отладки.
 	 */
-	constructor(element, debug = false) {
-		super(element, debug);
+	constructor(element) {
+		super(element);
 
 		// this._initViewbox();
 		this._initVirtualElementList();
@@ -127,6 +127,30 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	}
 
 	/**
+	 * Возвращает список свойств, отслеживаемых для переходов.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {Array<string>}
+	 */
+	_getTransitionProperties() {
+		return [
+			'border-radius',
+			'border-width',
+			'border-color',
+			// 'background',
+			'background-size',
+			'background-color',
+			'background-image',
+			'background-position',
+			'padding',
+			'box-shadow',
+			'outline-width',
+			'outline-color',
+			'outline-offset',
+		];
+	}
+
+	/**
 	 * Возвращает стили для SVG-контейнера.
 	 * @since 1.0.0
 	 * @protected
@@ -165,9 +189,9 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 			/** overflow **/
 			this._applyCurrentVirtualSvgLayerStyleOverflow();
 			/** background **/
-			this._svgBuilder.setBackground( this._getComputedProp('background') );
+			this._applyCurrentVirtualSvgLayerStyleBackground();
 			/** box-shadow **/
-			this._svgBuilder.setBoxShadow( this._getComputedProp('box-shadow') );
+			this._applyCurrentVirtualSvgLayerStyleBoxShadow();
 			/** border **/
 			this._applyCurrentVirtualSvgLayerStyleBorder();
 			/** padding **/
@@ -199,9 +223,39 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 		this._virtualElementList.innerWrapper.style.setProperty('overflow-y', overflowY);
 	}
 
+
 	/**
-	 * Применяет стили border к SVG-слою.
-	 * @since 1.5.0
+	 * Применяет стили и анимацию background к SVG-слою.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {void}
+	 */
+	_applyCurrentVirtualSvgLayerStyleBackground() {
+		this._svgBuilder.setBackground( this._getComputedProp('background') );
+
+		const transition = this._getTransition();
+		const propValueShort = transition.getPropString('background', false);
+		this._svgBuilder.setBackgroundTransition( propValueShort );
+	}
+
+
+	/**
+	 * Применяет стили и анимацию box-shadow к SVG-слою.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {void}
+	 */
+	_applyCurrentVirtualSvgLayerStyleBoxShadow() {
+		this._svgBuilder.setBoxShadow( this._getComputedProp('box-shadow') );
+		/** transition **/
+		const transition = this._getTransition();
+		const propValueShort = transition.getPropString('box-shadow', false);
+		this._svgBuilder.setBoxShadowTransition( propValueShort );
+	}
+
+	/**
+	 * Применяет стили и анимацию border к SVG-слою.
+	 * @since 1.5.3
 	 * @protected
 	 * @returns {void}
 	 */
@@ -213,6 +267,11 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 		this._virtualElementList.innerWrapper.style.setProperty('border-style', borderStyle);
 		this._virtualElementList.innerWrapper.style.setProperty('border-width', borderWidth);
 		this._virtualElementList.innerWrapper.style.setProperty('border-color', 'transparent');
+		/** transition **/
+		const transition = this._getTransition();
+		const bwValueShort = transition.getPropString('border-width', false);
+		const bcValueShort = transition.getPropString('border-color', false);
+		this._svgBuilder.setBorderTransition( bwValueShort, bcValueShort );
 	}
 
 	/**
@@ -227,8 +286,8 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 	}
 
 	/**
-	 * Применяет стили outline к SVG-слою.
-	 * @since 1.5.0
+	 * Применяет стили и анимацию outline к SVG-слою.
+	 * @since 1.5.3
 	 * @protected
 	 * @returns {void}
 	 */
@@ -238,6 +297,11 @@ export class SuperellipseModeSvgLayer extends SuperellipseMode {
 		const color = this._getComputedProp('outline-color');
 		const offset = this._getComputedProp('outline-offset');
 		this._svgBuilder.setOutline(style, width, color, offset);
+		/** transition **/
+		const transition = this._getTransition();
+		const owValueShort = transition.getPropString('outline-width', false);
+		const ocValueShort = transition.getPropString('outline-color', false);
+		this._svgBuilder.setOutlineTransition( owValueShort, ocValueShort );
 	}
 
 

@@ -612,7 +612,7 @@ export class SuperellipseController
 		else {
 			this._hoverLeaveHandler(selector);
 		}
-		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[HOVER]', selector, isHover);
+		jsse_console.debug({label:'STYLESHEET',element:this._element}, '[HOVER]', {[selector]: isHover});
 	}
 
 
@@ -878,38 +878,34 @@ export class SuperellipseController
 	 * @returns {void}
 	 */
 	_mutationHandler() {
-		jsse_console.debug({label:'MUTATION', element:this._element}, '[DETECT]', this._isSelfMutation ? 'self' : 'flow');
-		if (this._isSelfMutation)
-			return;
-		if (this._prepareTimer !== null) {
-			clearTimeout(this._prepareTimer);
-		}
-		this._prepareTimer = setTimeout(() => {
-			this._prepareTimer = null;
-			jsse_console.debug({label:'MUTATION', element:this._element}, '[START]');
-			this._isSelfMutation = true;
-			try {
-				jsse_console.debug({label:'MUTATION', element:this._element}, '[UPDATE]');
-				if (this._isDisplay() && this._needsUpdate) {
-					this._mode.update();
-					this._emit('update', { type: 'full' });
-					this._needsUpdate = false;
-				} else {
-					this._mode.updateStyles();
-					this._emit('update', { type: 'styles' });
-				}
-			} finally {
-				if (this._executeTimer !== null) {
-					clearTimeout(this._executeTimer);
-				}
-				this._executeTimer = setTimeout(() => {
-					this._executeTimer = null;
-					jsse_console.debug({label:'MUTATION', element:this._element}, '[END]');
-					this._isSelfMutation = false;
+		if (this._isSelfMutation) return;
 
-				}, 0);
+		this._isSelfMutation = true;
+		jsse_console.debug({label:'MUTATION', element:this._element}, '[START]');
+		requestAnimationFrame(()=>{
+			jsse_console.debug({label:'MODE',element:this._element}, '[FRAME]', '[NEXT]');
+		});
+		try {
+			// jsse_console.debug({label:'MUTATION', element:this._element}, '[UPDATE]');
+			if (this._isDisplay() && this._needsUpdate) {
+				this._mode.update();
+				this._emit('update', { type: 'full' });
+				this._needsUpdate = false;
+			} else {
+				this._mode.updateStyles();
+				this._emit('update', { type: 'styles' });
 			}
-		}, 0);
+		} finally {
+			if (this._executeTimer !== null) {
+				clearTimeout(this._executeTimer);
+			}
+			this._executeTimer = setTimeout(() => {
+				this._executeTimer = null;
+				jsse_console.debug({label:'MUTATION', element:this._element}, '[END]');
+				this._isSelfMutation = false;
+
+			}, 0);
+		}
 	}
 
 	/**

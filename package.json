@@ -1,6 +1,6 @@
 {
   "name": "js-superellipse",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Superellipse shape for DOM elements",
   "main": "dist/superellipse.js",
   "module": "src/index.js",

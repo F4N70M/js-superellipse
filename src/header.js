@@ -1,7 +1,7 @@
 /**
  * 
  * @module js-superellipse
- * @version 1.5.2
+ * @version 1.5.3
  * @author f4n70m
  * @license MIT
  * 
