@@ -1,7 +1,7 @@
 /**
  * 
  * @module js-superellipse
- * @version 1.5.1
+ * @version 1.5.3
  * @author f4n70m
  * @license MIT
  * 
@@ -1671,6 +1671,549 @@
 	}
 
 	/**
+	 * @file src/transition-parser.js
+	 * 
+	 * @module js-superellipse/transition-parser
+	 * @since 1.5.3
+	 * @author f4n70m
+	 * 
+	 * @description
+	 * Модуль парсинга css ссвойства transition.
+	 */
+
+
+	/**
+	 * Возвращает список свойств, отслеживаемых для анимаций.
+	 * @since 1.5.3
+	 * @protected
+	 * @returns {Object<Object<Array<string>>>}
+	 */
+	const jsse_animated_props = {
+		_src: {
+			"accent-color": true,
+			"aspect-ratio": true,
+			"backdrop-filter": true,
+			"backface-visibility": true,
+
+			"background-color": ["background"],
+			"background-position": ["background"],
+			"background-size": ["background"],
+
+			"block-step-size": true,
+
+			"border-top": ["border"],
+			"border-bottom": ["border"],
+			"border-left": ["border"],
+			"border-right": ["border"],
+			"border-width": ["border"],
+			"border-color": ["border"],
+
+				"border-top-width": ["border-width", "border-top"],
+				"border-bottom-width": ["border-width", "border-bottom"],
+				"border-left-width": ["border-width", "border-left"],
+				"border-right-width": ["border-width", "border-right"],
+				"border-top-color": ["border-color", "border-top"],
+				"border-bottom-color": ["border-color", "border-bottom"],
+				"border-left-color": ["border-color", "border-left"],
+				"border-right-color": ["border-color", "border-right"],
+
+			"border-image-outset": ["border-image"],
+			"border-image-width": ["border-image"],
+
+			"border-bottom-left-radius": ["border-radius"],
+			"border-bottom-right-radius": ["border-radius"],
+			"border-top-left-radius": ["border-radius"],
+			"border-top-right-radius": ["border-radius"],
+
+			"border-spacing": true,
+			"bottom": true,
+			"box-shadow": true,
+			"caret-color": true,
+			"clip": true,
+			"clip-path": true,
+			"color": true,
+
+			"column-rule-color": ["column-rule"],
+			"column-rule-width": ["column-rule"],
+
+			"column-count": ["columns"],
+			"column-width": ["columns"],
+
+			"filter": true,
+
+			"flex-basis": ["flex"],
+			"flex-grow": ["flex"],
+			"flex-shrink": ["flex"],
+
+			"font-size": ["font"],
+			"font-stretch": ["font"],
+			"font-weight": ["font"],
+			"line-height": ["font"],
+
+			"font-size-adjust": true,
+
+			"column-gap": ["gap"],
+			"row-gap": ["gap"],
+
+			"grid-template-columns": ["grid"],
+			"grid-template-rows": ["grid"],
+
+			"height": true,
+			"inline-size": true,
+
+			"bottom": ["inset"],
+			"left": ["inset"],
+			"right": ["inset"],
+			"top": ["inset"],
+
+			"letter-spacing": true,
+
+			"margin-bottom": ["margin"],
+			"margin-left": ["margin"],
+			"margin-right": ["margin"],
+			"margin-top": ["margin"],
+
+			"mask-position": ["mask"],
+			"mask-size": ["mask"],
+
+			"max-height": true,
+			"max-width": true,
+			"min-height": true,
+			"min-width": true,
+			"object-position": true,
+
+			"offset-distance": ["offset"],
+			"offset-position": ["offset"],
+
+			"opacity": true,
+			"order": true,
+
+			"outline-color": ["outline"],
+			"outline-width": ["outline"],
+
+			"outline-offset": true,
+
+			"padding-bottom": ["padding"],
+			"padding-left": ["padding"],
+			"padding-right": ["padding"],
+			"padding-top": ["padding"],
+
+			"perspective": true,
+			"perspective-origin": true,
+			"rotate": true,
+			"scale": true,
+
+			"scroll-margin-bottom": ["scroll-margin"],
+			"scroll-margin-left": ["scroll-margin"],
+			"scroll-margin-right": ["scroll-margin"],
+			"scroll-margin-top": ["scroll-margin"],
+
+			"scroll-padding": ["scroll-padding"],
+			"scroll-padding-bottom": ["scroll-padding"],
+			"scroll-padding-left": ["scroll-padding"],
+			"scroll-padding-right": ["scroll-padding"],
+			"scroll-padding-top": ["scroll-padding"],
+
+			"shape-outside": true,
+			"tab-size": true,
+
+			"text-decoration-color": ["text-decoration"],
+			"text-decoration-thickness": ["text-decoration"],
+			"text-underline-offset": ["text-decoration"],
+			
+			"text-emphasis-color": ["text-emphasis"],
+			
+			"text-indent": true,
+			"text-shadow": true,
+			"transform": true,
+			"transform-origin": true,
+			"translate": true,
+			"visibility": true,
+			"width": true,
+			"word-spacing": true,
+			"z-index": true
+		},
+		_list: null,
+
+		/**
+		 * Возвращает список родительских свойств (редукций) для указанного CSS-свойства.
+		 * Например, для 'border-top-color' вернёт ['border-color', 'border-top'].
+		 * @since 1.5.3
+		 * @param {string} prop - Имя CSS-свойства.
+		 * @returns {string[]} Массив имён родительских свойств (может быть пустым).
+		 */
+		getReductions(prop) {
+			return (typeof this._src[prop] === 'object')
+				? this._src[prop]
+				: [];
+		},
+
+		/**
+		 * Возвращает полный список всех CSS-свойств, которые могут участвовать в анимации
+		 * (учитываются как конкретные, так и групповые свойства).
+		 * @since 1.5.3
+		 * @returns {string[]} Массив имён свойств.
+		 */
+		getList() {
+			if (this._list === null) {
+				this._list = this._extract();
+			}
+			return this._list;
+		},
+
+		/**
+		 * Извлекает и возвращает массив всех отслеживаемых свойств из внутреннего хранилища.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {string[]} Массив имён свойств.
+		 */
+		_extract() {
+			const result = {};
+			let list = this._src;
+			for (const prop in list) {
+				if (typeof list[prop] === 'object') {
+					for (const subProp of list[prop]) {
+						result[subProp] = true;
+					}
+				}
+				result[prop] = true;
+			}
+			return Object.keys(result);
+		}
+	};
+
+
+	/**
+	 * Парсер css ссвойства transition.
+	 * @class StylesheetParser
+	 * @since 1.5.3
+	 */
+	class Transition {
+
+		_original;
+
+		_list = null;
+		_cache = null;
+		_propSting = {};
+
+		_default = {
+			duration: '0s',
+			timingFunction: 'ease',
+			delay: '0s'
+		};
+
+		/**
+		 * Создаёт экземпляр парсера переходов.
+		 * @since 1.5.3
+		 * @constructor
+		 */
+		constructor() {
+			// this._original = transitionString;
+			// this._init();
+		}
+
+		/**
+		 * Устанавливает исходную строку transition для парсинга.
+		 * Сбрасывает все кешированные данные.
+		 * @since 1.5.3
+		 * @param {string} transitionString - Строка свойства `transition` (например, "all 0.3s ease").
+		 * @returns {void}
+		 */
+		setStyleString(transitionString) {
+			this._original = transitionString;
+			this._list = null;
+			this._cache = null;
+			this._propSting = {};
+		}
+
+		/**
+		 * Возвращает строку transition для указанного свойства, собранную из распарсенных значений.
+		 * @since 1.5.3
+		 * @param {string} propName - Имя свойства (например, 'background-color').
+		 * @param {boolean} [name=true] - Включать ли имя свойства в результирующую строку.
+		 * @param {boolean} [short=true] - Убирать ли значения по умолчанию (`ease`, `0s`) для сокращения.
+		 * @returns {string} Строка вида "property duration timing-function delay".
+		 */
+		getPropString(propName, name = true, short = true) {
+			const prop = this._getPropValues(propName);
+			const parts = [];
+			if (name && !(short && propName === 'all')) parts.push(propName);
+			parts.push(prop.duration);
+			if (!short || prop.timingFunction !== this._default.timingFunction)
+				parts.push(prop.timingFunction);
+			if (!short || prop.delay !== this._default.delay)
+				parts.push(prop.delay);
+			return parts.join(' ');
+		}
+
+		/**
+		 * Возвращает объект с параметрами перехода (duration, timingFunction, delay) для указанного свойства.
+		 * Использует кеш и учитывает наследование от родительских свойств.
+		 * @since 1.5.3
+		 * @protected
+		 * @param {string} prop - Имя CSS-свойства.
+		 * @returns {{ duration: string, timingFunction: string, delay: string }}
+		 */
+		_getPropValues(prop) {
+			const cacheList = this._getCacheList();
+
+			if (cacheList[prop]) return cacheList[prop];
+
+			let values;
+			const parentList = jsse_animated_props.getReductions(prop);
+
+			for (const parentProp of parentList) {
+				values = cacheList[parentProp];
+				if (values) {
+					cacheList[prop] = {...values};
+					break;
+				}
+			}
+
+			if (!values) {
+				for (const parentProp of parentList) {
+					values = this._getPropValues(parentProp);
+					if (values) {
+						cacheList[prop] = {...values};
+						break;
+					}
+				}
+			}
+
+			
+			if (!values) {
+				cacheList[prop] = this._getAllPropValues();
+			}
+			
+			return cacheList[prop];
+		}
+
+		/**
+		 * Возвращает значения перехода для неспецифицированных свойств (по умолчанию берутся из `all`).
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {{ duration: string, timingFunction: string, delay: string }}
+		 */
+		_getAllPropValues() {
+			const allProp = this._getAllProp();
+			const values = {
+				duration: allProp.duration,
+				timingFunction: allProp.timingFunction,
+				delay: allProp.delay
+			};
+			return values;
+		}
+
+		/**
+		 * Возвращает объект параметров перехода для псевдосвойства `all`.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {{ duration: string, timingFunction: string, delay: string }}
+		 */
+		_getAllProp() {
+			const cacheList = this._getCacheList();
+			if (!cacheList['all']) {
+				cacheList['all'] = this._getDefaultPropValues();
+			}
+			return cacheList['all'];
+		}
+
+		/**
+		 * Возвращает полный распарсенный список переходов (свойство → объект параметров).
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {Object<string, { duration: string, timingFunction: string, delay: string }>}
+		 */
+		_getList() {
+			if (this._list === null) {
+				this._list = this._parseComputedTransition(this._original);
+			}
+			return this._list;
+		}
+
+		/**
+		 * Возвращает кешированную копию распарсенного списка переходов (глубокое клонирование).
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {Object<string, { duration: string, timingFunction: string, delay: string }>}
+		 */
+		_getCacheList() {
+			if (this._cache === null) {
+				this._cache = structuredClone(this._getList());
+			}
+			return this._cache;
+		}
+
+		/**
+		 * Возвращает объект с объединёнными CSS-строками для `transition-property`, `transition-duration`,
+		 * `transition-timing-function` и `transition-delay`, с возможностью сброса указанных свойств.
+		 * @since 1.5.3
+		 * @param {string[]} [resetProps=[]] - Массив свойств, для которых следует применить дефолтные значения.
+		 * @returns {{ property: string, duration: string, 'timing-function': string, delay: string }}
+		 */
+		getStyleString(resetProps=[]) {
+
+			const splitProperty = new Set();
+			const splitDuration = [];
+			const splitTimingFunction = [];
+			const splitDelay = [];
+
+			const list = this._getList();
+			const reSet = new Set(resetProps);
+
+			for (const prop in list) {
+				const has = reSet.has(prop);
+				if (has) reSet.delete(prop);
+				splitProperty.add(prop);
+				splitDuration.push( has ? this._default.duration : list[prop].duration );
+				splitTimingFunction.push( has ? this._default.timingFunction : list[prop].timingFunction );
+				splitDelay.push( has ? this._default.delay : list[prop].delay );
+			}
+
+			for (const prop of reSet) {
+				splitProperty.add(prop);
+				splitDuration.push( this._default.duration );
+				splitTimingFunction.push( this._default.timingFunction );
+				splitDelay.push( this._default.delay );
+			}
+
+			const durationEqual = (new Set(splitDuration).size) === 1;
+			const timingFunctionEqual = (new Set(splitTimingFunction).size) === 1;
+			const delayEqual = (new Set(splitDelay).size) === 1;
+			const fullEqual = durationEqual && timingFunctionEqual && delayEqual && (
+				splitProperty.has('all') ||
+				(!splitProperty.has('all') && splitDuration[0] === this._default.duration)
+			);
+
+			return {
+				'property':  fullEqual ? 'all' : Array.from(splitProperty).join(', '),
+				'duration': durationEqual ? splitDuration[0] : splitDuration.join(', '),
+				'timing-function': timingFunctionEqual ? splitTimingFunction[0] : splitTimingFunction.join(', '),
+				'delay': delayEqual ? splitDelay[0] : splitDelay.join(', ')
+			}
+		}
+
+		/**
+		 * Возвращает объект со значениями перехода по умолчанию.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {{ duration: string, timingFunction: string, delay: string }}
+		 */
+		_getDefaultPropValues() {
+			return {
+				duration: this._default.duration,
+				timingFunction: this._default.timingFunction,
+				delay: this._default.delay
+			}
+		}
+
+		/**
+		 * Парсит строку `transition` (полученную из `getComputedStyle`) и возвращает объект,
+		 * где ключи — имена свойств, значения — параметры перехода.
+		 * @since 1.5.3
+		 * @protected
+		 * @param {string} computedStr - Строка transition из computed стилей.
+		 * @returns {Object<string, { duration: string, timingFunction: string, delay: string }>}
+		 */
+		_parseComputedTransition(computedStr) {
+			// if (!computedStr || computedStr === 'none') return {};
+			if (!computedStr) return {};
+
+			const segmentsTokens = this._parseTransitionIntoTokens(computedStr);
+			const result = {};
+
+			const isTime = (token) => /^(\d+(?:\.\d+)?)(?:s|ms)$/.test(token);
+			const isTimingFunction = (token) => {
+				return /^(ease|linear|ease-in|ease-out|ease-in-out|step-start|step-end)$/i.test(token) ||
+					   /^(cubic-bezier|steps)\(.*\)$/i.test(token);
+			};
+
+			for (const tokens of segmentsTokens) {
+				let property = null;
+				let duration = null;
+				let timingFunction = null;
+				let delay = null;
+
+				for (const token of tokens) {
+					if (isTime(token)) {
+						if (duration === null) duration = token;
+						else if (delay === null) delay = token;
+					} else if (isTimingFunction(token)) {
+						if (timingFunction === null) timingFunction = token;
+					} else {
+						property = token;
+					}
+				}
+
+				if (property === 'none') continue;
+
+				if (property === null) property = 'all';
+				if (duration === null) duration = '0s';
+				if (property === 'all' && duration === '0s') continue;
+
+				if (timingFunction === null) timingFunction = 'ease';
+				if (delay === null) delay = '0s';
+
+				result[property] = { duration, timingFunction, delay };
+			}
+			return result;
+		}
+
+		/**
+		 * Разбивает строку `transition` на токены и группирует их по сегментам (каждый сегмент — одно свойство со значениями).
+		 * @since 1.5.3
+		 * @protected
+		 * @param {string} computedStr - Исходная строка transition.
+		 * @returns {string[][]} Массив массивов токенов (каждый внутренний массив — токены одного сегмента).
+		 */
+		_parseTransitionIntoTokens(computedStr) {
+			const segmentsTokens = [];
+			let currentSegmentTokens = [];
+			let currentToken = '';
+			let inParen = false;      // внутри скобок (cubic-bezier/steps)
+			let parenDepth = 0;       // глубина вложенности скобок
+
+			const flushToken = () => {
+				if (currentToken) {
+					currentSegmentTokens.push(currentToken);
+					currentToken = '';
+				}
+			};
+
+			const flushSegment = () => {
+				flushToken();
+				if (currentSegmentTokens.length > 0) {
+					segmentsTokens.push(currentSegmentTokens);
+					currentSegmentTokens = [];
+				}
+			};
+
+			for (let i = 0; i < computedStr.length; i++) {
+				const ch = computedStr[i];
+				if (ch === '(') {
+					inParen = true;
+					parenDepth++;
+					currentToken += ch;
+				} else if (ch === ')') {
+					parenDepth--;
+					if (parenDepth === 0) inParen = false;
+					currentToken += ch;
+				} else if (ch === ',' && !inParen && parenDepth === 0) {
+					// запятая на нулевом уровне – разделитель сегментов
+					flushSegment();
+				} else if (ch === ' ' && !inParen && parenDepth === 0) {
+					// пробел вне скобок – разделитель токенов внутри сегмента
+					flushToken();
+				} else {
+					currentToken += ch;
+				}
+			}
+			flushSegment(); // последний сегмент
+			return segmentsTokens;
+		}
+	}
+
+	/**
 	 * @file src/mode.js
 	 * 
 	 * @module js-superellipse/mode
@@ -1708,6 +2251,7 @@
 		_precision;
 
 		_styles;
+		_transition = null;
 
 		_path;
 		_resetPath;
@@ -1770,6 +2314,8 @@
 			jsse_console.debug({label:'MODE',element:this._element}, `deactivate(${this._getModeName()})`);
 			/** Установить статус **/
 			this._setStatus(false);
+			/** Отменить анимацию перехода возвращения сброшеннных стилей **/
+			this._cancelTransition();
 			/** Удалить элементы виртуальных слоев **/
 			this._removeVirtualElements();
 			/** Выполнить обновление **/
@@ -1782,6 +2328,7 @@
 		 * @returns {void}
 		 */
 		update() {
+			if (!this.isActivated()) return;
 			jsse_console.debug({label:'MODE',element:this._element}, 'update()');
 			/** Актуализировать данные захвата **/
 			this._updateCaptured();
@@ -1797,6 +2344,7 @@
 		 * @returns {void}
 		 */
 		updateSize() {
+			if (!this.isActivated()) return;
 			/** Актуализировать размеры **/
 			this._updateCapturedSize();
 			/** Подготовить обновление **/
@@ -1812,7 +2360,7 @@
 		 * @returns {void}
 		 */
 		updateStyles() {
-			jsse_console.debug({label:'MODE',element:this._element}, 'updateStyles()');
+			if (!this.isActivated()) return;
 			/** Актуализировать стили **/
 			this._updateCapturedStyles();
 			/** Подготовить обновление **/
@@ -1829,6 +2377,7 @@
 		 */
 		updateCurveFactor(value) {
 			this.setCurveFactor(value);
+			if (!this.isActivated()) return;
 			/** Подготовить обновление **/
 			this._prepareUpdate();
 			/** Выполнить обновление **/
@@ -1843,6 +2392,7 @@
 		 */
 		updatePrecision(value) {
 			this.setPrecision(value);
+			if (!this.isActivated()) return;
 			/** Подготовить обновление **/
 			this._prepareUpdate();
 			/** Выполнить обновление **/
@@ -1979,18 +2529,6 @@
 		}
 
 		/**
-		 * Возвращает карту стилей, которые нужно временно применить для корректного чтения.
-		 * @since 1.0.0
-		 * @protected
-		 * @returns {Object<string, string>}
-		 */
-		_getReadingStyles() {
-			return {
-				'transition': 'unset'
-			};
-		}
-
-		/**
 		 * Возвращает карту стилей, применяемых при активации режима.
 		 * @since 1.0.0
 		 * @protected
@@ -2000,6 +2538,18 @@
 			return {
 				'border-radius': '0px'
 			};
+		}
+
+		/**
+		 * Возвращает список свойств, отслеживаемых для анимаций.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {Array<string>}
+		 */
+		_getTransitionProperties() {
+			return [
+				'border-radius',
+			];
 		}
 
 
@@ -2166,29 +2716,24 @@
 		_getResetCssText(modeName) {
 			let cssString = '';
 
+			const transitionStyles = {
+				'transition-property': 'all',
+				'transition-duration': '0s',
+				'transition-timing-function': 'ease',
+				'transition-delay': '0s',
+			};
+
 			const activatedStyles = this._getActivatedStyles();
-			// cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-activated=true],`;
-			// cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:hover,`;
-			cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]`;
+			jsse_console.debug({label:'ResetCssText',element:this._element}, activatedStyles, this._styles.computed);
+			cssString += `[data-jsse-mode="${modeName}"][data-jsse-activated=true]:not([data-jsse-reading=true])`;
 			cssString += `{`;
 			for (const prop in activatedStyles) {
 				if (activatedStyles[prop] === '') continue;
 				cssString += `\n\t${prop}: ${activatedStyles[prop]} !important;`;
 			}
-			cssString += `\n}`;
-
-			cssString += `\n`;
-
-			const readingStyles = this._getReadingStyles();
-			// cssString += `*:hover [data-jsse-mode="${modeName}"][data-jsse-reading=true],`;
-			// cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]:hover,`;
-			cssString += `[data-jsse-mode="${modeName}"][data-jsse-reading=true]`;
-			cssString += `{`;
-			for (const prop in readingStyles) {
-				if (readingStyles[prop] === '') continue;
-				cssString += `\n\t${prop}: ${readingStyles[prop]} !important;`;
+			for (const prop in transitionStyles) {
+				cssString += `\n\t${prop}: var(--jsse-${prop}, ${transitionStyles[prop]});`;
 			}
-			cssString += `\n}`;
 
 			return cssString;
 		}
@@ -2219,55 +2764,202 @@
 
 
 		/**
-		 * Обновляет захваченные стили.
-		 * @since 1.0.0
+		 * Обновляет захваченные стили и переходы.
+		 * @since 1.5.3
 		 * @protected
 		 * @returns {void}
 		 */
 		_updateCapturedStyles() {
-			jsse_console.debug({label:'MODE',element:this._element}, '_updateCapturedStyles()');
-			const capturedComputedStyles = this._getCapturedStyles();
 			/** Сохранить computed-стили **/
-			this._styles.computed = capturedComputedStyles;
+			const captured = this._getCapturedStyles();
+			this._styles.computed = captured.computed;
+			this._styles.transition = captured.transition;
+			this._updateTransitionStyles();
+			jsse_console.debug({label:'MODE',element:this._element}, '[STYLES]', '[CAPTURED]');
 		}
 
 		/**
 		 * Получает вычисленные стили с временным снятием атрибута активации.
 		 * @since 1.0.0
 		 * @protected
-		 * @param {boolean} [clear=true] - Снимать ли атрибут активации перед чтением.
-		 * @returns {Object<string, string>}
+		 * @returns {{ computed: Object<string, string>, transition: Object<string, string> }}
+		 *          Объект с вычисленными стилями (computed) и параметрами перехода (transition).
 		 */
-		_getCapturedStyles(clear = true) {
-			const hasAttribute = this._element.hasAttribute('data-jsse-activated');
+		_getCapturedStyles() {
+			return this._getManagedComputedStyle();
+		}
 
-			if (hasAttribute && clear) {
-				this._removeActivatedAttr();
+		/**
+		 * Получает вычисленные стили применяя принудительный reflow.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {CSSStyleDeclaration}
+		 */
+		_getComputedStyle() {
+			this._reflow();
+			return getComputedStyle(this._element);
+		}
+
+		/**
+		 * Вызывает принудительный reflow элемента для синхронизации стилей.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {void}
+		 */
+		_reflow() {
+			jsse_console.debug({label:'MODE',element:this._element}, '[REFLOW]');
+			this._element.offsetHeight;
+		}
+
+		/**
+		 * Возвращает объект управления переходами (`Transition`).
+		 * Если объект ещё не создан, инициализирует новый экземпляр.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {Transition} Экземпляр класса `Transition`.
+		 */
+		_getTransition() {
+			if (this._transition === null) {
+				this._transition = new Transition();
 			}
-			this._setReadingAttr();
-
-			const result = this._getManagedComputedStyle();
-
-			if (hasAttribute && clear) {
-				this._setActivatedAttr();
-			}
-			this._removeReadingAttr();
-			return result;
+			return this._transition;
 		}
 
 		/**
 		 * Получает вычисленные стили для управляемых свойств.
-		 * @since 1.0.0
+		 * @since 1.5.3
 		 * @protected
-		 * @returns {Object<string, string>}
+		 * @returns {{ computed: Object<string, string>, transition: Object<string, string> }}
+		 *          Объект, содержащий захваченные значения управляемых свойств (computed)
+		 *          и распарсенные компоненты CSS-перехода (transition).
 		 */
 		_getManagedComputedStyle() {
-			const result = {};
-			const capturedStyles = getComputedStyle(this._element);
-			for (const prop of this._getManagedProperties()) {
-				result[prop] = capturedStyles.getPropertyValue(prop);
+
+			const managed = this._getManagedProperties();
+			const animatedPropList = jsse_animated_props.getList();
+
+			performance.now(); 
+
+			/**  **/
+			const computed = getComputedStyle(this._element);
+			const current = {
+				computed: {},
+				transition: {}
+			};
+			const diff = {};
+			const before = {
+				/** Сохранить начальные значения стилей **/
+				computed: (()=>{
+					const result = {};
+					for (const prop of animatedPropList) {
+						result[prop] = computed.getPropertyValue(prop);
+					}
+					return result;
+				})(),
+				/** Получить все inline значения **/
+				inline: (()=>{
+					const result = {};
+					for (let i = 0; i < this._element.style.length; i++) {
+						const prop = this._element.style[i];
+						result[prop] = {
+							value: this._element.style.getPropertyValue(prop),
+							priority: this._element.style.getPropertyPriority(prop)
+						};
+					}
+					return result;
+				})(),
+				transition: {
+					inline: this._element.style.getPropertyValue('transition'),
+					priority: this._element.style.getPropertyPriority('transition'),
+				}
+			};
+
+			/** Включить режим чтения стилей **/
+			this._setReadingAttr();
+
+			/** Получить оригинальное значение transition – Вынужденный reflow при чтении значений свойств стилей – фиксирует значения стилей как начальные **/
+			const transitionValue = computed.getPropertyValue('transition');
+
+				const transition = this._getTransition();
+				transition.setStyleString(transitionValue);
+				const resetTransitionProps = this._getTransitionProperties();
+				current.transition = transition.getStyleString(resetTransitionProps);
+
+			/** Установить временный transition: none – для мгновенного применения стилей **/
+			this._element.style.setProperty('transition', 'none', 'important');
+
+			/** Получить конечные значения стилей – Вынужденный reflow при чтении значений свойств стилей – фиксирует значения стилей как начальные (инициализирует скачек при анимации) **/
+			for (const prop of managed) {
+				if (prop === 'transition') continue;
+				current.computed[prop] = computed.getPropertyValue(prop);
 			}
-			return result;
+
+			/** Установить временный transition: 0s – для отмены мгновенного применения стилей **/
+			this._element.style.setProperty('transition', '0s', 'important');
+
+			/** Установить временно в inline начальные значения стилей **/
+			for (const prop in before.computed) {
+				const beforeValue = before.computed[prop];
+				const value = computed.getPropertyValue(prop);
+				if (value !== beforeValue) {
+					/** сохранить конечное значение расхождения **/
+					diff[prop] = value;
+					/** сбросить начальное значение через установку временного inline **/
+					this._element.style.setProperty(prop, beforeValue, 'important');
+				}
+			}
+
+			/** Вызвать reflow – фиксирует значения стилей как начальные (отменяет скачек при анимации) **/
+			this._reflow();
+
+			/** Сбросить временный transition **/
+			this._element.style.setProperty('transition', before.transition.inline, before.transition.priority);
+
+			/** Сбросить временные inline **/
+			for (const prop in diff) {
+				this._element.style.setProperty(prop, before.inline[prop]?.value??'', before.inline[prop]?.priority??'');
+			}
+
+			/** Выключить режим чтения стилей **/
+			this._removeReadingAttr();
+
+			return current;
+		}
+
+		/**
+		 * Обновляет CSS-переменные элемента, отвечающие за параметры перехода, на основе захваченных стилей transition.
+		 * Устанавливает переменные:
+		 * - `--jsse-transition-property`
+		 * - `--jsse-transition-duration`
+		 * - `--jsse-transition-timing-function`
+		 * - `--jsse-transition-delay`
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {void}
+		 */
+		_updateTransitionStyles() {
+			jsse_console.debug({label:'MODE',element:this._element}, '[TRANSITION]', '[PARTS]', this._styles.transition);
+			this._element.style.setProperty('--jsse-transition-property', this._styles.transition['property']);
+			this._element.style.setProperty('--jsse-transition-duration', this._styles.transition['duration']);
+			this._element.style.setProperty('--jsse-transition-timing-function', this._styles.transition['timing-function']);
+			this._element.style.setProperty('--jsse-transition-delay', this._styles.transition['delay']);
+		}
+
+		/**
+		 * Отменяет CSS-переход при деактивации режима для предотвращения нежелательных анимаций.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {void}
+		 */
+		_cancelTransition() {
+			const before = {
+				value: this._element.style.getPropertyValue('transition'),
+				priority: this._element.style.getPropertyPriority('transition')
+			};
+			this._element.style.setProperty('transition', 'none', 'important');
+			this._element.style.setProperty('transition', '0s', 'important');
+			this._reflow();
+			this._element.style.setProperty('transition', before.value, before.priority);
 		}
 
 		/**
@@ -2290,6 +2982,16 @@
 		 */
 		_getManagedProperties() {
 			return Object.keys(this._getActivatedStyles());
+		}
+
+		/**
+	 	 * Возвращает массив свойств CSS, управляемых режимом для переходов.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {string[]}
+		 */
+		_getManagedTransitionProperties() {
+			return ['transition-property', 'transition-duration', 'transition-timing-function', 'transition-delay'];
 		}
 
 
@@ -2634,6 +3336,26 @@
 			return `jsse_${this._id}--svg${prefix}${name??''}`;
 		}
 
+		/**
+		 * Возвращает имя CSS-переменной для transition указанного свойства.
+		 * @since 1.5.3
+		 * @protected
+		 * @param {string} prop - Имя свойства (например, 'background', 'border').
+		 * @returns {string}.
+		 */
+		_getTransitionVar(prop) {
+			return `--jsse_${this._id}--transition--${prop}`;
+		}
+
+		/**
+		 * Возвращает ID clipPath элемента для использования в CSS или SVG.
+		 * @since 1.5.0
+		 * @returns {string} ID clipPath (например, "jsse_xxx--svg__clip").
+		 */
+		getClipId() {
+			return this._getLinkId('clip');
+		}
+
 	    /**
 	     * Возвращает элемент `svg` > `defs`, создавая его при необходимости.
 	     * @since 1.5.0
@@ -2855,6 +3577,8 @@
 					'stroke': 'black',
 					'stroke-width': 0,
 					'fill': 'black'
+				}, {
+						'transition':`var(${this._getTransitionVar('outline')}, 0s)`
 				})
 			};
 			this._outlineMaskLinks = maskLinks;
@@ -2911,11 +3635,13 @@
 	     */
 		_initLinkBackground() {
 			const linkBackground = this._createHtmlElement('div', {
-				'id': this._getLinkId('background')
-			}, {
-				'width': '100%',
-				'height': '100%'
-			});
+					'id': this._getLinkId('background')
+				}, {
+					'width': '100%',
+					'height': '100%',
+					'transition': `var(${this._getTransitionVar('background')}, 0s)`
+				}
+			);
 			this._linkBackground = linkBackground;
 		}
 
@@ -2937,13 +3663,16 @@
 	     */
 		_initLinkBorder() {
 			const link = this._createSvgElement('use', {
-				'id': this._getLinkId('border'),
-				'href': `#${this._getLinkId('path')}`,
-				'fill': 'none',
-				'stroke': '',
-				'stroke-width': '0',
-				'clip-path': `url(#${this._getLinkId('clip')})`
-			});
+					'id': this._getLinkId('border'),
+					'href': `#${this._getLinkId('path')}`,
+					'fill': 'none',
+					'stroke': '',
+					'stroke-width': '0',
+					'clip-path': `url(#${this._getLinkId('clip')})`
+				}, {
+					'transition':`var(${this._getTransitionVar('border')}, 0s)`
+				}
+			);
 			this._linkBorder = link;
 		}
 
@@ -3015,13 +3744,16 @@
 	     */
 		_initLinkOutline() {
 			const link = this._createSvgElement('use', {
-				'id': this._getLinkId('outline'),
-				'href': `#${this._getLinkId('path')}`,
-				'stroke': 'transparent',
-				'stroke-width': 0,
-				'mask': `url(#${this._getLinkId('mask_outline')})`,
-				'fill': 'none'
-			});
+					'id': this._getLinkId('outline'),
+					'href': `#${this._getLinkId('path')}`,
+					'stroke': 'transparent',
+					'stroke-width': 0,
+					'mask': `url(#${this._getLinkId('mask_outline')})`,
+					'fill': 'none'
+				}, {
+					'transition':`var(${this._getTransitionVar('outline')}, 0s)`
+				}
+			);
 			this._linkOutline = link;
 		}
 
@@ -3063,6 +3795,16 @@
 			for (const key of keysToDeleteOut) {
 				this._unsetFilterShadowOut(key);
 			}
+		}
+
+		/**
+		 * Устанавливает CSS-переменную для transition свойства box-shadow.
+		 * @since 1.5.3
+		 * @param {string} [transition='0s'] - Значение перехода (например, "0.2s ease").
+		 * @returns {void}
+		 */
+		setBoxShadowTransition(transition = '0s') {
+			this.getSvg().style.setProperty(this._getTransitionVar('box-shadow'), transition);
 		}
 
 	    /**
@@ -3165,12 +3907,16 @@
 						'radius': 0,
 						'in': 'SourceAlpha',
 						'result': `${id}--spreadRadius`
+					}, {
+						'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 					}),
 					// Размываем на половину значения spread
 					'spreadBlur': this._createSvgElement('feGaussianBlur', {
 						'stdDeviation': 0, // feMorphology[radius] / 2
 						'in': `${id}--spreadRadius`,
 						'result': `${id}--spreadBlur`
+					}, {
+						'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 					}),
 					// Возвращаем четкость границы контрастом
 					'spread': this._createSvgElement('feComponentTransfer', {
@@ -3182,12 +3928,16 @@
 						'stdDeviation': 0,
 						'in': `${id}--spread`,
 						'result': `${id}--blur`
+					}, {
+						'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 					}),
 					// Задаем цвет
 					'color': this._createSvgElement('feFlood', {
 						'flood-color': 'transparent',
 						// 'flood-opacity задается альфа каналом flood-color
 						'result': `${id}--color`
+					}, {
+						'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 					}),
 					// Красим
 					'coloredBlur': this._createSvgElement('feComposite', {
@@ -3202,6 +3952,8 @@
 						'dy': 0,
 						'in': `${id}--coloredBlur`,
 						'result': `${id}--offsetBlur`
+					}, {
+						'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 					}),
 					// После offsetBlur вычитаем SourceAlpha
 					'glow': this._createSvgElement('feComposite', {
@@ -3215,7 +3967,7 @@
 					'spreadFunc': this._createSvgElement('feFuncA', {
 						'type': 'discrete',
 						'tableValues': '0 0 0 0 0 1 1 1 1 1'
-					})
+					}),
 				},
 				// Добавляем
 				'node': this._createSvgElement('feMergeNode', {
@@ -3279,17 +4031,23 @@
 						'radius': 0,
 						'in': `${id}--invertedAlpha`,
 						'result': `${id}--eroded`
+					}, {
+						'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 					}),
 					// Размываем расширенную границу
 					'blur': this._createSvgElement('feGaussianBlur', {
 						'stdDeviation': 0,
 						'in': `${id}--eroded`,
 						'result': `${id}--blur`
+					}, {
+						'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 					}),
 					// Задаем цвет
 					'color': this._createSvgElement('feFlood', {
 						'flood-color': 'transparent',
 						'result': `${id}--color`
+					}, {
+						'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 					}),
 					// Красим
 					'coloredBlur': this._createSvgElement('feComposite', {
@@ -3304,6 +4062,8 @@
 						'dy': 0,
 						'in': `${id}--coloredBlur`,
 						'result': `${id}--offsetBlur`
+					}, {
+						'transition':`var(${this._getTransitionVar('box-shadow')}, 0s)`
 					}),
 					// После offsetBlur вычитаем SourceAlpha
 					'inside': this._createSvgElement('feComposite', {
@@ -3415,6 +4175,9 @@
 			const link = this._getLinkBackground();
 			link.style.setProperty('background', value);
 		}
+		setBackgroundTransition(transition = '0s') {
+			this.getSvg().style.setProperty(this._getTransitionVar('background'), transition);
+		}
 
 	    /**
 	     * Устанавливает обводку (border) фигуры.
@@ -3431,6 +4194,17 @@
 			this._setBorderStyle(link, style);
 		}
 
+		/**
+		 * Устанавливает CSS-переменные для transition свойств border (stroke-width и stroke).
+		 * @since 1.5.3
+		 * @param {string} [width='0s'] - Переход для толщины обводки.
+		 * @param {string} [color='0s'] - Переход для цвета обводки.
+		 * @returns {void}
+		 */
+		setBorderTransition(width = '0s', color = '0s') {
+			this.getSvg().style.setProperty(this._getTransitionVar('border'), `stroke-width ${width}, stroke ${color}`);
+		}
+
 	    /**
 	     * Устанавливает внешний контур (outline) вокруг фигуры.
 	     * @since 1.5.0
@@ -3438,7 +4212,7 @@
 	     * @param {string} color - Цвет контура.
 	     * @param {string|number} offset - Смещение контура (может быть отрицательным).
 	     */
-		setOutline(style, width, color, offset) {
+		setOutline(style, width, color, offset, transition = '0s') {
 			const link = this._getLinkOutline();
 			const numOffset = parseFloat(offset);
 			const numWidth = parseFloat(width);
@@ -3485,13 +4259,24 @@
 		}
 
 		/**
+		 * Устанавливает CSS-переменные для transition свойств outline (stroke-width и stroke).
+		 * @since 1.5.3
+		 * @param {string} [width='0s'] - Переход для толщины контура.
+		 * @param {string} [color='0s'] - Переход для цвета контура.
+		 * @returns {void}
+		 */
+		setOutlineTransition(width = '0s', color = '0s') {
+			this.getSvg().style.setProperty(this._getTransitionVar('outline'), `stroke-width ${width}, stroke ${color}`);
+		}
+
+		/**
 		 * Разбирает значение `box-shadow` на массив объектов теней.
-		 * @since 1.5.0 — перенесен из `SuperellipseModeSvgLayer::_parseBoxShadow` [1.0.0]
+		 * @since 1.5.0
 		 * @protected
 		 * @param {string} boxShadowStr - Строка свойства `box-shadow`.
 		 * @returns {Array<{inset: boolean, color: string|null, offsetX: number, offsetY: number, blurRadius: number, spreadRadius: number, originalColorFormat: string|null}>}
 		 */
-		_parseBoxShadow(boxShadowStr) {
+		_parseBoxShadow(boxShadowStr, transition = '0s') {
 			if (!boxShadowStr || boxShadowStr === 'none') return [];
 			
 			/** Разделяем тени **/
@@ -3722,14 +4507,6 @@
 		_virtualElementList = {};
 
 		/**
-		 * Текущая строка viewBox для SVG.
-		 * @since 1.0.0
-		 * @type {string}
-		 * @protected
-		 */
-		_viewbox;
-
-		/**
 		 * Экземпляр SvgBuilder для управления SVG-элементами.
 		 * @since 1.5.0
 		 * @type {SvgBuilder}
@@ -3751,8 +4528,8 @@
 		 * @param {Element} element - Целевой DOM-элемент.
 		 * @param {boolean} [debug=false] - Флаг отладки.
 		 */
-		constructor(element, debug = false) {
-			super(element, debug);
+		constructor(element) {
+			super(element);
 
 			// this._initViewbox();
 			this._initVirtualElementList();
@@ -3798,19 +4575,45 @@
 		 */
 		_getActivatedStyles() {
 			return {
+				'overflow-x' : 'visible',
+				'overflow-y' : 'visible',
 				'position': 'relative',
 				'background': 'none',
 				'border-style': 'none',
 				'border-color': '',
 				'border-width': '',
 				'border-radius': '0px',
-				// 'outline': 'none',
+				'padding': '0px',
 				'outline-style': 'none',
 				'outline-width': '',
 				'outline-color': '',
 				'outline-offset': '',
 				'box-shadow': 'unset',
 			};
+		}
+
+		/**
+		 * Возвращает список свойств, отслеживаемых для переходов.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {Array<string>}
+		 */
+		_getTransitionProperties() {
+			return [
+				'border-radius',
+				'border-width',
+				'border-color',
+				// 'background',
+				'background-size',
+				'background-color',
+				'background-image',
+				'background-position',
+				'padding',
+				'box-shadow',
+				'outline-width',
+				'outline-color',
+				'outline-offset',
+			];
 		}
 
 		/**
@@ -3839,7 +4642,7 @@
 
 		/**
 	 	 * Применяет все стили (background, border, box-shadow, outline) к виртуальным слоям, если режим активен.
-		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @since 1.5.0
 		 * @requires SvgBuilder#setBackground
 		 * @requires SvgBuilder#setBoxShadow
 		 * @requires SvgBuilder#setBorder
@@ -3849,33 +4652,108 @@
 		 */
 		_applyCurrentInlineVirtualSvgLayerStyles() {
 			if ( this.isActivated() ) {
+				/** overflow **/
+				this._applyCurrentVirtualSvgLayerStyleOverflow();
 				/** background **/
-				this._svgBuilder.setBackground( this._getComputedProp('background') );
+				this._applyCurrentVirtualSvgLayerStyleBackground();
 				/** box-shadow **/
-				this._svgBuilder.setBoxShadow( this._getComputedProp('box-shadow') );
+				this._applyCurrentVirtualSvgLayerStyleBoxShadow();
 				/** border **/
 				this._applyCurrentVirtualSvgLayerStyleBorder();
+				/** padding **/
+				this._applyCurrentVirtualSvgLayerStylePadding();
 				/** outline **/
 				this._applyCurrentVirtualSvgLayerStyleOutline();
 			}
 		}
 
+
 		/**
-		 * Применяет стили border к SVG-слою.
-		 * @since 1.5.0
+		 * Применяет стили overflow к SVG-слою.
+		 * @since 1.5.2
+		 * @protected
+		 * @returns {void}
+		 */
+		_applyCurrentVirtualSvgLayerStyleOverflow() {
+			const overflowX = this._getComputedProp('overflow-x');
+			const overflowY = this._getComputedProp('overflow-y');
+			// this._svgBuilder.setOverflow( overflowX, overflowY );
+
+			/** если overflow равен visible+visible или visible+clip в любом порядке */
+			const clipValue = (overflowY === 'visible' && overflowX === 'clip') || (overflowX === 'visible' && (overflowY === 'visible' || overflowY === 'clip'))
+				?``
+				:`url(#${this._svgBuilder.getClipId()})`;
+				// jsse_console.warn({element: this._element}, {clipValue});
+			this._virtualElementList.innerWrapper.style.setProperty('clip-path', clipValue);
+			this._virtualElementList.innerWrapper.style.setProperty('overflow-x', overflowX);
+			this._virtualElementList.innerWrapper.style.setProperty('overflow-y', overflowY);
+		}
+
+
+		/**
+		 * Применяет стили и анимацию background к SVG-слою.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {void}
+		 */
+		_applyCurrentVirtualSvgLayerStyleBackground() {
+			this._svgBuilder.setBackground( this._getComputedProp('background') );
+
+			const transition = this._getTransition();
+			const propValueShort = transition.getPropString('background', false);
+			this._svgBuilder.setBackgroundTransition( propValueShort );
+		}
+
+
+		/**
+		 * Применяет стили и анимацию box-shadow к SVG-слою.
+		 * @since 1.5.3
+		 * @protected
+		 * @returns {void}
+		 */
+		_applyCurrentVirtualSvgLayerStyleBoxShadow() {
+			this._svgBuilder.setBoxShadow( this._getComputedProp('box-shadow') );
+			/** transition **/
+			const transition = this._getTransition();
+			const propValueShort = transition.getPropString('box-shadow', false);
+			this._svgBuilder.setBoxShadowTransition( propValueShort );
+		}
+
+		/**
+		 * Применяет стили и анимацию border к SVG-слою.
+		 * @since 1.5.3
 		 * @protected
 		 * @returns {void}
 		 */
 		_applyCurrentVirtualSvgLayerStyleBorder() {
-			const borderColor = this._getComputedProp('border-color');
-			const borderWidth = this._getComputedProp('border-width');
 			const borderStyle = this._getComputedProp('border-style');
+			const borderWidth = this._getComputedProp('border-width');
+			const borderColor = this._getComputedProp('border-color');
 			this._svgBuilder.setBorder(borderStyle, borderWidth, borderColor);
+			this._virtualElementList.innerWrapper.style.setProperty('border-style', borderStyle);
+			this._virtualElementList.innerWrapper.style.setProperty('border-width', borderWidth);
+			this._virtualElementList.innerWrapper.style.setProperty('border-color', 'transparent');
+			/** transition **/
+			const transition = this._getTransition();
+			const bwValueShort = transition.getPropString('border-width', false);
+			const bcValueShort = transition.getPropString('border-color', false);
+			this._svgBuilder.setBorderTransition( bwValueShort, bcValueShort );
 		}
 
 		/**
-		 * Применяет стили outline к SVG-слою.
-		 * @since 1.5.0
+		 * Применяет стили padding к SVG-слою.
+		 * @since 1.5.2
+		 * @protected
+		 * @returns {void}
+		 */
+		_applyCurrentVirtualSvgLayerStylePadding() {
+			const padding = this._getComputedProp('padding');
+			this._virtualElementList.innerWrapper.style.setProperty('padding', padding);
+		}
+
+		/**
+		 * Применяет стили и анимацию outline к SVG-слою.
+		 * @since 1.5.3
 		 * @protected
 		 * @returns {void}
 		 */
@@ -3885,6 +4763,11 @@
 			const color = this._getComputedProp('outline-color');
 			const offset = this._getComputedProp('outline-offset');
 			this._svgBuilder.setOutline(style, width, color, offset);
+			/** transition **/
+			const transition = this._getTransition();
+			const owValueShort = transition.getPropString('outline-width', false);
+			const ocValueShort = transition.getPropString('outline-color', false);
+			this._svgBuilder.setOutlineTransition( owValueShort, ocValueShort );
 		}
 
 
@@ -3908,7 +4791,7 @@
 
 		/**
 		 * Создаёт SVG-слой через SvgBuilder.
-		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @since 1.5.0
 		 * @protected
 		 * @returns {void}
 		 */
@@ -3935,6 +4818,8 @@
 			const innerWrapper = this._createVirtualHtmlElement('div');
 			innerWrapper.className = 'jsse--svg-layer--content';
 			innerWrapper.style.setProperty('position', 'relative');
+			innerWrapper.style.setProperty('max-width', '100%');
+			innerWrapper.style.setProperty('max-height', '100%');
 
 			this._virtualElementList.innerWrapper = innerWrapper;
 		}
@@ -3965,7 +4850,7 @@
 
 		/**
 		 * Добавляет SVG-слой в начало элемента.
-		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @since 1.5.0
 		 * @requires SvgBuilder#getSvg
 		 * @protected
 		 * @returns {void}
@@ -3977,7 +4862,7 @@
 
 		/**
 		 * Удаляет SVG-слой.
-		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @since 1.5.0
 		 * @requires SvgBuilder#getSvg
 		 * @protected
 		 * @returns {void}
@@ -4036,7 +4921,7 @@
 		/**
 		 * Применяет кривую, обновляя размеры SVG и путь.
 		 * @override
-		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @since 1.5.0
 		 * @requires SvgBuilder#setSize
 		 * @requires SvgBuilder#setPath
 		 * @protected
@@ -4051,7 +4936,7 @@
 		/**
 		 * Восстанавливает исходный путь и очищает d-атрибут.
 		 * @override
-		 * @since 1.5.0 — обновлён для работы с SvgBuilder
+		 * @since 1.5.0
 		 * @requires SvgBuilder#setPath
 		 * @protected
 		 * @returns {void}
@@ -4111,8 +4996,8 @@
 		 * @param {Element} element - Целевой DOM-элемент.
 		 * @param {boolean} [debug=false] - Флаг отладки (передаётся в родительский класс).
 		 */
-		constructor(element, debug = false) {
-			super(element, debug);
+		constructor(element) {
+			super(element);
 		}
 
 
@@ -4731,7 +5616,7 @@
 			else {
 				this._hoverLeaveHandler(selector);
 			}
-			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[HOVER]', selector, isHover);
+			jsse_console.debug({label:'STYLESHEET',element:this._element}, '[HOVER]', {[selector]: isHover});
 		}
 
 
@@ -4997,38 +5882,34 @@
 		 * @returns {void}
 		 */
 		_mutationHandler() {
-			jsse_console.debug({label:'MUTATION', element:this._element}, '[DETECT]', this._isSelfMutation ? 'self' : 'flow');
-			if (this._isSelfMutation)
-				return;
-			if (this._prepareTimer !== null) {
-				clearTimeout(this._prepareTimer);
-			}
-			this._prepareTimer = setTimeout(() => {
-				this._prepareTimer = null;
-				jsse_console.debug({label:'MUTATION', element:this._element}, '[START]');
-				this._isSelfMutation = true;
-				try {
-					jsse_console.debug({label:'MUTATION', element:this._element}, '[UPDATE]');
-					if (this._isDisplay() && this._needsUpdate) {
-						this._mode.update();
-						this._emit('update', { type: 'full' });
-						this._needsUpdate = false;
-					} else {
-						this._mode.updateStyles();
-						this._emit('update', { type: 'styles' });
-					}
-				} finally {
-					if (this._executeTimer !== null) {
-						clearTimeout(this._executeTimer);
-					}
-					this._executeTimer = setTimeout(() => {
-						this._executeTimer = null;
-						jsse_console.debug({label:'MUTATION', element:this._element}, '[END]');
-						this._isSelfMutation = false;
+			if (this._isSelfMutation) return;
 
-					}, 0);
+			this._isSelfMutation = true;
+			jsse_console.debug({label:'MUTATION', element:this._element}, '[START]');
+			requestAnimationFrame(()=>{
+				jsse_console.debug({label:'MODE',element:this._element}, '[FRAME]', '[NEXT]');
+			});
+			try {
+				// jsse_console.debug({label:'MUTATION', element:this._element}, '[UPDATE]');
+				if (this._isDisplay() && this._needsUpdate) {
+					this._mode.update();
+					this._emit('update', { type: 'full' });
+					this._needsUpdate = false;
+				} else {
+					this._mode.updateStyles();
+					this._emit('update', { type: 'styles' });
 				}
-			}, 0);
+			} finally {
+				if (this._executeTimer !== null) {
+					clearTimeout(this._executeTimer);
+				}
+				this._executeTimer = setTimeout(() => {
+					this._executeTimer = null;
+					jsse_console.debug({label:'MUTATION', element:this._element}, '[END]');
+					this._isSelfMutation = false;
+
+				}, 0);
+			}
 		}
 
 		/**
